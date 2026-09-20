@@ -677,3 +677,75 @@ Do not fabricate model accuracy.
 Do not fabricate backend results.
 
 Do not fabricate integrations.
+
+# AUTONOMOUS ERROR RECOVERY
+
+Do not stop the implementation for ordinary errors.
+
+When an error occurs:
+
+1. Read the complete error.
+2. Identify the root cause.
+3. Inspect the relevant source/configuration.
+4. Apply the smallest correct fix.
+5. Run the failed command again.
+6. If it fails, inspect the NEW error rather than repeating the same fix.
+7. Try up to 3 technically different fixes when reasonable.
+8. If still blocked, isolate the failing component and continue with independent work.
+9. Record the blocker in docs/BLOCKERS.md.
+10. Continue all work that does not depend on the blocker.
+
+Never ask the user to copy/paste an error that is already visible in the terminal.
+
+Never ask the user to provide screenshots of ordinary build errors if the terminal output is accessible.
+
+Never repeatedly retry the same command without changing the underlying cause.
+
+Never rewrite the entire project because of a localized error.
+
+Never modify unrelated working components to solve a localized problem.
+
+When a dependency is unavailable:
+
+- identify it
+- determine whether an alternative exists
+- use the simplest compatible alternative
+- document the decision
+
+When cloud credentials/GPU access are unavailable:
+
+- prepare the complete cloud training package
+- create reproducible commands/notebooks
+- continue all non-training work
+- record the exact external action required
+
+When a model download is too large or slow:
+
+- do not repeatedly retry
+- create the model adapter
+- verify the interface using a lightweight fixture
+- continue other work
+
+Maintain:
+
+docs/BLOCKERS.md
+
+with:
+
+- blocker
+- cause
+- attempted fixes
+- current status
+- required external action
+
+Do not fabricate a successful result.
+
+# RELATIONSHIP TO OTHER SECTIONS
+
+These rules govern how an error is handled. They do not lower any quality standard.
+
+VERIFICATION step 8 ("fix discovered issues before moving forward") governs every issue that can be fixed. The escalate-and-continue path above applies only after three technically different fixes have failed.
+
+A platform/API limitation follows IMPORTANT: identify it, implement the closest valid architecture, isolate it, continue. Record it in docs/BLOCKERS.md as a permanent limitation rather than as an open blocker.
+
+Continuing past a blocker never permits fabricating functionality, model accuracy, backend results or integrations. An unfinished component is reported as unfinished.
