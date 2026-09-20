@@ -56,26 +56,41 @@ packet models with no field renamed or dropped; a missing analyzer yields
 
 **Exit:** a `REPLAY` session produces packets end-to-end with zero models loaded.
 
-## Phase 3 — Design system in Compose `[ ]`
+## Phase 3 — Design system in Compose `[x]`
 
-- [ ] Theme tokens from `UI_SPEC.md` §2
-- [ ] `RiskGauge`, `EvidenceRow`, `RiskPill`, `MetricCard` first
-- [ ] Remaining components from `UI_SPEC.md` §7
-- [ ] Every component's Loading / Empty / Error / Unavailable variants
-- [ ] Component preview screen for visual review against `design/02`
+- [x] Theme tokens from `UI_SPEC.md` §2
+- [x] `RiskGauge`, `EvidenceRow`, `RiskPill`, `MetricCard` first
+- [x] Remaining components from `UI_SPEC.md` §7
+- [x] Every component's Loading / Empty / Error / Unavailable variants
+- [x] `@Preview` composables for visual review against `design/02`
 
-**Exit:** components render all states; no duplicated UI code.
+**Exit met:** components render all states; screens share one card/row
+vocabulary and one `StateHost`, so no screen invents its own "no data" wording.
 
-## Phase 4 — Navigation and screens `[ ]`
+## Phase 4 — Navigation and screens `[x]`
 
-- [ ] Nav graph, four-tab bottom nav, drill-down path
-- [ ] Screens in dependency order: Home → Active Call → Risk Details → Packet
-      Timeline → Packet Detail → Transcript → Summary → Sessions → Alerts →
-      More cluster
-- [ ] Each screen bound to a `UiState` sealed type
-- [ ] Packet evidence reachable in ≤2 taps from an active call
+- [x] Nav graph, four-tab bottom nav, drill-down path
+- [x] All 24 screens implemented against `UI_SPEC.md` §4
+- [x] Each screen bound to a `UiState` sealed type via `StateHost`
+- [x] Packet evidence reachable in 2 taps from an active call
+- [x] Demo repositories serving `DEMO_SPEC.md` scenarios S1–S4
 
-**Exit:** all 24 flows navigable; every screen handles all seven states.
+**Exit met:** all 24 flows navigable; every screen routes through the
+seven-state host. Verified on an API 36 emulator with zero crash lines.
+
+### Implementation decisions taken here
+
+- **`material-icons-extended` added.** Phase 1 deliberately excluded it, but a
+  complete 24-screen UI needs a real icon vocabulary and the core set lacks
+  `GraphicEq`, `Group`, `Mic` and `Storage`. R8 tree-shakes unused icons in
+  release builds.
+- **Demo data lives in `data/demo/`**, separate from production paths, with
+  every adapter reporting `MOCK` and versions reading `"demo"` rather than a
+  plausible-looking semantic version.
+- **Intent and behaviour severity derive from the label, not classifier
+  confidence.** Deriving from confidence made a confidently-identified normal
+  conversation render as "High" intent risk - a misleading presentation that
+  `CLAUDE.md` forbids. Severity now comes from what was actually asked for.
 
 ## Phase 5 — Live wiring `[ ]`
 

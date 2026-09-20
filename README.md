@@ -147,13 +147,13 @@ document disagrees with it, `CLAUDE.md` wins.
 
 ## Current status
 
-**Phase 1 complete — Android foundation.** The app builds, launches and
-navigates: design system, navigation architecture, state architecture, typed
-data models and the REST/WebSocket interfaces are in place. 16 unit tests pass.
+**Phase 2 complete — full Android UI.** All 24 screens from
+[`docs/UI_SPEC.md`](docs/UI_SPEC.md) are implemented and navigable, backed by
+demo repositories. 29 unit tests pass.
 
-Screens beyond the four tabs render honest placeholders naming the phase that
-implements them. Repositories are stubs that report *no data* / *unavailable* -
-they do not fabricate risk values.
+Demo data is clearly separated in `data/demo/`, every adapter reports `MOCK`,
+and a non-dismissable **Demo data** badge appears on every screen — a demo can
+never be mistaken for real inference.
 
 `backend/` is still empty; no dataset has been downloaded and no model trained.
 

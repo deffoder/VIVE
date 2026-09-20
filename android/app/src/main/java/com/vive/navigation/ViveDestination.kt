@@ -12,6 +12,12 @@ package com.vive.navigation
  */
 sealed class ViveDestination(val route: String) {
 
+    // --- onboarding ---
+    data object Splash : ViveDestination("splash")
+    data object Onboarding : ViveDestination("onboarding")
+    data object Permissions : ViveDestination("permissions")
+    data object Login : ViveDestination("login")
+
     // --- bottom navigation ---
     data object Home : ViveDestination("home")
     data object Sessions : ViveDestination("sessions")
@@ -58,6 +64,7 @@ sealed class ViveDestination(val route: String) {
     data object Profile : ViveDestination("more/profile")
     data object Help : ViveDestination("more/help")
     data object About : ViveDestination("more/about")
+    data object Logout : ViveDestination("more/logout")
 
     companion object {
         const val ARG_SESSION_ID = "sessionId"
