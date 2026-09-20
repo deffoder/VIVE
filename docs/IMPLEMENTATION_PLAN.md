@@ -206,18 +206,24 @@ Google Colab; no local GPU assumed.
 
 **Exit:** adapters report `mode: "real"`; every metric traces to a measured run.
 
-## Phase 9 — Verification and hardening `[ ]`
+## Phase 9 — Verification and hardening `[~]`
 
-- [ ] `tests/backend/` — pipeline, fusion, temporal, policy
-- [ ] `tests/android/` — component states, navigation, drill-down
-- [ ] `tests/integration/` — REST + WebSocket contract
-- [ ] `tests/e2e/` — scenarios S1–S10
-- [ ] Latency measured and recorded, not claimed
-- [ ] Security review against `SECURITY_SPEC.md` §8
-- [ ] Design quality gate against `CLAUDE.md`
+- [x] Backend tests — pipeline, fusion, temporal, policy (92 total)
+- [x] Android tests — states, navigation, serialization, audio (84 total)
+- [x] Integration — REST + WebSocket contract, live server verified
+- [x] End-to-end — DEMO_SPEC scenarios S1–S4
+- [x] Latency measured and recorded, not claimed
+- [x] Security controls implemented and tested; report in `PHASE6_REPORTS.md`
+- [x] Privacy controls: deletion, retention defaults, log redaction
+- [x] Failure modes exercised: disconnect, reconnect, malformed input,
+      oversized frames, empty transcript, model unavailable, deleted session
+- [x] Demo hardening: deterministic scenarios, reset endpoint, MOCK/REAL
+      boundary enforced in code and surfaced in the UI
+- [ ] Scenarios S5–S10 (need real adapters or a second device)
+- [ ] Design quality gate re-run after any further UI change
 
-**Exit:** the definition of done in `PROJECT_SPEC.md` is met by demonstration,
-not by compilation.
+**Exit (partial):** 176 tests pass across both sides. The remaining items
+depend on real models, which is Phase 8.
 
 ## Notes on sequencing
 

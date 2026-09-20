@@ -9,7 +9,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import AuthDep, SessionsDep, StoreDep
+from app.api.deps import (
+    AuthDep,
+    SessionsDep,
+    StateDep,
+    StoreDep,
+    claim_ownership,
+    require_owned,
+)
+from app.core.security import AuditEvent, audit
 from app.core.config import API_PREFIX
 from app.core.errors import packet_not_found
 from app.schemas.models import (
@@ -35,9 +43,20 @@ router = APIRouter(tags=["sessions"])
 async def create_session(
     request: CreateSessionRequest,
     sessions: SessionsDep,
-    _: AuthDep = None,
+    state: StateDep,
+    principal: AuthDep,
 ) -> CreateSessionResponse:
+    # Session creation is limited separately: it allocates state, so it is the
+    # cheapest endpoint to abuse.
+    if not state.create_limiter.allow(principal.principal_id):
+        from app.core.errors import ErrorCode, ViveError
+
+        audit(AuditEvent.RATE_LIMITED, principal, detail="session create")
+        raise ViveError(ErrorCode.RATE_LIMITED, "Too many sessions created. Slow down.")
+
     session = sessions.create(request)
+    claim_ownership(state, session.session_id, principal)
+    audit(AuditEvent.SESSION_CREATED, principal, session.session_id)
     return CreateSessionResponse(
         session_id=session.session_id,
         status=session.status,
@@ -49,7 +68,7 @@ async def create_session(
 @router.get("/sessions", response_model=list[Session], summary="List sessions")
 async def list_sessions(
     store: StoreDep,
-    _: AuthDep = None,
+    principal: AuthDep,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> list[Session]:
@@ -57,13 +76,21 @@ async def list_sessions(
 
 
 @router.get("/sessions/{session_id}", response_model=Session, summary="Session state")
-async def get_session(session_id: str, sessions: SessionsDep, _: AuthDep = None) -> Session:
+async def get_session(
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
+) -> Session:
+    require_owned(state, session_id, principal)
     return sessions.get(session_id)
 
 
 @router.post("/sessions/{session_id}/end", response_model=Session, summary="End a session")
-async def end_session(session_id: str, sessions: SessionsDep, _: AuthDep = None) -> Session:
-    return sessions.end(session_id)
+async def end_session(
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
+) -> Session:
+    require_owned(state, session_id, principal)
+    ended = sessions.end(session_id)
+    audit(AuditEvent.SESSION_ENDED, principal, session_id)
+    return ended
 
 
 @router.post(
@@ -75,8 +102,10 @@ async def set_context(
     session_id: str,
     context: SessionContext,
     sessions: SessionsDep,
-    _: AuthDep = None,
+    state: StateDep,
+    principal: AuthDep,
 ) -> Session:
+    require_owned(state, session_id, principal)
     return sessions.set_context(session_id, context)
 
 
@@ -85,7 +114,10 @@ async def set_context(
     response_model=RiskSummary,
     summary="Current aggregate risk",
 )
-async def get_risk(session_id: str, sessions: SessionsDep, _: AuthDep = None) -> RiskSummary:
+async def get_risk(
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
+) -> RiskSummary:
+    require_owned(state, session_id, principal)
     session = sessions.get(session_id)
     from app.schemas.models import RiskLevel
 
@@ -102,10 +134,12 @@ async def get_risk(session_id: str, sessions: SessionsDep, _: AuthDep = None) ->
 async def list_packets(
     session_id: str,
     sessions: SessionsDep,
-    _: AuthDep = None,
+    state: StateDep,
+    principal: AuthDep,
     since_seq: int | None = Query(default=None, ge=0),
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[Packet]:
+    require_owned(state, session_id, principal)
     record = sessions.require_record(session_id)
     packets = record.packets
     if since_seq is not None:
@@ -121,12 +155,13 @@ async def list_packets(
 async def list_events(
     session_id: str,
     sessions: SessionsDep,
-    _: AuthDep = None,
+    state: StateDep,
+    principal: AuthDep,
     since_seq: int | None = Query(default=None, ge=0),
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[Packet]:
     return await list_packets(
-        session_id, sessions, _, since_seq=since_seq, limit=limit
+        session_id, sessions, state, principal, since_seq=since_seq, limit=limit
     )
 
 
@@ -136,8 +171,13 @@ async def list_events(
     summary="Single packet",
 )
 async def get_packet(
-    session_id: str, packet_id: str, sessions: SessionsDep, _: AuthDep = None
+    session_id: str,
+    packet_id: str,
+    sessions: SessionsDep,
+    state: StateDep,
+    principal: AuthDep,
 ) -> Packet:
+    require_owned(state, session_id, principal)
     record = sessions.require_record(session_id)
     for packet in record.packets:
         if packet.packet_id == packet_id:
@@ -151,13 +191,17 @@ async def get_packet(
     summary="Ordered transcript",
 )
 async def get_transcript(
-    session_id: str, sessions: SessionsDep, _: AuthDep = None
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
 ) -> list[TranscriptLine]:
+    require_owned(state, session_id, principal)
     return sessions.require_record(session_id).transcript
 
 
 @router.get("/sessions/{session_id}/report", summary="Final call report")
-async def get_report(session_id: str, sessions: SessionsDep, _: AuthDep = None) -> dict:
+async def get_report(
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
+) -> dict:
+    require_owned(state, session_id, principal)
     record = sessions.require_record(session_id)
     session = record.session
     return {
@@ -174,15 +218,21 @@ async def get_report(session_id: str, sessions: SessionsDep, _: AuthDep = None) 
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a session and everything derived from it",
 )
-async def delete_session(session_id: str, sessions: SessionsDep, _: AuthDep = None) -> None:
+async def delete_session(
+    session_id: str, sessions: SessionsDep, state: StateDep, principal: AuthDep
+) -> None:
+    require_owned(state, session_id, principal)
     sessions.require_record(session_id)
+    # Real deletion: the record and everything derived from it are removed.
     sessions.delete(session_id)
+    state.owners.pop(session_id, None)
+    audit(AuditEvent.SESSION_DELETED, principal, session_id)
 
 
 @router.get("/alerts", response_model=list[Alert], summary="List alerts")
 async def list_alerts(
     store: StoreDep,
-    _: AuthDep = None,
+    principal: AuthDep,
     session_id: str | None = Query(default=None),
     level: str | None = Query(default=None),
 ) -> list[Alert]:
@@ -195,7 +245,7 @@ async def list_alerts(
 
 
 @router.post("/alerts/{alert_id}/ack", response_model=Alert, summary="Acknowledge an alert")
-async def acknowledge_alert(alert_id: str, store: StoreDep, _: AuthDep = None) -> Alert:
+async def acknowledge_alert(alert_id: str, store: StoreDep, principal: AuthDep) -> Alert:
     from app.core.errors import ErrorCode, ViveError
 
     found = store.find_alert(alert_id)

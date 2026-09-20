@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import uuid
 
 from fastapi import APIRouter
 
 from app.api.deps import AuthDep, StateDep
+from app.core.security import AuditEvent, audit, sign_payload
 from app.core.config import get_settings
 from app.risk import policy
 from app.risk.fusion import FUSION_VERSION
@@ -64,7 +63,7 @@ async def version(state: StateDep) -> VersionResponse:
 
 
 @router.get("/models", response_model=list[ModelInfo], summary="Model inventory")
-async def list_models(state: StateDep, _: AuthDep = None) -> list[ModelInfo]:
+async def list_models(state: StateDep, principal: AuthDep) -> list[ModelInfo]:
     """Inventory with per-model mode.
 
     No accuracy field exists on purpose: none has been measured, and
@@ -101,7 +100,7 @@ async def list_models(state: StateDep, _: AuthDep = None) -> list[ModelInfo]:
     summary="Evaluate the policy for a risk assessment",
 )
 async def evaluate_policy(
-    request: PolicyEvaluateRequest, _: AuthDep = None
+    request: PolicyEvaluateRequest, principal: AuthDep
 ) -> PolicyEvaluateResponse:
     return policy.evaluate(request)
 
@@ -112,7 +111,7 @@ async def evaluate_policy(
     summary="Exercise the webhook signing path (development only)",
 )
 async def webhook_test(
-    request: WebhookTestRequest, _: AuthDep = None
+    request: WebhookTestRequest, state: StateDep, principal: AuthDep
 ) -> WebhookTestResponse:
     """Development/security-workflow test endpoint. NOT a bank integration.
 
@@ -125,6 +124,10 @@ async def webhook_test(
     """
     settings = get_settings()
     event_id = f"evt_{uuid.uuid4().hex[:16]}"
+    # Replay protection: a repeated event id is rejected, which is what makes
+    # webhook delivery idempotent (docs/API_SPEC.md 8).
+    state.replay_guard.check_and_record(event_id)
+    audit(AuditEvent.WEBHOOK_TEST, principal, detail=event_id)
     payload = {
         "event": request.event,
         "event_id": event_id,
@@ -137,9 +140,7 @@ async def webhook_test(
     body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
 
     if settings.webhook_signing_key:
-        signature = hmac.new(
-            settings.webhook_signing_key.encode(), body, hashlib.sha256
-        ).hexdigest()
+        signature = sign_payload(settings.webhook_signing_key, body)
         signed = True
     else:
         signature = ""
@@ -156,3 +157,38 @@ async def webhook_test(
             "transmitted. Configure VIVE_WEBHOOK_SIGNING_KEY to enable signing."
         ),
     )
+
+
+@router.post(
+    "/demo/reset",
+    tags=["demo"],
+    summary="Clear all sessions and demo state",
+)
+async def demo_reset(state: StateDep, principal: AuthDep) -> dict[str, object]:
+    """Resets demo state so a demonstration can be rehearsed repeatedly.
+
+    Removes every session and everything derived from it, clears WebSocket
+    channels and resets the replay guard and rate limiters. This is real
+    deletion, not a flag: the records are gone.
+
+    Available because every adapter is a mock. It is refused once real
+    adapters are configured, so it can never wipe production evidence.
+    """
+    if state.adapters.mode.value != "mock":
+        from app.core.errors import ErrorCode, ViveError
+
+        raise ViveError(
+            ErrorCode.FORBIDDEN,
+            "Demo reset is only available while adapters are in mock mode.",
+        )
+
+    cleared = state.store.count()
+    state.store.clear()
+    state.connections.reset()
+    state.owners.clear()
+    state.replay_guard.reset()
+    state.rate_limiter.reset()
+    state.create_limiter.reset()
+
+    audit(AuditEvent.SESSION_DELETED, principal, detail=f"demo reset: {cleared} sessions")
+    return {"reset": True, "sessions_cleared": cleared, "adapter_mode": "mock"}

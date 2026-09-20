@@ -22,6 +22,7 @@ from app.api.routes import system as system_routes
 from app.core.config import API_PREFIX, LEGACY_API_PREFIX, Settings, get_settings
 from app.core.errors import ErrorCode, ViveError
 from app.core.logging import configure_logging, get_logger
+from app.core.security import RateLimiter, ReplayGuard
 from app.core.session_manager import SessionManager
 from app.store.memory import InMemoryEventStore
 from app.ws import stream as ws_stream
@@ -55,6 +56,15 @@ def build_state(settings: Settings) -> AppState:
         adapters=adapters,
         sessions=SessionManager(store, adapters),
         connections=ConnectionManager(),
+        rate_limiter=RateLimiter(
+            limit=settings.rate_limit_requests,
+            window_seconds=settings.rate_limit_window_seconds,
+        ),
+        create_limiter=RateLimiter(
+            limit=settings.rate_limit_session_creates,
+            window_seconds=settings.rate_limit_window_seconds,
+        ),
+        replay_guard=ReplayGuard(),
     )
 
 

@@ -98,6 +98,20 @@ retried with backoff to operator-configured destinations only.
 | Replay of webhook events | `event_id` idempotency, signature, timestamp window |
 | Model output treated as proof | UI phrasing rules, mock/real mode surfaced (`UI_SPEC.md` §6) |
 
+## 8.1 Implementation status
+
+Controls implemented and tested in the hardening pass are listed with their
+test evidence in [`PHASE6_REPORTS.md`](PHASE6_REPORTS.md) §1.
+
+Accurate wording matters here. A control that is implemented and tested is
+**designed and verified in a prototype**, not *certified* or
+*production-secure*. No external audit or penetration test has been performed,
+and none may be claimed.
+
+Specifically **not** implemented: token rotation and expiry, distributed rate
+limiting, and encryption at rest (there is nothing on disk to encrypt yet).
+Ownership tracking is in process memory and does not survive a restart.
+
 ## 9. Compliance posture
 
 Aligned with NIST AI RMF framing: the system is documented as decision support

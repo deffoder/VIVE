@@ -141,19 +141,25 @@ Start with [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md), then
 | [`DEMO_SPEC.md`](docs/DEMO_SPEC.md) | Scenarios and acceptance |
 | [`IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) | Phases and exit criteria |
 | [`BLOCKERS.md`](docs/BLOCKERS.md) | Open decisions, deferrals, limitations |
+| [`PHASE6_REPORTS.md`](docs/PHASE6_REPORTS.md) | Security, test and demo-readiness reports |
 
 [`CLAUDE.md`](CLAUDE.md) is the highest-priority project instruction. Where any
 document disagrees with it, `CLAUDE.md` wins.
 
 ## Current status
 
-**Phase 2 complete — full Android UI.** All 24 screens from
-[`docs/UI_SPEC.md`](docs/UI_SPEC.md) are implemented and navigable, backed by
-demo repositories. 29 unit tests pass.
+**End-to-end prototype working on mock adapters.** The Android app drives a
+FastAPI backend over REST and WebSocket: sessions stream, packets are analysed
+and returned, and all 24 screens render backend data. **176 tests pass** (92
+backend, 84 Android).
 
-Demo data is clearly separated in `data/demo/`, every adapter reports `MOCK`,
-and a non-dismissable **Demo data** badge appears on every screen — a demo can
-never be mistaken for real inference.
+**No real ML runs anywhere.** Every analyzer is a deterministic mock; model
+versions read `"demo"`; `/ready` reports the mode per adapter; the app shows a
+non-dismissable **Demo data** badge. Nothing here may be cited as accuracy or
+detection capability.
+
+Security, test and demo-readiness reports:
+[`docs/PHASE6_REPORTS.md`](docs/PHASE6_REPORTS.md).
 
 `backend/` is still empty; no dataset has been downloaded and no model trained.
 

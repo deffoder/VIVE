@@ -51,6 +51,32 @@ class Settings(BaseSettings):
     max_audio_frame_bytes: int = Field(default=1_048_576, ge=1024)
     max_packets_per_session: int = Field(default=10_000, ge=10)
 
+    # --- privacy ---
+    retain_raw_audio: bool = False
+    """Raw audio is NEVER persisted unless an operator opts in.
+
+    Default False, and the current store has no disk path at all, so enabling
+    it is not sufficient to make audio persist - it is a forward-looking switch
+    (docs/SECURITY_SPEC.md 4).
+    """
+
+    session_retention_seconds: int = Field(default=3600, ge=60, le=604_800)
+    """How long an ended session's evidence is kept before deletion."""
+
+    # --- rate limiting (per-node; see security.RateLimiter) ---
+    rate_limit_requests: int = Field(default=120, ge=1)
+    rate_limit_window_seconds: int = Field(default=60, ge=1)
+    rate_limit_session_creates: int = Field(default=20, ge=1)
+
+    # --- TLS readiness ---
+    require_tls: bool = False
+    """When true the app refuses plaintext forwarded requests.
+
+    TLS itself is terminated by the deployment (reverse proxy or ASGI server);
+    this flag only enforces that it happened. Setting it does not itself
+    provide encryption, and the product must not claim it does.
+    """
+
     @field_validator("log_level")
     @classmethod
     def _upper(cls, v: str) -> str:
