@@ -1,0 +1,68 @@
+# --- Secrets / local config ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+local.properties
+secrets.properties
+
+# --- Python (backend/) ---
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node (frontend/) ---
+node_modules/
+dist/
+build/
+.vite/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Android / Gradle ---
+.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+*.apk
+*.aab
+*.aar
+*.jks
+*.keystore
+captures/
+
+# --- Model checkpoints & data (large binaries) ---
+models/**/*.pth
+models/**/*.pt
+models/**/*.onnx
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.ckpt
+data/
+*.wav
+*.mp3
+*.flac
+!tests/fixtures/**/*.wav
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
