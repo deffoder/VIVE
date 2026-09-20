@@ -98,7 +98,9 @@ diverge from the design references.
 - **Cause:** deferred deliberately; the choice does not affect the API contract.
 - **Attempted fixes:** `store/` is defined as an interface so the engine can be
   swapped without touching routes or fusion.
-- **Current status:** in-memory is sufficient through Phase 5. Not blocking.
+- **Current status:** an in-memory store is now implemented behind an
+  `EventStore` interface, so the engine choice is a constructor change. Still
+  sufficient; not blocking. Data is lost on restart by design for now.
 - **Required external action:** choose an engine before Phase 6, so retention
   (`SECURITY_SPEC.md` §4) can actually be enforced.
 
@@ -117,9 +119,10 @@ diverge from the design references.
 - **Blocker:** risk-fusion calibration is provisional.
 - **Cause:** initial weights are expert-set; no real model outputs exist yet to
   calibrate against.
-- **Attempted fixes:** weights externalised to `models/configs/fusion.yaml` and
-  versioned as `risk-fusion`, so recalibration is a config change rather than a
-  code change.
+- **Attempted fixes:** weights externalised and versioned as `risk-fusion`, so
+  recalibration is a config change. The combination rule was additionally
+  changed from a weighted average to noisy-OR after the average was found to
+  let low anti-spoof evidence suppress high semantic evidence.
 - **Current status:** acceptable for mock-driven demos provided the provisional
   status is stated (`DEMO_SPEC.md` §6).
 - **Required external action:** recalibrate against real outputs in Phase 8;

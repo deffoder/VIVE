@@ -57,6 +57,9 @@ demo is never mistaken for production inference.
 | GET | `/api/v1/sessions/{session_id}/packets/{packet_id}` | Single packet |
 | GET | `/api/v1/sessions/{session_id}/transcript` | Ordered transcript |
 | GET | `/api/v1/sessions/{session_id}/report` | Final call report |
+| GET | `/api/v1/sessions/{session_id}/events` | Event history (alias of `/packets`) |
+| POST | `/api/v1/sessions/{session_id}/context` | Set authorized context signals |
+| DELETE | `/api/v1/sessions/{session_id}` | Delete a session and all derived data |
 
 ### 3.1 Create session
 
@@ -304,6 +307,33 @@ frames `{"type":"client.pause"}`, `{"type":"client.resume"}`,
 Signed (`X-VIVE-Signature`, HMAC-SHA256), idempotent on `event_id`, retried with
 backoff. Transcripts and audio are **never** sent in a webhook
 (`SECURITY_SPEC.md` §4).
+
+## 8.1 Policy and webhook-test endpoints
+
+Implemented in the backend phase.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/policies/evaluate` | Map a risk assessment to a recommended action |
+| POST | `/api/v1/webhooks/test` | Build and sign a webhook payload, without sending it |
+
+`POST /api/v1/policies/evaluate` takes `risk_score`, `confidence`, optional
+`risk_level`, `intent` and `caller_verified`, and returns
+`recommended_action`, `should_alert`, `reasons` and `policy_version`.
+**Confidence gates escalation**: below 0.5 the response never sets
+`should_alert`, because thin evidence must not drive an escalation.
+
+`POST /api/v1/webhooks/test` is a development and security-workflow endpoint,
+**not a bank integration**. It constructs the payload a real delivery would
+send and signs it when `VIVE_WEBHOOK_SIGNING_KEY` is configured, then returns
+`delivered: false` — nothing is transmitted. Claiming delivery here would be
+fabricating an integration.
+
+## 8.2 Path prefix
+
+The canonical prefix is `/api/v1`. A `/v1` alias is mounted for the shorter
+form used in external documents; both resolve to the same handlers
+(`BLOCKERS.md` R3).
 
 ## 9. Auth
 

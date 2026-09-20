@@ -44,17 +44,35 @@ Deferred to Phase 2 (backend side of the same contract):
 packet models with no field renamed or dropped; a missing analyzer yields
 `null`, never `0`.
 
-## Phase 2 — Backend skeleton, no models `[ ]`
+## Phase 2 — Backend skeleton `[x]`
 
-- [ ] FastAPI app, config, health/ready/version
-- [ ] Session manager and state machine
-- [ ] Bounded ring buffer; sliding-window packetizer (2.0 s / 1.0 s / 16 kHz)
-- [ ] Analyzer orchestrator calling interfaces that all return `UNAVAILABLE`
-- [ ] REST routes per `API_SPEC.md` §3 and §5
-- [ ] WebSocket manager and frame envelopes (§6)
-- [ ] Error contract (§7)
+- [x] FastAPI app, env-driven config, health/ready/version
+- [x] Session manager and state machine, VS-/P- id generation
+- [x] Sliding-window packetizer (2.0 s window, 1.0 s stride, 16 kHz)
+- [x] Analyzer orchestrator calling the adapter interfaces
+- [x] REST routes per `API_SPEC.md` §3, §5, §8.1
+- [x] WebSocket manager, frame envelopes, heartbeat, reconnect-safe sequencing
+- [x] Structured error contract (§7) and JSON logging with redaction
+- [x] Mock adapters, transparent fusion, temporal risk, policy engine
+- [x] In-memory event store (resolves the interim part of `BLOCKERS.md` O4)
+- [x] 48 backend tests
 
-**Exit:** a `REPLAY` session produces packets end-to-end with zero models loaded.
+**Exit met:** a session streams end to end over WebSocket and produces
+traceable packets with zero real models loaded. Verified against a live uvicorn
+server, not only the test client.
+
+### Implementation decisions taken here
+
+- **Fusion is noisy-OR, not a weighted average.** An average lets a LOW signal
+  cancel a HIGH one, so benign anti-spoof evidence suppressed a clear OTP
+  request — exactly the "human voice is not automatically safe" failure mode.
+  Noisy-OR raises risk on strong evidence in any channel while weak evidence
+  merely contributes little.
+- **Demo determinism is content-seeded.** Mock scores derive from the
+  transcript, not the session id, so the same demo script yields identical
+  scores on every run.
+- **In-memory persistence**, per O4. Audio and transcripts never touch disk,
+  which is also the privacy posture in `SECURITY_SPEC.md` §4.
 
 ## Phase 3 — Design system in Compose `[x]`
 
