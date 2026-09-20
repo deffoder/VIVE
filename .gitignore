@@ -33,6 +33,7 @@ yarn-error.log*
 
 # --- Android / Gradle ---
 .gradle/
+.kotlin/
 android/build/
 android/app/build/
 android/.cxx/

@@ -147,10 +147,15 @@ document disagrees with it, `CLAUDE.md` wins.
 
 ## Current status
 
-**Architecture phase.** The directory structure and the ten specifications are in
-place. No application code has been written; `android/` and `backend/` are empty.
+**Phase 1 complete — Android foundation.** The app builds, launches and
+navigates: design system, navigation architecture, state architecture, typed
+data models and the REST/WebSocket interfaces are in place. 16 unit tests pass.
 
-No dataset has been downloaded and no model has been trained.
+Screens beyond the four tabs render honest placeholders naming the phase that
+implements them. Repositories are stubs that report *no data* / *unavailable* -
+they do not fabricate risk values.
+
+`backend/` is still empty; no dataset has been downloaded and no model trained.
 
 Phase-by-phase status:
 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).

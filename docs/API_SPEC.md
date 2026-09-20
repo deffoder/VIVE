@@ -157,6 +157,8 @@ Additive only. Clients must tolerate their absence.
   "context":  { "session_authenticated": false, "source_type": "VOIP",
                 "requested_action": "SENSITIVE", "context_risk": 0.82 },
 
+  "ood": { "state": "KNOWN_SYNTHETIC_LIKELY", "uncertainty": 0.16 },
+
   "risk": {
     "contributions": {
       "synthetic": 0.87,
@@ -176,8 +178,14 @@ Additive only. Clients must tolerate their absence.
 ```
 
 `risk.contributions` drives the packet-detail explainability bars
-(`UI_SPEC.md` §5.4). Values are `0.0–1.0`; the UI renders them as percentages.
+(`UI_SPEC.md` §4.12). Values are `0.0–1.0`; the UI renders them as percentages.
 They are **evidence strengths, not a decomposition that sums to `risk.score`.**
+
+`ood` carries the uncertainty / unknown-generator layer required by `CLAUDE.md`
+(Model Stack). `state` is `IN_DISTRIBUTION` · `KNOWN_SYNTHETIC_LIKELY` ·
+`UNKNOWN_GENERATOR_SUSPECTED` · `OUT_OF_DISTRIBUTION` · `UNAVAILABLE`.
+`uncertainty` is `0.0–1.0`. High uncertainty **lowers `risk.confidence`; it does
+not raise `risk.score`** — an unfamiliar generator is unfamiliarity, not guilt.
 
 ### 4.2 Degraded packets
 

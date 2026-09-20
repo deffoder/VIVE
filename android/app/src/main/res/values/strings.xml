@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VIVE</string>
+    <string name="app_tagline">Voice Integrity. A Safer Tomorrow.</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_sessions">Sessions</string>
+    <string name="nav_alerts">Alerts</string>
+    <string name="nav_more">More</string>
+
+    <string name="state_loading">Loading</string>
+    <string name="state_empty">Nothing here yet</string>
+    <string name="state_error">Something went wrong</string>
+    <string name="state_offline">You are offline</string>
+    <string name="state_unavailable">Unavailable</string>
+    <string name="state_insufficient">Insufficient data</string>
+    <string name="action_retry">Retry</string>
+    <string name="demo_data_badge">Demo data</string>
+</resources>

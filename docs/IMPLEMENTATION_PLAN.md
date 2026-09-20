@@ -16,20 +16,33 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` complete
 **Exit:** structure matches `ARCHITECTURE.md`; no contradictory paths, schemas or
 model names across the specs.
 
-## Phase 1 — Typed contract `[ ]`
+## Phase 1 — Android foundation + typed contract `[~]`
 
-The highest-leverage phase. Schemas are defined once and mirrored.
+Delivered as the Android application foundation, with the Kotlin half of the
+typed contract. The backend half moves to Phase 2.
 
-- [ ] Pydantic schemas in `backend/app/schemas/` — session, packet, risk, alert,
-      transcript, report, error
-- [ ] Enums for all taxonomies (`PROJECT_SPEC.md` §7)
-- [ ] Kotlin mirrors in `android/.../data/model/`
-- [ ] A contract test asserting the `CLAUDE.md` example packet validates
-      unchanged against the schema
+Android foundation — **complete**:
+
+- [x] Gradle/AGP/Kotlin configuration, version catalog, wrapper
+- [x] Package structure per `ARCHITECTURE.md` §6
+- [x] Navigation architecture — 4 tabs + full drill-down, all 24 routes
+- [x] Theme, colour system, typography, spacing, shapes (`UI_SPEC.md` §2)
+- [x] Component foundation incl. all seven state components
+- [x] Screen/state architecture (`UiState` sealed interface)
+- [x] Repository/service interfaces + REST/WebSocket/event interfaces
+- [x] Logging with transcript redaction, typed error handling
+- [x] Test structure; 16 unit tests passing
+- [x] Kotlin mirrors of every taxonomy and the canonical packet
+- [x] Contract test pinning the `CLAUDE.md` example packet
+
+Deferred to Phase 2 (backend side of the same contract):
+
+- [ ] Pydantic schemas in `backend/app/schemas/`
 - [ ] OpenAPI generated and checked against `API_SPEC.md`
 
-**Exit:** the canonical packet round-trips through both languages with no field
-renamed or dropped.
+**Exit (Android side, met):** app builds, launches, navigates; the canonical
+packet models with no field renamed or dropped; a missing analyzer yields
+`null`, never `0`.
 
 ## Phase 2 — Backend skeleton, no models `[ ]`
 

@@ -35,6 +35,16 @@ frontend. `frontend/` removed.
 `speaker.consistency`) is **not** used. Extensions are additive only —
 `API_SPEC.md` §4.1.
 
+### R6 — Third packet-schema variant in COMPLETE_PROJECT_DOCUMENTATION · `RESOLVED`
+That document (§11–12, §29) defines a third shape: flat `aasist_score` /
+`ecapa_similarity`, `start_time`/`end_time` instead of `timestamp`,
+`audio_quality` as a float rather than an enum, `packet_risk` as `0.91` rather
+than `risk.score` `91`, and SCREAMING_SNAKE WebSocket events (`PACKET_RESULT`).
+`CLAUDE.md` remains canonical, so none of these are adopted — same ruling as R4.
+Two genuinely new concepts from it **were** adopted, because `CLAUDE.md`'s Model
+Stack requires an OOD/uncertainty layer that the specs had under-covered:
+`ood.state` and `ood.uncertainty` are now in `API_SPEC.md` §4.1.
+
 ### R5 — Streamlit dashboard in external docs · `RESOLVED`
 Not built. The mobile app is the product; a second UI would duplicate effort and
 diverge from the design references.
