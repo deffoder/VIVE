@@ -150,6 +150,18 @@ VoIP / in-app ──▶ AudioRecord 16 kHz ────▶ WebSocket ──▶ f
 
 This boundary is surfaced in the UI, not hidden. See `UI_SPEC.md` §6.
 
+It is also enforced structurally. The two paths live in separate packages:
+
+| Package | Path | Receives audio |
+|---|---|---|
+| `com.vive.telephony` | Cellular screening | **No** - metadata only |
+| `com.vive.audio` | Authorized in-app / VoIP / demo | Yes |
+
+`com.vive.telephony` contains no audio type and no capture code, so a cellular
+screening decision cannot accidentally be treated as an analysed call.
+`ScreeningVerdict` deliberately has no REJECT member: VIVE flags or silences,
+and the user decides.
+
 ## 8. Performance constraints
 
 - Packets stream in at ~1/second per session; the UI appends incrementally and

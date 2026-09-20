@@ -149,14 +149,48 @@ the backend byte for byte (P004: 87 CRITICAL, 91% confidence, OTP_REQUEST).
 **Exit:** S2 escalates on semantic evidence alone; S4 lowers confidence without
 raising risk.
 
-## Phase 7 — Android telephony `[ ]`
+## Phase 7 — Android telephony `[x]`
 
-- [ ] `CallScreeningService` for cellular screening/metadata
-- [ ] Authorized VoIP/in-app capture at 16 kHz
-- [ ] Permission flow with per-permission rationale
-- [ ] Telephony boundary stated in the UI
+Implemented as two deliberately separate packages, so the paths cannot be
+confused in code.
 
-**Exit:** both paths work; no claim of cellular audio capture anywhere.
+**PATH A — cellular screening (`com.vive.telephony`)**
+
+- [x] `ViveCallScreeningService` registered with `BIND_SCREENING_SERVICE`
+- [x] Metadata model covering exactly what the platform exposes: handle,
+      direction, number presentation
+- [x] Local synchronous screening policy - no network, no model, because the
+      platform enforces a response deadline
+- [x] `CallScreeningRole` for the API 29+ role request, with an honest
+      Unsupported/Unavailable state on devices that cannot offer it
+- [x] Decisions never reject a call; `ScreeningVerdict` has no REJECT member
+
+**PATH B — authorized audio (`com.vive.audio`)**
+
+- [x] `AudioSource` abstraction with explicit `AudioAuthorization` states
+- [x] Canonical 16 kHz mono `pcm_s16le` format
+- [x] `VoiceActivityDetector` interface; energy-gate stand-in, not Silero
+- [x] Bounded `RingBuffer` - audio is overwritten, never accumulated
+- [x] `Packetizer`: 2.0 s windows, 1.0 s stride, overlapping
+- [x] Packet ids, call-relative timestamps, window bounds, duration
+- [x] `AudioQualityMeter` reporting only measured properties (RMS, clipping)
+- [x] `CaptureController` lifecycle: start / stop / cancel, refusing to run
+      without authorization
+- [x] `DemoAudioSource` - deterministic, no audio asset in the repo
+
+**Exit met:** 29 new tests pass. Demo audio verified end to end: 10 s generated,
+packetised into 9 overlapping windows, sent as binary WebSocket frames, five
+analysed by the backend and reflected in session state. No claim of cellular
+audio capture exists anywhere in the codebase.
+
+### Implementation decisions taken here
+
+- **Quality is measured, never estimated.** `AudioQualityMeter` reports RMS and
+  clipping ratio, which are properties of the samples. SNR and MOS would need a
+  model or a reference signal, so they are not reported at all rather than
+  guessed.
+- **The demo source generates rather than ships audio**, so the repo carries no
+  media asset and every run is byte-identical.
 
 ## Phase 8 — Real ML `[ ]`
 
