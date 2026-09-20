@@ -43,18 +43,34 @@ android/.cxx/
 *.keystore
 captures/
 
-# --- Model checkpoints & data (large binaries) ---
-models/**/*.pth
-models/**/*.pt
-models/**/*.onnx
-models/**/*.bin
-models/**/*.safetensors
-models/**/*.ckpt
-data/
+# --- Model checkpoints (large binaries) ---
+# Structure under models/ is tracked; weights are not.
+models/artifacts/**
+!models/artifacts/.gitkeep
+*.pth
+*.pt
+*.onnx
+*.bin
+*.safetensors
+*.ckpt
+
+# --- Datasets ---
+# Structure, manifests and README are tracked; audio corpora are not.
+data/raw/**
+!data/raw/.gitkeep
+data/processed/**
+!data/processed/.gitkeep
+
+# --- Audio ---
 *.wav
 *.mp3
 *.flac
-!tests/fixtures/**/*.wav
+*.m4a
+*.ogg
+!tests/fixtures/**
+
+# --- Notebooks ---
+models/notebooks/**/.ipynb_checkpoints/
 
 # --- IDE ---
 .idea/
