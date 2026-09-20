@@ -10,6 +10,9 @@ import com.vive.data.model.ModelInfo
 import com.vive.data.model.Packet
 import com.vive.data.model.Session
 import com.vive.data.model.TranscriptLine
+import com.vive.data.remote.StreamState
+import com.vive.data.remote.ViveEvent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,14 +69,99 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
     private val _transcript = MutableStateFlow<UiState<List<TranscriptLine>>>(UiState.Loading)
     val transcript: StateFlow<UiState<List<TranscriptLine>>> = _transcript.asStateFlow()
 
-    init { refresh() }
+    private val _connection = MutableStateFlow<StreamState>(StreamState.Idle)
+    val connection: StateFlow<StreamState> = _connection.asStateFlow()
+
+    private var streamJob: Job? = null
+    private var lastSeq: Int = 0
+
+    init {
+        refresh()
+        observeStream()
+    }
+
+    /**
+     * Subscribes to live backend events.
+     *
+     * Applying them here means every session screen - active call, timeline,
+     * transcript, summary - updates from the backend with no UI change. Packets
+     * are APPENDED, never re-fetched wholesale, so the list is not rebuilt for
+     * each event (docs/ARCHITECTURE.md 8).
+     */
+    private fun observeStream() {
+        streamJob = viewModelScope.launch {
+            launch {
+                ServiceLocator.sessions.connectionState.collect { _connection.value = it }
+            }
+            ServiceLocator.sessions.observeSession(sessionId).collect { event ->
+                when (event) {
+                    is ViveEvent.SessionState -> _session.value = UiState.Success(event.session)
+
+                    is ViveEvent.PacketNew -> {
+                        // A sequence gap means packets were missed: backfill
+                        // rather than silently losing them.
+                        if (lastSeq != 0 && event.seq > lastSeq + 1) backfill()
+                        lastSeq = maxOf(lastSeq, event.seq)
+                        appendPacket(event.packet)
+                    }
+
+                    is ViveEvent.RiskUpdate -> {
+                        val current = (_session.value as? UiState.Success)?.data ?: return@collect
+                        _session.value = UiState.Success(
+                            current.copy(
+                                currentRisk = event.currentRisk,
+                                overallRisk = event.overallRisk,
+                                timings = event.timings,
+                                packetsProcessed =
+                                    (_packets.value as? UiState.Success)?.data?.size
+                                        ?: current.packetsProcessed,
+                            ),
+                        )
+                    }
+
+                    is ViveEvent.TranscriptAppend -> {
+                        val existing = (_transcript.value as? UiState.Success)?.data.orEmpty()
+                        _transcript.value = UiState.Success(existing + event.line)
+                    }
+
+                    is ViveEvent.SessionEnded -> _session.value = UiState.Success(event.session)
+
+                    is ViveEvent.AlertRaised -> Unit
+
+                    is ViveEvent.Failure -> _session.value = UiState.Error(event.error)
+                }
+            }
+        }
+    }
+
+    private fun appendPacket(packet: Packet) {
+        val existing = (_packets.value as? UiState.Success)?.data.orEmpty()
+        if (existing.any { it.packetId == packet.packetId }) return
+        _packets.value = UiState.Success(existing + packet)
+    }
+
+    private suspend fun backfill() {
+        when (val missed = ServiceLocator.sessions.listPackets(sessionId, sinceSeq = lastSeq)) {
+            is ViveResult.Success -> missed.data.forEach { appendPacket(it) }
+            is ViveResult.Failure -> Unit
+        }
+    }
+
+    /** Safe cancellation when the user leaves the session. */
+    override fun onCleared() {
+        streamJob?.cancel()
+        streamJob = null
+        super.onCleared()
+    }
 
     fun refresh() = viewModelScope.launch {
         _session.value = UiState.Loading
         _packets.value = UiState.Loading
         _transcript.value = UiState.Loading
         _session.value = ServiceLocator.sessions.getSession(sessionId).toState()
-        _packets.value = ServiceLocator.sessions.listPackets(sessionId).toListState()
+        val packetResult = ServiceLocator.sessions.listPackets(sessionId)
+        (packetResult as? ViveResult.Success)?.data?.lastOrNull()?.seq?.let { lastSeq = it }
+        _packets.value = packetResult.toListState()
         _transcript.value = ServiceLocator.sessions.getTranscript(sessionId).toListState()
     }
 

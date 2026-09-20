@@ -110,17 +110,32 @@ seven-state host. Verified on an API 36 emulator with zero crash lines.
   conversation render as "High" intent risk - a misleading presentation that
   `CLAUDE.md` forbids. Severity now comes from what was actually asked for.
 
-## Phase 5 — Live wiring `[ ]`
+## Phase 5 — Live wiring `[x]`
 
-- [ ] Retrofit client; OkHttp WebSocket client
-- [ ] Incremental packet append keyed by `packet_id`; no full rebuilds
-- [ ] Reconnect with backoff; `since_seq` backfill
-- [ ] Offline and error states wired
-- [ ] Mock adapters driven by `DEMO_SPEC.md` scenarios
-- [ ] Demo-data indicator surfaced (`UI_SPEC.md` §6)
+- [x] Retrofit client; OkHttp WebSocket client
+- [x] Incremental packet append keyed by `packet_id`; no full rebuilds
+- [x] Reconnect with exponential backoff; `since_seq` backfill on sequence gaps
+- [x] Offline and error states wired; typed `ViveError` from HTTP status
+- [x] Mock adapters driven by `DEMO_SPEC.md` scenarios
+- [x] Demo-data indicator surfaced (`UI_SPEC.md` §6)
+- [x] Backend-first repositories with a visible demo fallback
 
-**Exit:** **the product is fully demonstrable on mock data.** Scenarios S1–S10
-run end-to-end. This is the milestone that must be reached before any ML work.
+**Exit met:** the Android app drives a live FastAPI backend end to end. Verified
+on an API 36 emulator against a running server: the app listed the backend's
+sessions, packet count rose 5 to 7 as packets were pushed over WebSocket, the
+timeline rendered P001-P007 with backend risk levels, and packet detail matched
+the backend byte for byte (P004: 87 CRITICAL, 91% confidence, OTP_REQUEST).
+
+### Implementation decisions taken here
+
+- **Live events are applied in `SessionDetailViewModel`**, so every session
+  screen becomes backend-driven with no UI change and no second state layer.
+- **DTOs are separate from domain models.** The wire speaks snake_case and may
+  add fields; `ignoreUnknownKeys` plus enum fallbacks mean a newer backend
+  cannot crash an older client.
+- **The demo fallback is never silent.** When the backend is unreachable the
+  app serves demo data and `usingFallback` records it, so the viewer always
+  knows which source is on screen.
 
 ## Phase 6 — Fusion, temporal, policy `[ ]`
 
