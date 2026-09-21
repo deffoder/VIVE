@@ -152,8 +152,11 @@ class SessionManager:
         antispoof = a.antispoof.analyze(window)
         speaker_result = a.speaker.analyze(window, record.reference_audio)
         asr = a.asr.analyze(window)
-        intent = a.intent.analyze(asr.transcript)
-        behavior = a.behavior.analyze(asr.transcript)
+        # The language comes from ASR, so the text heads can decline a
+        # language they were never trained on rather than guessing
+        # (docs/BLOCKERS.md O11).
+        intent = a.intent.analyze(asr.transcript, asr.language)
+        behavior = a.behavior.analyze(asr.transcript, asr.language)
 
         ctx = record.session.context
         fused = fuse(

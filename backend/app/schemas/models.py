@@ -54,6 +54,15 @@ class AnalyzerStatus(StrEnum):
     reports this; it does NOT fall back to mock output."""
     INFERENCE_ERROR = "INFERENCE_ERROR"
     """The model loaded but failed on this packet. Other packets may succeed."""
+    UNSUPPORTED_LANGUAGE = "UNSUPPORTED_LANGUAGE"
+    """The model loaded and ran nothing, because it was never trained on this
+    language. Distinct from an error: the pipeline is working correctly and the
+    honest answer is "cannot say".
+
+    Tamil is the live case. Tamil ASR is validated, so a Tamil transcript
+    exists, but the intent and behaviour classifiers were trained on a corpus
+    with zero Tamil records (docs/BLOCKERS.md O11). Emitting a normal-looking
+    Tamil intent prediction would present an untrained guess as a capability."""
     ERROR = "ERROR"
     """Retained for compatibility. Prefer LOAD_ERROR or INFERENCE_ERROR."""
 

@@ -44,6 +44,13 @@ caller. **Expect:** escalation through `MEDIUM` → `HIGH` → `CRITICAL` with
 `SECONDARY_VERIFICATION` recommended, and an alert raised by policy — not by a
 hard-coded trigger.
 
+> **Changed in Phase 8B.** S3 was written in romanised Tamil, which meant the
+> scenario demonstrated Tamil scam detection VIVE cannot perform: the intent
+> and behaviour heads were trained on a corpus with zero Tamil records
+> (`BLOCKERS.md` O11). It now runs in **Hindi**, preserving what the scenario
+> actually tests — synthetic-voice escalation — while S11 covers Tamil
+> honestly.
+
 ### S4 — Poor audio
 Noisy, clipped or near-silent input. Quality `POOR` / `NO_SPEECH`. **Expect:**
 confidence falls, insufficient-data state shown, risk does **not** rise. Poor
@@ -67,6 +74,16 @@ transcript UI.
 Drives S3 to `CRITICAL`. **Expect:** in-app alert, Android notification with no
 transcript content (`SECURITY_SPEC.md` §4), and a signed webhook delivered with
 `event_id` idempotency.
+
+### S11 — Tamil: transcribed, not understood
+Tamil speech with scam wording. **Expect:** transcript `AVAILABLE` and the
+correct Tamil text, `language: ta`, and intent and behaviour both
+`UNSUPPORTED_LANGUAGE` with no labels. Risk must **not** reach `CRITICAL` on
+text evidence that was never produced — an unsupported language is missing
+evidence, not incriminating evidence.
+
+This scenario exists to keep the Tamil claim honest: Tamil ASR is validated,
+Tamil understanding is not (`BLOCKERS.md` O11).
 
 ### S9 — Connection loss
 WebSocket is dropped mid-session. **Expect:** UI shows Offline, backoff

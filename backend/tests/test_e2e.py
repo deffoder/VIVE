@@ -16,11 +16,23 @@ from fastapi.testclient import TestClient
 from tests.conftest import drain_until, ws_send
 
 # Scripted scenario lines. Scenario data, not model output.
+# S3 demonstrates SYNTHETIC-voice escalation, so it must run in a language the
+# intent and behaviour heads actually support. It was previously written in
+# romanised Tamil, which meant the scenario showcased Tamil scam detection VIVE
+# cannot perform: the text heads were trained on a corpus with zero Tamil
+# records (docs/BLOCKERS.md O11). Switched to Hindi so the scenario tests what
+# it claims to test; the honest Tamil path is covered by S11 below.
 S3_SYNTHETIC_SCAM = [
+    "Namaste, main bank se bol raha hoon.",
+    "Aapke account mein ek problem hai.",
+    "Account block ho jayega, jaldi kijiye.",
+    "OTP bataiye now. synthetic voice.",
+]
+
+# The Tamil path, asserted honestly: transcription works, understanding does not.
+S11_TAMIL_UNSUPPORTED = [
     "Vanakkam, naan bank-la irundhu pesuren.",
-    "Unga account-la oru problem irukku.",
-    "Account blocked aagidum, seekiram pannunga.",
-    "OTP sollunga now. synthetic voice.",
+    "OTP sollunga now.",
 ]
 S2_HUMAN_SCAM = [
     "Namaste, main aapke bank se bol raha hoon.",
@@ -107,6 +119,15 @@ def test_s3_synthetic_scam_escalates_and_alerts(client: TestClient) -> None:
                 if frame["type"] == "risk.update":
                     break
 
+        # The alert for the FINAL packet is emitted after its risk.update, so
+        # a loop that breaks on risk.update never reads it. Drain the tail.
+        for _ in range(4):
+            frame = ws.receive_json()
+            if frame["type"] == "alert.raised":
+                alerts_seen += 1
+            if frame["type"] == "heartbeat":
+                break
+
     packets = client.get(f"/api/v1/sessions/{session_id}/packets").json()
     scores = [p["risk"]["score"] for p in packets]
     assert scores[-1] > scores[0], "risk must escalate across the call"
@@ -173,3 +194,56 @@ def test_determinism_same_input_same_output(client: TestClient) -> None:
                 client.get(f"/api/v1/sessions/{sid}/packets").json()]
 
     assert run() == run()
+
+
+def test_s11_tamil_transcribes_but_intent_is_unsupported(client: TestClient) -> None:
+    """Tamil ASR is validated; Tamil intent/behaviour is not (BLOCKERS O11).
+
+    The pipeline must say so rather than emitting a normal-looking Tamil
+    prediction. This is the scenario that protects the honesty of the Tamil
+    claim, so it asserts the declining behaviour directly.
+    """
+    session_id = client.post("/api/v1/sessions", json={"source_type": "VOIP"}).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        for line in S11_TAMIL_UNSUPPORTED:
+            ws_send(ws, line)
+            for _ in range(6):
+                if ws.receive_json()["type"] == "risk.update":
+                    break
+
+    packets = client.get(f"/api/v1/sessions/{session_id}/packets").json()
+    assert packets, "Tamil audio must still produce packets"
+    for packet in packets:
+        # Transcription works.
+        assert packet["asr"]["transcript"], "Tamil must still be transcribed"
+        assert packet["asr"]["status"] == "AVAILABLE"
+        assert packet["language"] == "ta"
+        # Understanding does not, and the packet says so rather than guessing.
+        assert packet["intent"]["status"] == "UNSUPPORTED_LANGUAGE"
+        assert packet["behavior"]["status"] == "UNSUPPORTED_LANGUAGE"
+        assert packet["intent"]["label"] == "UNKNOWN"
+        assert not packet["behavior"]["labels"]
+
+
+def test_s11_tamil_risk_does_not_use_absent_text_evidence(client: TestClient) -> None:
+    """Missing evidence must lower CONFIDENCE, never raise risk.
+
+    An unsupported language is missing evidence, not incriminating evidence
+    (PROJECT_SPEC 2).
+    """
+    session_id = client.post("/api/v1/sessions", json={"source_type": "VOIP"}).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        for line in S11_TAMIL_UNSUPPORTED:
+            ws_send(ws, line)
+            for _ in range(6):
+                if ws.receive_json()["type"] == "risk.update":
+                    break
+
+    packets = client.get(f"/api/v1/sessions/{session_id}/packets").json()
+    last = packets[-1]["risk"]
+    assert last["level"] != "CRITICAL", (
+        "Tamil OTP wording must not drive CRITICAL when the intent head "
+        "never ran - that would be a guess presented as detection"
+    )

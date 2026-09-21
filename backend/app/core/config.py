@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     served the graph, not the one requested.
     """
 
+    intent_model_dir: str = ""
+    """Filesystem path to the fine-tuned intent checkpoint. Empty means not
+    configured, which yields LOAD_ERROR in real mode rather than a guess."""
+
+    behavior_model_dir: str = ""
+    """Filesystem path to the fine-tuned behaviour checkpoint."""
+
     asr_default_language: str = "hi"
     """Decoding language when no language-ID signal is available.
 

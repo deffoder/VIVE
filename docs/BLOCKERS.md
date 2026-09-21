@@ -245,6 +245,11 @@ diverge from the design references.
   be described as supported**. No Tamil intent or behaviour metric exists and
   none may be quoted or estimated. The `language_tamil` text evaluation split
   stays blocked.
+- **Enforced in code (Phase 8B):** the intent and behaviour adapters return
+  `UNSUPPORTED_LANGUAGE` for Tamil rather than a prediction, the mock adapters
+  do the same so demos cannot overstate the product, and demo scenario S11
+  asserts the behaviour end to end. The gap is now impossible to present
+  accidentally as a capability.
 - **Required external action:** commission human-authored Tamil scam text
   against the VIVE taxonomy. `DATA_SPEC.md` §8.3 sets out the plan, including
   the ~300 human records per label needed to make a single label reportable,

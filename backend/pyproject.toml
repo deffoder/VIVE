@@ -26,6 +26,8 @@ ml = [
     "onnxruntime>=1.17",
     "numpy>=1.26",
     "torch>=2.2",
+    # Intent and behaviour heads are fine-tuned DistilBERT checkpoints.
+    "transformers>=4.40",
 ]
 
 [tool.pytest.ini_options]

@@ -212,6 +212,24 @@ python scripts/training/survey_tamil_asr.py
 
 Licence, gating and real file reachability for ASR candidates.
 
+## 4.2 Stamping the label mapping (required before real inference)
+
+The Phase 7 runs saved generic `LABEL_0..LABEL_11`, so a checkpoint did not
+carry its own label mapping. Stamp it before serving the model:
+
+```bash
+python scripts/training/stamp_label_mapping.py
+```
+
+It takes the order from `vive_labels.py`, **cross-checks it against the order
+recorded in the training report**, and refuses to write if they disagree -
+a disagreement means the true order is unknown, and guessing is the exact
+failure this prevents. `--check` verifies without writing.
+
+The backend adapter validates the stamped mapping again at load time and
+returns `LOAD_ERROR` on any mismatch, so an unstamped or reordered checkpoint
+cannot serve predictions.
+
 ## 5. Reproducibility
 
 Every training run records: base model, label set, seed (`20260921`),

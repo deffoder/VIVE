@@ -137,12 +137,17 @@ def test_real_mode_without_weights_keeps_real_asr_and_reports_load_error():
     assert b.states()["asr"] == (AnalyzerStatus.LOAD_ERROR, AdapterMode.REAL)
 
 
-def test_real_mode_leaves_other_adapters_mock_and_says_so():
-    """Phase 8A wires ASR only; a partially real bundle must be honest."""
+def test_real_mode_marks_audio_analyzers_mock_and_says_so():
+    """A partially real bundle must be honest about which half is which.
+
+    After 8A/8B the ASR and the two text heads are real; VAD, anti-spoofing
+    and speaker are still mock and must report that through `mode`.
+    """
     b = build_bundle(Settings(adapter_mode="real", asr_model_dir="no/such/dir"))
     infos = b.infos()
-    assert infos["asr"].mode is AdapterMode.REAL
-    for key in ("vad", "antispoof", "speaker", "intent", "behavior"):
+    for key in ("asr", "intent", "behavior"):
+        assert infos[key].mode is AdapterMode.REAL, key
+    for key in ("vad", "antispoof", "speaker"):
         assert infos[key].mode is AdapterMode.MOCK, key
 
 

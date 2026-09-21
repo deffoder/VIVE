@@ -168,12 +168,14 @@ class AsrAdapter(ModelAdapter, Protocol):
 
 @runtime_checkable
 class IntentAdapter(ModelAdapter, Protocol):
-    def analyze(self, transcript: str | None) -> IntentResult: ...
+    def analyze(self, transcript: str | None,
+                language: str | None = None) -> IntentResult: ...
 
 
 @runtime_checkable
 class BehaviorAdapter(ModelAdapter, Protocol):
-    def analyze(self, transcript: str | None) -> BehaviorResult: ...
+    def analyze(self, transcript: str | None,
+                language: str | None = None) -> BehaviorResult: ...
 
 
 @dataclass(frozen=True)

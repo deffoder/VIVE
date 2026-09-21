@@ -45,6 +45,14 @@ DEMO_VERSION = "demo"
 
 _MODE = AdapterMode.MOCK
 
+UNSUPPORTED_TEXT_LANGUAGES = frozenset({"ta"})
+"""Languages the intent/behaviour heads were never trained on.
+
+Tamil ASR is validated, so a Tamil transcript reaches these adapters - but the
+training corpus held zero Tamil records (docs/BLOCKERS.md O11). The mocks
+honour this too, so a demo cannot show Tamil understanding that production
+does not have."""
+
 
 class _MockInfo:
     """Shared `describe()` for the mock adapters.
@@ -297,7 +305,14 @@ class MockIntentAdapter(_MockInfo):
     def available(self) -> bool:
         return True
 
-    def analyze(self, transcript: str | None) -> IntentResult:
+    def analyze(self, transcript: str | None,
+                language: str | None = None) -> IntentResult:
+        if language in UNSUPPORTED_TEXT_LANGUAGES:
+            return IntentResult(
+                status=AnalyzerStatus.UNSUPPORTED_LANGUAGE,
+                model_version=self.version, mode=self.mode,
+                label=Intent.UNKNOWN, confidence=None,
+            )
         if not transcript:
             return IntentResult(
                 status=AnalyzerStatus.INSUFFICIENT_AUDIO,
@@ -335,7 +350,14 @@ class MockBehaviorAdapter(_MockInfo):
     def available(self) -> bool:
         return True
 
-    def analyze(self, transcript: str | None) -> BehaviorResult:
+    def analyze(self, transcript: str | None,
+                language: str | None = None) -> BehaviorResult:
+        if language in UNSUPPORTED_TEXT_LANGUAGES:
+            return BehaviorResult(
+                status=AnalyzerStatus.UNSUPPORTED_LANGUAGE,
+                model_version=self.version, mode=self.mode,
+                labels=[], confidence=None,
+            )
         if not transcript:
             return BehaviorResult(
                 status=AnalyzerStatus.INSUFFICIENT_AUDIO,

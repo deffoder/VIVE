@@ -162,6 +162,66 @@ only from the Phase 7 FLEURS evaluation, which is clean read speech and
 therefore a floor, not telephone accuracy. Tamil **transcription** works; Tamil
 **intent and behaviour** remain unsupported (`BLOCKERS.md` O11).
 
+## 2.4 Phase 8B — real intent and behaviour integrated
+
+Both Phase 7 checkpoints now run in the backend behind the existing adapter
+protocols (`backend/app/adapters/real/text_classifiers.py`).
+
+| | intent | behaviour |
+|---|---|---|
+| Model version | `intent-classifier-distilbert-v1` | `behavior-classifier-distilbert-v1` |
+| Head | single-label softmax, 12 labels | multi-label sigmoid, 8 labels, threshold 0.5 |
+| `max_length` | 96 | 96 |
+| Mode | `REAL` | `REAL` |
+
+`max_length` and the 0.5 threshold match Phase 7 training exactly, so the
+training report describes this code path rather than a near variant.
+
+### Label safety — the checkpoints are now self-describing
+
+The Phase 7 checkpoints saved generic `LABEL_0..LABEL_11`: they did **not**
+carry their own label mapping, so index-to-label depended entirely on an
+external file staying in the same order. A silent reordering would have
+produced confident predictions for the **wrong** labels.
+
+Fixed in two steps. The real VIVE taxonomy was written into each checkpoint's
+`config.json` (`id2label`/`label2id`), verified first against the training
+report's recorded label order; and `load()` now validates that mapping against
+the live taxonomy and **refuses to load on any mismatch** — wrong order, wrong
+count, missing mapping, or an unrecognised label name. No label is ever coerced
+onto a "nearest" VIVE label. Tests cover each refusal.
+
+### Language policy
+
+Supported: `en`, `hi`, `hi-en` — the languages actually present in the training
+corpus. Anything else returns **`UNSUPPORTED_LANGUAGE`**, a new
+`AnalyzerStatus` that is distinct from an error: the pipeline is working and
+the honest answer is "cannot say".
+
+Tamil is the live case. Tamil ASR is validated, so a Tamil transcript reaches
+these heads, but the corpus held **0 Tamil records and 0 Tamil codepoints**
+(`BLOCKERS.md` O11). The mock adapters honour the same rule, so a demo cannot
+show Tamil understanding that production lacks.
+
+### A demo scenario that was overstating the product
+
+`DEMO_SPEC` scenario **S3** was written in romanised Tamil, so it was
+demonstrating Tamil scam detection VIVE cannot perform. It has been moved to
+Hindi — keeping its actual purpose, synthetic-voice escalation — and a new
+scenario **S11** asserts the honest Tamil path: transcript `AVAILABLE`, intent
+and behaviour `UNSUPPORTED_LANGUAGE`, and risk that does not reach `CRITICAL`
+on text evidence the model never produced.
+
+### Limitations carried forward, not hidden
+
+- `OTP_REQUEST` had **8 test records**: unmeasurable, not "63% accurate".
+- 5 intents and 2 behaviours have no training data and can never be emitted.
+  A test asserts `THREAT` and `SECRECY` never fire.
+- Intent is **100% collinear** with the corpus scam flag (O10), so the intent
+  head partly measures scam/not-scam rather than intent discrimination.
+- Reported `confidence` is a decoder output, **not** a calibrated probability
+  and never a fraud probability. Calibration is Phase 9.
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,
