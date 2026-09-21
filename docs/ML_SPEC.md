@@ -210,10 +210,16 @@ What is actually built, as distinct from what is planned.
 | `silero-vad` | MIT | **Loads and runs.** torch.hub, no credentials |
 | `aasist` | MIT | **Checkpoint loads** (229 tensors, 1.28 MB). Model class not vendored, so no forward pass yet |
 | `ecapa-tdnn` | Apache-2.0 | **Loads and runs.** Produces a 192-dim embedding |
-| `indicconformer` / `indicwav2vec` | Apache-2.0 | **BLOCKED.** Gated repository, 403 on file download (`BLOCKERS.md` O7) |
+| `indicwav2vec-hindi` | Apache-2.0 | **Loads and runs.** Gate cleared; ships only a `.bin`, audited and converted to safetensors (`BLOCKERS.md` R7). WER measured — see `PHASE7_REPORT.md` §4.1 |
 
-These are load-and-run smoke tests. **No accuracy, EER or WER has been measured
-for any of them**, and none may be quoted.
+Silero, AASIST and ECAPA are load-and-run smoke tests: **no accuracy or EER has
+been measured for them**, and none may be quoted.
+
+ASR is the exception and now has a real measured figure:
+**WER 0.1872 / CER 0.0699** on `google/fleurs` [`hi_in`]
+`test` (CC-BY-4.0), 418 utterances,
+greedy CTC with no language model. FLEURS is clean read speech, so this is a
+**floor**, not call-channel accuracy (`PHASE7_REPORT.md` §4.1).
 
 ### Trained in this phase
 
@@ -256,16 +262,18 @@ A Colab notebook (`models/notebooks/`) runs either backbone on cloud GPU.
 | 5 of 12 intents have no training data | `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`, `REMOTE_ACCESS_REQUEST` and `CONFIDENTIAL_INFORMATION` **cannot be predicted** |
 | 2 of 8 behaviours have no label source | `THREAT` and `SECRECY` are not trained |
 | `OTP_REQUEST` has 103 samples (~0.1%) | The highest-value intent is the worst-supported |
-| No Tamil (`BLOCKERS.md` O8) | Tamil is **not supported**, despite being a priority language |
+| No Tamil (`BLOCKERS.md` O8) | Tamil is **not supported**, despite being a priority language. Hindi ASR works; Tamil ASR has neither data nor evaluation |
 | Corpus is SMS, not call transcripts | Register differs from speech; transfer is unvalidated |
 
 ### Evaluation splits
 
-`scripts/training/build_eval_splits.py` builds 6 splits and records 8 as
+`scripts/training/build_eval_splits.py` builds 6 splits, records 7 as
 **blocked**, each with a reason and blocker id, rather than omitting them:
 generator-disjoint, codec/noise robustness, speaker-disjoint, Hindi and Tamil
-ASR, Tamil text, synthetic-but-legitimate, and the human-curated benchmark
-slice. A blocked split is never reported as passed.
+Tamil ASR, Tamil text, synthetic-but-legitimate, and the human-curated
+benchmark slice — and marks 1 (`asr_hindi`) as **measured externally**, against
+FLEURS rather than this corpus. A blocked split is never reported as passed,
+and an externally measured one is never credited to the corpus.
 
 A split is also blocked when it is merely *too small*: `MIN_EVAL_RECORDS = 30`.
 `benchmark_ground_truth` has 1 held-out record, so it is reported as blocked

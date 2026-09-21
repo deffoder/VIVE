@@ -130,14 +130,30 @@ def check_aasist_checkpoint() -> None:
                {"error": f"{type(exc).__name__}: {str(exc)[:200]}"})
 
 
+LOCAL_ASR_DIR = os.path.join("models", "artifacts", "_pretrained",
+                             "indicwav2vec-hindi")
+
+
 def check_indic_asr() -> None:
-    """AI4Bharat Indic ASR - gated:auto, needs an HF token."""
+    """AI4Bharat Indic ASR - gated:auto, needs an HF token.
+
+    Prefers the locally converted safetensors copy. The hub repository ships
+    only `pytorch_model.bin`, which transformers refuses to load on
+    torch < 2.6 (CVE-2025-32434); `scripts/training/safe_load_bin.py` audits
+    and converts it once. Falling back to the hub id is left in place so the
+    failure is reported honestly when the conversion has not been run.
+    """
     model_id = "ai4bharat/indicwav2vec-hindi"
+    source = LOCAL_ASR_DIR if os.path.isdir(LOCAL_ASR_DIR) else model_id
     try:
-        from transformers import AutoModelForCTC, AutoProcessor
+        # Wav2Vec2Processor explicitly, not AutoProcessor: the repo ships an
+        # alphabet.json, which makes AutoProcessor select the LM-decoder
+        # variant and pull in pyctcdecode. Decoding here is greedy CTC, the
+        # same path eval_asr_hindi.py measures, so the two stay comparable.
+        from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
         started = time.perf_counter()
-        processor = AutoProcessor.from_pretrained(model_id)
-        model = AutoModelForCTC.from_pretrained(model_id).eval()
+        processor = Wav2Vec2Processor.from_pretrained(source)
+        model = Wav2Vec2ForCTC.from_pretrained(source).eval()
         audio = synthetic_speechlike(2.0)
         inputs = processor(audio, sampling_rate=SAMPLE_RATE, return_tensors="pt")
         with torch.no_grad():
@@ -149,8 +165,11 @@ def check_indic_asr() -> None:
             "logits_shape": list(logits.shape),
             "vocab_size": logits.shape[-1],
             "decoded_on_synthetic_input": repr(transcript[:60]),
+            "loaded_from": source,
             "note": "Synthetic tone is not speech, so the decode is meaningless "
-                    "by design. This confirms load + forward + decode only.",
+                    "by design. This confirms load + forward + decode only. "
+                    "Real WER is measured by scripts/training/eval_asr_hindi.py "
+                    "and recorded in models/evaluation/asr_hindi_report.json.",
         })
     except Exception as exc:
         record("Indic ASR (Hindi)", model_id, "FAIL",

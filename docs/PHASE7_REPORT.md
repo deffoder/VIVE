@@ -120,21 +120,65 @@ skewed; accuracy would be dominated by the majority class.
 
 ---
 
-## 4. Pretrained stack — load-verified, accuracy NOT measured
+## 4. Pretrained stack
 
 | Model | License | Status |
 |---|---|---|
-| Silero VAD | MIT | **Loads and runs** |
-| AASIST | MIT | **Checkpoint loads** (229 tensors). Model class not vendored, so no forward pass yet |
-| ECAPA-TDNN | Apache-2.0 | **Loads and runs**, 192-dim embedding |
-| AI4Bharat Indic ASR | Apache-2.0 | **BLOCKED** — gated, 403 on file download |
+| Silero VAD | MIT | **Loads and runs.** No accuracy measured |
+| AASIST | MIT | **Checkpoint loads** (229 tensors). Model class not vendored, so no forward pass yet. **No EER measured** |
+| ECAPA-TDNN | Apache-2.0 | **Loads and runs**, 192-dim embedding. **No verification metric measured** |
+| `ai4bharat/indicwav2vec-hindi` | Apache-2.0 | **Loads, runs and is EVALUATED** — see §4.1 |
 
-These are smoke tests. **No EER, WER or accuracy exists for any of them**, and
-none may be quoted. Wiring them into the backend is the next phase.
+Three of the four are load-and-run smoke tests only: **no EER or accuracy
+exists for Silero, AASIST or ECAPA**, and none may be quoted. ASR is the one
+stage with a real measured metric.
+
+### 4.1 Hindi ASR — measured
+
+Access to the gated AI4Bharat repository was verified directly: the full
+1.26 GB snapshot, including `pytorch_model.bin`
+(1,262,181,719 bytes), downloads under the existing token
+(`BLOCKERS.md` R7). The model loads as `Wav2Vec2ForCTC` — 315.5M parameters,
+vocabulary 68, 16 kHz — and a forward pass returns well-formed logits.
+
+The repository ships **only a `.bin`**, which transformers refuses to
+`torch.load` on torch < 2.6 (CVE-2025-32434). That check was **not disabled**.
+`scripts/training/safe_load_bin.py` audits the pickle opcode stream *without
+executing it* and allowlists the global symbols it may import; this file
+references only `collections.OrderedDict`, `torch.FloatStorage` and
+`torch._utils._rebuild_tensor_v2`. Only after that audit passed was it loaded
+with `weights_only=True` and converted to 424 safetensors tensors, which every
+later load reads instead.
+
+**Benchmark:** `google/fleurs` [`hi_in`] `test` — CC-BY-4.0,
+ungated. 418 utterances, 4832 s of audio.
+
+| Metric | Value |
+|---|---|
+| **WER** | **0.1872** |
+| **CER** | **0.0699** |
+| Substitutions / Deletions / Insertions | 1,499 / 243 / 191 |
+| Hits | 8,585 |
+| Real-time factor (GPU) | 0.0039 |
+
+Normalisation, applied identically to reference and hypothesis: Unicode NFC, lowercase, strip punctuation including Devanagari danda U+0964 and double danda U+0965, collapse whitespace.
+The Devanagari danda (U+0964) is stripped because the CTC vocabulary cannot
+emit it; leaving it in the reference would charge the model for tokens it has
+no way to produce.
+
+**What this number is not.** FLEURS is clean read speech at 16 kHz — no
+telephony codec, no channel noise, no spontaneous-speech disfluency, no
+code-switching. This WER is therefore a **floor**: a best case on easy audio.
+Call-channel Hindi WER will be worse, by an amount that has not been measured.
+It must never be presented as VIVE call-transcription accuracy. Decoding is
+greedy CTC with no language model, which a production path would improve.
+
+The real-time factor excludes feature extraction, audio I/O and the rest of
+the VIVE pipeline, and was measured at batch size 1 on a GTX 1650 Ti.
 
 ---
 
-## 5. Evaluation splits: 6 built, 8 blocked
+## 5. Evaluation splits: 6 built, 7 blocked, 1 measured externally
 
 Built: `standard_heldout` (8,644) · `language_english` (7,757) ·
 `language_hindi` (622) · `language_hinglish` (265) ·
@@ -150,8 +194,11 @@ Blocked, each with a recorded reason and blocker id rather than being dropped:
 | `generator_disjoint` | No anti-spoofing corpus (O5) |
 | `codec_noise_robustness` | Requires audio |
 | `speaker_disjoint` | No speaker corpus (O3) |
-| `asr_hindi` | Gated ASR model (O7) |
-| `asr_tamil` | Gated ASR model and no Tamil (O7, O8) |
+| `asr_tamil` | No Tamil ASR evaluation data (O8) |
+
+`asr_hindi` is **not** blocked: it is measured against FLEURS (§4.1) rather
+than derived from this text corpus, and is recorded as
+`measured_externally` so it is neither hidden nor credited to the corpus.
 
 A blocked split is never reported as passed.
 

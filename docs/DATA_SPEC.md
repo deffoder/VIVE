@@ -147,6 +147,21 @@ not assumed. Sample counts come from the built manifests.
 6. `Synthetic_Tier_C` (3,720 records) is itself synthetic; it is retained but
    flagged in the `provenance` field so it can be excluded from evaluation.
 
+### Acquired for ASR evaluation
+
+| Field | Value |
+|---|---|
+| Dataset | `google/fleurs` config `hi_in`, split `test` |
+| License | **CC-BY-4.0** — declared in repository metadata |
+| Gated | No |
+| Content | 418 Hindi utterances, 4832 s of 16 kHz read speech |
+| Use | Hindi ASR WER/CER only. Not used for training |
+| Result | WER 0.1872 / CER 0.0699 (`PHASE7_REPORT.md` §4.1) |
+
+FLEURS is **clean read speech**: no telephony codec, channel noise,
+disfluency or code-switching. It establishes a floor for Hindi ASR, not a
+call-channel figure, and no Tamil equivalent was obtained.
+
 ### Investigated and rejected or deferred
 
 | Dataset | Status | Reason |
@@ -166,7 +181,7 @@ Load-and-run smoke tests only. **No accuracy was measured for any of these.**
 | Silero VAD | MIT | **OK** — loads from torch.hub, runs |
 | AASIST | MIT | **OK** — checkpoint loads, 229 tensors. Model class not yet vendored, so no forward pass |
 | ECAPA-TDNN (SpeechBrain) | Apache-2.0 | **OK** — produces a 192-dim embedding |
-| AI4Bharat Indic ASR | Apache-2.0 | **BLOCKED** — gated repo, 403 on file download (`BLOCKERS.md` O7) |
+| AI4Bharat Indic ASR (`indicwav2vec-hindi`) | Apache-2.0 | **OK** — gate cleared; 1.26 GB snapshot downloads, `Wav2Vec2ForCTC` loads (315.5M params, vocab 68) and runs (`BLOCKERS.md` R7) |
 
 ## 9. Test fixtures
 

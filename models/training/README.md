@@ -117,9 +117,23 @@ python scripts/training/check_pretrained.py
 Smoke tests only — load and run, shapes checked, **no accuracy measured**.
 Writes `models/evaluation/pretrained_checks.json`.
 
-Currently: Silero VAD, AASIST and ECAPA-TDNN load and run. AI4Bharat Indic ASR
-returns 403 — the repositories are gated and need their terms accepted once on
-the HuggingFace model page (`docs/BLOCKERS.md` O7).
+Currently: Silero VAD, AASIST, ECAPA-TDNN and AI4Bharat `indicwav2vec-hindi`
+all load and run.
+
+The ASR repository ships only `pytorch_model.bin`, which transformers refuses
+to load on torch < 2.6 (CVE-2025-32434). Do not disable that check. Audit and
+convert once instead:
+
+```bash
+python scripts/training/safe_load_bin.py --bin <snapshot>/pytorch_model.bin --out models/artifacts/_pretrained/indicwav2vec-hindi/model.safetensors
+```
+
+It walks the pickle opcode stream without executing it and refuses any file
+referencing a symbol outside a tensor-rebuild allowlist. Then measure WER:
+
+```bash
+python scripts/training/eval_asr_hindi.py --model-dir models/artifacts/_pretrained/indicwav2vec-hindi --limit 0
+```
 
 ---
 

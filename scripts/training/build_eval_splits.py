@@ -62,6 +62,30 @@ def unavailable(name: str, description: str, reason: str, blocker: str = "") -> 
     }
 
 
+def external(name: str, description: str, benchmark: str, license_: str,
+             report: str) -> dict:
+    """A split this corpus cannot supply but that IS measured elsewhere.
+
+    Distinct from `unavailable`: the metric exists, it just does not come from
+    the scamshield text corpus. Recording it as merely "blocked" would hide a
+    real measurement; recording it as built here would imply this corpus
+    produced it.
+    """
+    return {
+        "name": name,
+        "available": False,
+        "count": 0,
+        "description": description,
+        "reason": (f"Not derivable from this text corpus. Measured separately "
+                   f"against {benchmark} ({license_}); see {report}."),
+        "measured_externally": True,
+        "external_benchmark": benchmark,
+        "external_license": license_,
+        "external_report": report,
+        "blocker": "",
+    }
+
+
 def build_or_block(name: str, rows: list[dict], description: str,
                    caveat: str = "", blocker: str = "") -> dict:
     """Writes a split, or records it as blocked when it is too small to measure."""
@@ -158,14 +182,18 @@ def main() -> None:
          "No speaker corpus was acquired; VoxCeleb requires a request form. "
          "ECAPA-TDNN is used pretrained, and there is no enrolment source "
          "anyway.", "O3"),
-        ("asr_hindi", "Hindi ASR word-error-rate evaluation.",
-         "No real ASR model is loadable: the AI4Bharat repositories are gated "
-         "and return 403 on download.", "O7"),
         ("asr_tamil", "Tamil ASR word-error-rate evaluation.",
-         "Blocked by both the gated ASR model and the absence of Tamil data.",
-         "O7, O8"),
+         "No Tamil ASR evaluation data. The Hindi model loads, but Tamil "
+         "remains unsupported.", "O8"),
     ]:
         splits.append(unavailable(name, description, reason, blocker))
+
+    # Hindi ASR IS measured, just not from this corpus (BLOCKERS R7).
+    splits.append(external(
+        "asr_hindi", "Hindi ASR word-error-rate evaluation.",
+        "google/fleurs [hi_in] test", "CC-BY-4.0",
+        "models/evaluation/asr_hindi_report.json",
+    ))
 
     summary = {
         "built_at": str(date.today()),
@@ -173,6 +201,8 @@ def main() -> None:
         "source_records": len(test),
         "available_splits": sum(1 for s in splits if s["available"]),
         "unavailable_splits": sum(1 for s in splits if not s["available"]),
+        "externally_measured_splits": sum(
+            1 for s in splits if s.get("measured_externally")),
         "splits": splits,
         "note": (
             "Unavailable splits are recorded rather than dropped. An evaluation "
@@ -183,15 +213,20 @@ def main() -> None:
     with open(out, "w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, ensure_ascii=False)
 
+    external_count = sum(1 for s_ in splits if s_.get("measured_externally"))
     print(f"  source: {len(test):,} held-out records\n")
     for split in splits:
-        if split["available"]:
+        if split.get("measured_externally"):
+            print(f"  [EXTERNAL] {split['name']:<27} measured on "
+                  f"{split['external_benchmark']}")
+        elif split["available"]:
             print(f"  [BUILT]   {split['name']:<28} {split['count']:>6,} records")
         else:
             tag = f" ({split['blocker']})" if split.get("blocker") else ""
             print(f"  [BLOCKED] {split['name']:<28} {split['reason'][:60]}{tag}")
     print(f"\n  {summary['available_splits']} built, "
-          f"{summary['unavailable_splits']} blocked")
+          f"{summary['unavailable_splits'] - external_count} blocked, "
+          f"{external_count} measured on an external benchmark")
     print(f"  wrote {out}")
 
     languages = Counter(r["language"] for r in test)

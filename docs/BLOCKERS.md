@@ -51,6 +51,34 @@ diverge from the design references.
 
 ---
 
+### R7 — Indic ASR model access · `RESOLVED`
+
+- **Was:** `ai4bharat/indicwav2vec-hindi` returned `403 Client Error` on file
+  download, so no real Indic ASR model could be loaded.
+- **Cause:** the repository is `gated: auto`. The token authenticated and
+  repository *metadata* was readable, but a gated repo blocks **file**
+  downloads until the account holder accepts the terms on the model page.
+- **Resolution (2026-09-21):** the account holder had already accepted the
+  terms. Re-verified directly rather than assumed: `config.json` and
+  `vocab.json` download, and the full 1.26 GB snapshot including
+  `pytorch_model.bin` (1,262,181,719 bytes) retrieves under the existing
+  token. No credential was changed and no token value was printed.
+- **Follow-on issue, also resolved:** the repository ships **only**
+  `pytorch_model.bin` — no safetensors — and transformers refuses to
+  `torch.load` a `.bin` on torch < 2.6 (CVE-2025-32434). That check was **not**
+  disabled. `scripts/training/safe_load_bin.py` audits the pickle opcode
+  stream *without executing it* (`pickletools.genops`) and allowlists the
+  global symbols it may import. This file references only
+  `collections.OrderedDict`, `torch.FloatStorage` and
+  `torch._utils._rebuild_tensor_v2`. Only after the audit passed was it loaded
+  with `weights_only=True` and converted to 424 safetensors tensors, which
+  every later load reads instead. The `.bin` is touched once, under audit.
+- **Verified:** `Wav2Vec2ForCTC` loads (315.5M params, vocab 68, 16 kHz) and a
+  forward pass returns well-formed logits. WER measured on `google/fleurs`
+  (CC-BY-4.0) `hi_in` test — see `docs/PHASE7_REPORT.md` §3.
+
+---
+
 ## Open
 
 ### O1 — `C:\Users\cvumj\.git` still exists · `OPEN`
@@ -129,29 +157,6 @@ diverge from the design references.
   status is stated (`DEMO_SPEC.md` §6).
 - **Required external action:** recalibrate against real outputs in Phase 9;
   never present provisional weights as measured accuracy.
-
-### O7 — Indic ASR model access not granted · `OPEN`
-
-- **Blocker:** `ai4bharat/indicwav2vec-hindi` and
-  `ai4bharat/indic-conformer-600m-multilingual` return `403 Client Error` on
-  file download, so no real Indic ASR model can be loaded.
-- **Cause:** both repositories are `gated: auto` on HuggingFace. A valid token
-  is configured and authenticates (`whoami` succeeds as `shivam2607`), and the
-  repository *metadata* is readable — but a gated repo still blocks **file**
-  downloads until the account holder accepts the model's terms on its page.
-  This is a per-repository consent click that cannot be performed via the API.
-- **Attempted fixes:** (1) verified the token is present and authenticates;
-  (2) confirmed `HfApi.model_info` succeeds, proving the token reaches the hub
-  and isolating the failure to file access rather than auth; (3) tried the
-  alternative AI4Bharat conformer repository, which is gated identically.
-- **Current status:** ASR is the one stage of the model stack with no real
-  model. Silero VAD, AASIST and ECAPA-TDNN all load and run. The backend still
-  uses its mock ASR adapter, so nothing is broken — but real transcription is
-  unavailable, and with it the Hindi/Tamil ASR evaluation splits.
-- **Required external action:** visit
-  <https://huggingface.co/ai4bharat/indicwav2vec-hindi> while signed in as
-  `shivam2607` and accept the terms. Approval is automatic. Re-running
-  `scripts/training/check_pretrained.py` then verifies access.
 
 ### O8 — No Tamil training or evaluation data · `OPEN`
 

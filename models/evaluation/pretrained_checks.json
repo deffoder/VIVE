@@ -8,7 +8,7 @@
       "model_id": "snakers4/silero-vad",
       "status": "OK",
       "license": "MIT",
-      "load_seconds": 1.09,
+      "load_seconds": 0.77,
       "segments_on_synthetic_input": 0,
       "note": "Shape/run check only. Synthetic tone is not speech, so a low segment count is expected and is not a quality signal."
     },
@@ -17,7 +17,7 @@
       "model_id": "clovaai/aasist",
       "status": "OK",
       "license": "MIT (repo LICENSE)",
-      "load_seconds": 0.03,
+      "load_seconds": 0.02,
       "checkpoint_bytes": 1281532,
       "tensors_in_state_dict": 229,
       "note": "Checkpoint loads. The AASIST model CLASS is not vendored here, so no forward pass was run. Wiring it is Phase 8."
@@ -27,7 +27,7 @@
       "model_id": "speechbrain/spkrec-ecapa-voxceleb",
       "status": "OK",
       "license": "Apache-2.0",
-      "load_seconds": 0.56,
+      "load_seconds": 0.51,
       "embedding_shape": [
         1,
         1,
@@ -38,8 +38,18 @@
     {
       "component": "Indic ASR (Hindi)",
       "model_id": "ai4bharat/indicwav2vec-hindi",
-      "status": "FAIL",
-      "error": "OSError: You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/ai4bharat/indicwav2vec-hindi.\n403 Client Error. (Request ID: Root=1-6ab0cd5c-7425c0cb49ab38ee0a064a3a;48"
+      "status": "OK",
+      "license": "Apache-2.0",
+      "load_seconds": 4.28,
+      "logits_shape": [
+        1,
+        99,
+        68
+      ],
+      "vocab_size": 68,
+      "decoded_on_synthetic_input": "'एक एक एक एक एक ए'",
+      "loaded_from": "models\\artifacts\\_pretrained\\indicwav2vec-hindi",
+      "note": "Synthetic tone is not speech, so the decode is meaningless by design. This confirms load + forward + decode only. Real WER is measured by scripts/training/eval_asr_hindi.py and recorded in models/evaluation/asr_hindi_report.json."
     }
   ]
 }
