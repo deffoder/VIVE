@@ -101,7 +101,7 @@ diverge from the design references.
 - **Current status:** an in-memory store is now implemented behind an
   `EventStore` interface, so the engine choice is a constructor change. Still
   sufficient; not blocking. Data is lost on restart by design for now.
-- **Required external action:** choose an engine before Phase 6, so retention
+- **Required external action:** choose an engine before Phase 10, so retention
   (`SECURITY_SPEC.md` §4) can actually be enforced.
 
 ### O5 — Dataset licenses unverified · `OPEN`
@@ -111,8 +111,10 @@ diverge from the design references.
   so no corpus has been fetched or inspected.
 - **Attempted fixes:** manifest schema requires `license` and `provenance` on
   every record, so an unlicensed clip cannot enter a split unnoticed.
-- **Current status:** not blocking Phases 1–7.
-- **Required external action:** license review per dataset before Phase 8.
+- **Current status:** not blocking Phases 1–6, all of which are complete. It
+  **does** gate Phase 7, which cannot begin until at least one dataset has a
+  verified license.
+- **Required external action:** license review per dataset before Phase 7.
 
 ### O6 — Fusion weights unvalidated · `OPEN`
 
@@ -125,7 +127,7 @@ diverge from the design references.
   let low anti-spoof evidence suppress high semantic evidence.
 - **Current status:** acceptable for mock-driven demos provided the provisional
   status is stated (`DEMO_SPEC.md` §6).
-- **Required external action:** recalibrate against real outputs in Phase 8;
+- **Required external action:** recalibrate against real outputs in Phase 9;
   never present provisional weights as measured accuracy.
 
 ---

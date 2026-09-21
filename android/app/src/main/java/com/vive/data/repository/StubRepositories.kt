@@ -22,12 +22,13 @@ import kotlinx.coroutines.flow.emptyFlow
  * DELIBERATELY EMPTY. These report "no data" and "unavailable" - they do NOT
  * fabricate risk scores, transcripts or model outputs. CLAUDE.md forbids
  * creating fake model logic to populate the UI, and docs/ML_SPEC.md 4 places
- * scenario-driven mock adapters in Phase 5, backed by DEMO_SPEC scenarios.
+ * scenario-driven demo adapters in Phase 2, backed by DEMO_SPEC scenarios.
  *
  * Their job here is to exercise the Empty / Unavailable / Error state paths so
  * the state architecture is proven before any real or mock data exists.
  *
- * Replaced in Phase 5 by implementations backed by ViveApi + ViveEventStream.
+ * Superseded in Phase 4 by DemoRepositories and RemoteRepositories. Retained
+ * as the no-data reference implementation; not wired into ServiceLocator.
  */
 
 class StubSessionRepository : SessionRepository {

@@ -16,7 +16,7 @@ import com.vive.ui.theme.ViveThemeTokens
  * Honest stand-in for a screen that is specified but not yet built.
  *
  * It states which phase implements it rather than showing an empty shell or
- * invented content. Every one of these is replaced in Phase 4
+ * invented content. All of these were replaced by real screens in Phase 2
  * (docs/IMPLEMENTATION_PLAN.md).
  */
 @Composable

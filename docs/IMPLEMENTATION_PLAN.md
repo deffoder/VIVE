@@ -1,232 +1,1517 @@
-# VIVE — Implementation Plan
+# VIVE — Final Implementation Plan
 
-> Ordering principle: the product must work end-to-end on mock adapters before
-> any real model is integrated, so that UI, transport and fusion defects are
-> never confused with model defects. Real ML is the **last** major phase.
+**Project:** VIVE — Voice Integrity Verification Engine  
+**Problem Statement:** SIH26104 — AI-Powered Real-Time Detection and Prevention of Voice Cloning Impersonation Attacks  
+**Canonical Phase Numbering:** Phase 0 → Phase 10  
+**Current Status:** Phases 0–6 complete; Phase 7 is next  
+**Android:** Kotlin + Jetpack Compose  
+**Backend:** FastAPI + WebSocket  
+**Primary UI reference:** `design/02_vive_ui_reference.png`
 
-Status legend: `[ ]` not started · `[~]` in progress · `[x]` complete
+---
 
-## Phase 0 — Repository and architecture `[x]`
+## 1. Purpose
 
-- [x] Git rooted at `VIVE/`, home-directory repo not used
-- [x] `.gitignore` covering secrets, builds, checkpoints, corpora
-- [x] Final directory structure; `frontend/` removed
-- [x] Documentation set written and mutually consistent
+This is the **single canonical implementation roadmap for VIVE**. It defines the project-wide phase numbering, implementation objectives, acceptance criteria, testing expectations, Git checkpoints, ML transition, security boundaries, and the path from the current Phase 6 prototype to the final Phase 10 system.
 
-**Exit:** structure matches `ARCHITECTURE.md`; no contradictory paths, schemas or
-model names across the specs.
+If an older document uses another phase numbering scheme, **this document is the canonical numbering after reconciliation**.
 
-## Phase 1 — Android foundation + typed contract `[~]`
+---
 
-Delivered as the Android application foundation, with the Kotlin half of the
-typed contract. The backend half moves to Phase 2.
+## 2. Canonical Phase Numbering
 
-Android foundation — **complete**:
+| Phase | Name | Status |
+|---|---|---|
+| **0** | Repository & Specifications | COMPLETE |
+| **1** | Android Foundation | COMPLETE |
+| **2** | Complete Android UI | COMPLETE |
+| **3** | FastAPI + WebSocket Backend | COMPLETE |
+| **4** | Android ↔ Backend Integration | COMPLETE |
+| **5** | Communication Integration | COMPLETE |
+| **6** | Security, Privacy & Hardening | COMPLETE |
+| **7** | Data Preparation + Cloud Training | **NEXT** |
+| **8** | Real ML Integration | NOT STARTED |
+| **9** | ML Evaluation, Calibration & Robustness | NOT STARTED |
+| **10** | Final End-to-End Integration | NOT STARTED |
 
-- [x] Gradle/AGP/Kotlin configuration, version catalog, wrapper
-- [x] Package structure per `ARCHITECTURE.md` §6
-- [x] Navigation architecture — 4 tabs + full drill-down, all 24 routes
-- [x] Theme, colour system, typography, spacing, shapes (`UI_SPEC.md` §2)
-- [x] Component foundation incl. all seven state components
-- [x] Screen/state architecture (`UiState` sealed interface)
-- [x] Repository/service interfaces + REST/WebSocket/event interfaces
-- [x] Logging with transcript redaction, typed error handling
-- [x] Test structure; 16 unit tests passing
-- [x] Kotlin mirrors of every taxonomy and the canonical packet
-- [x] Contract test pinning the `CLAUDE.md` example packet
+---
 
-Deferred to Phase 2 (backend side of the same contract):
+## 3. Current Verified State
 
-- [ ] Pydantic schemas in `backend/app/schemas/`
-- [ ] OpenAPI generated and checked against `API_SPEC.md`
+### Completed commits
 
-**Exit (Android side, met):** app builds, launches, navigates; the canonical
-packet models with no field renamed or dropped; a missing analyzer yields
-`null`, never `0`.
+```text
+6926316  Repo scaffold / Git root
+0328ea8  Project instructions + blocker format
+1dccf81  Final architecture + specifications
+2aa728b  Android foundation
+2353869  Complete Android UI
+62b737c  FastAPI + WebSocket backend
+f26254a  Android ↔ backend integration
+84d0bc5  Communication integration
+36fad4b  Security/privacy/resilience/demo hardening
+```
 
-## Phase 2 — Backend skeleton `[x]`
+Reported Phase 6 checkpoint:
 
-- [x] FastAPI app, env-driven config, health/ready/version
-- [x] Session manager and state machine, VS-/P- id generation
-- [x] Sliding-window packetizer (2.0 s window, 1.0 s stride, 16 kHz)
-- [x] Analyzer orchestrator calling the adapter interfaces
-- [x] REST routes per `API_SPEC.md` §3, §5, §8.1
-- [x] WebSocket manager, frame envelopes, heartbeat, reconnect-safe sequencing
-- [x] Structured error contract (§7) and JSON logging with redaction
-- [x] Mock adapters, transparent fusion, temporal risk, policy engine
-- [x] In-memory event store (resolves the interim part of `BLOCKERS.md` O4)
-- [x] 48 backend tests
+```text
+Working tree: CLEAN
+Tests: 176
+Failures: 0
+```
 
-**Exit met:** a session streams end to end over WebSocket and produces
-traceable packets with zero real models loaded. Verified against a live uvicorn
-server, not only the test client.
+---
 
-### Implementation decisions taken here
+## 4. What Is Real at Phase 6
 
-- **Fusion is noisy-OR, not a weighted average.** An average lets a LOW signal
-  cancel a HIGH one, so benign anti-spoof evidence suppressed a clear OTP
-  request — exactly the "human voice is not automatically safe" failure mode.
-  Noisy-OR raises risk on strong evidence in any channel while weak evidence
-  merely contributes little.
-- **Demo determinism is content-seeded.** Mock scores derive from the
-  transcript, not the session id, so the same demo script yields identical
-  scores on every run.
-- **In-memory persistence**, per O4. Audio and transcripts never touch disk,
-  which is also the privacy posture in `SECURITY_SPEC.md` §4.
+Implemented and tested:
 
-## Phase 3 — Design system in Compose `[x]`
+- Android application architecture;
+- Jetpack Compose UI;
+- all 24 screens;
+- navigation and design system;
+- FastAPI backend;
+- REST APIs;
+- WebSocket streaming;
+- session lifecycle;
+- packet/event model;
+- overlapping 2-second windows with 1-second step;
+- packet traceability;
+- mock model-service interfaces;
+- risk fusion;
+- noisy-OR risk guard;
+- temporal smoothing;
+- escalation timing;
+- policy engine;
+- alerts;
+- Android/backend real-time integration;
+- backend-driven packet timeline/details/risk graph;
+- `CallScreeningService` metadata-only cellular screening;
+- authorized audio pipeline;
+- audio capture abstraction;
+- bounded ring buffer;
+- packetization;
+- authentication/authorization boundaries;
+- session ownership;
+- rate limiting;
+- replay guard;
+- audit events;
+- HMAC webhook signatures;
+- TLS-readiness boundary;
+- log redaction;
+- real session deletion;
+- demo reset;
+- resilience/failure handling;
+- deterministic demo mode.
 
-- [x] Theme tokens from `UI_SPEC.md` §2
-- [x] `RiskGauge`, `EvidenceRow`, `RiskPill`, `MetricCard` first
-- [x] Remaining components from `UI_SPEC.md` §7
-- [x] Every component's Loading / Empty / Error / Unavailable variants
-- [x] `@Preview` composables for visual review against `design/02`
+The application has been verified end to end on an emulator.
 
-**Exit met:** components render all states; screens share one card/row
-vocabulary and one `StateHost`, so no screen invents its own "no data" wording.
+---
 
-## Phase 4 — Navigation and screens `[x]`
+## 5. What Is Not Real Yet
 
-- [x] Nav graph, four-tab bottom nav, drill-down path
-- [x] All 24 screens implemented against `UI_SPEC.md` §4
-- [x] Each screen bound to a `UiState` sealed type via `StateHost`
-- [x] Packet evidence reachable in 2 taps from an active call
-- [x] Demo repositories serving `DEMO_SPEC.md` scenarios S1–S4
+**No real ML model runs inside VIVE at the Phase 6 checkpoint.**
 
-**Exit met:** all 24 flows navigable; every screen routes through the
-seven-state host. Verified on an API 36 emulator with zero crash lines.
+The following are deterministic/demo analyzers:
 
-### Implementation decisions taken here
+- AASIST;
+- ECAPA-TDNN;
+- ASR;
+- intent classifier;
+- behaviour classifier;
+- other ML evidence adapters.
 
-- **`material-icons-extended` added.** Phase 1 deliberately excluded it, but a
-  complete 24-screen UI needs a real icon vocabulary and the core set lacks
-  `GraphicEq`, `Group`, `Mic` and `Storage`. R8 tree-shakes unused icons in
-  release builds.
-- **Demo data lives in `data/demo/`**, separate from production paths, with
-  every adapter reporting `MOCK` and versions reading `"demo"` rather than a
-  plausible-looking semantic version.
-- **Intent and behaviour severity derive from the label, not classifier
-  confidence.** Deriving from confidence made a confidently-identified normal
-  conversation render as "High" intent risk - a misleading presentation that
-  `CLAUDE.md` forbids. Severity now comes from what was actually asked for.
+Therefore there is currently:
 
-## Phase 5 — Live wiring `[x]`
+- no ML accuracy claim;
+- no anti-spoofing EER;
+- no ASR WER;
+- no intent F1;
+- no speaker verification EER/FAR/FRR;
+- no end-to-end fraud-risk accuracy.
 
-- [x] Retrofit client; OkHttp WebSocket client
-- [x] Incremental packet append keyed by `packet_id`; no full rebuilds
-- [x] Reconnect with exponential backoff; `since_seq` backfill on sequence gaps
-- [x] Offline and error states wired; typed `ViveError` from HTTP status
-- [x] Mock adapters driven by `DEMO_SPEC.md` scenarios
-- [x] Demo-data indicator surfaced (`UI_SPEC.md` §6)
-- [x] Backend-first repositories with a visible demo fallback
+These must remain unclaimed until controlled evaluation in Phase 9.
 
-**Exit met:** the Android app drives a live FastAPI backend end to end. Verified
-on an API 36 emulator against a running server: the app listed the backend's
-sessions, packet count rose 5 to 7 as packets were pushed over WebSocket, the
-timeline rendered P001-P007 with backend risk levels, and packet detail matched
-the backend byte for byte (P004: 87 CRITICAL, 91% confidence, OTP_REQUEST).
+---
 
-### Implementation decisions taken here
+## 6. Permanent Architecture Principles
 
-- **Live events are applied in `SessionDetailViewModel`**, so every session
-  screen becomes backend-driven with no UI change and no second state layer.
-- **DTOs are separate from domain models.** The wire speaks snake_case and may
-  add fields; `ignoreUnknownKeys` plus enum fallbacks mean a newer backend
-  cannot crash an older client.
-- **The demo fallback is never silent.** When the backend is unreachable the
-  app serves demo data and `usingFallback` records it, so the viewer always
-  knows which source is on screen.
+### Core pipeline
 
-## Phase 6 — Fusion, temporal, policy `[ ]`
+```text
+Authorized Communication Source
+        ↓
+Secure Ingestion
+        ↓
+Session Manager
+        ↓
+Streaming Ring Buffer
+        ↓
+VAD / DSP / Audio Quality
+        ↓
+┌───────┬────────┬──────────┐
+↓       ↓        ↓
+AASIST ECAPA    Indic ASR
+↓       ↓        ↓
+Synthetic Speaker Transcript
+Voice    │        │
+         └────┬───┘
+              ↓
+       Intent + Behaviour
+              ↓
+         Context Engine
+              ↓
+       OOD / Uncertainty
+              ↓
+          Risk Fusion
+              ↓
+       Temporal Risk Engine
+              ↓
+         Policy Engine
+              ↓
+┌────────┬──────────┬──────────┐
+↓        ↓          ↓
+Android  Alerts     API/Webhook
+Dashboard
+```
 
-- [ ] Transparent weighted fusion, weights in `models/configs/fusion.yaml`
-- [ ] Separate confidence computation
-- [ ] EMA smoothing, hysteresis, minimum-evidence gate, cooldown
-- [ ] Escalation timings
-- [ ] Policy → recommended action → alert
-- [ ] Webhook delivery: signing, idempotency, retry
+### Risk rules
 
-**Exit:** S2 escalates on semantic evidence alone; S4 lowers confidence without
-raising risk.
+- Risk score and confidence are separate.
+- Synthetic voice is not automatically fraud.
+- Genuine human voice is not automatically safe.
+- Missing evidence must not silently become safe evidence.
+- Uncertainty must be represented.
+- Risk is decision support, not proof of fraud.
+- A risk score is not a probability unless properly calibrated.
 
-## Phase 7 — Android telephony `[x]`
+### Cellular limitation
 
-Implemented as two deliberately separate packages, so the paths cannot be
-confused in code.
+Do not claim unrestricted access to both sides of ordinary cellular-call audio.
 
-**PATH A — cellular screening (`com.vive.telephony`)**
+Cellular path:
 
-- [x] `ViveCallScreeningService` registered with `BIND_SCREENING_SERVICE`
-- [x] Metadata model covering exactly what the platform exposes: handle,
-      direction, number presentation
-- [x] Local synchronous screening policy - no network, no model, because the
-      platform enforces a response deadline
-- [x] `CallScreeningRole` for the API 29+ role request, with an honest
-      Unsupported/Unavailable state on devices that cannot offer it
-- [x] Decisions never reject a call; `ScreeningVerdict` has no REJECT member
+```text
+CallScreeningService
+→ supported call metadata
+→ screening workflow
+```
 
-**PATH B — authorized audio (`com.vive.audio`)**
+Full audio analysis:
 
-- [x] `AudioSource` abstraction with explicit `AudioAuthorization` states
-- [x] Canonical 16 kHz mono `pcm_s16le` format
-- [x] `VoiceActivityDetector` interface; energy-gate stand-in, not Silero
-- [x] Bounded `RingBuffer` - audio is overwritten, never accumulated
-- [x] `Packetizer`: 2.0 s windows, 1.0 s stride, overlapping
-- [x] Packet ids, call-relative timestamps, window bounds, duration
-- [x] `AudioQualityMeter` reporting only measured properties (RMS, clipping)
-- [x] `CaptureController` lifecycle: start / stop / cancel, refusing to run
-      without authorization
-- [x] `DemoAudioSource` - deterministic, no audio asset in the repo
+```text
+authorized VoIP / in-app / collaboration / prerecorded audio
+```
 
-**Exit met:** 29 new tests pass. Demo audio verified end to end: 10 s generated,
-packetised into 9 overlapping windows, sent as binary WebSocket frames, five
-analysed by the backend and reflected in session state. No claim of cellular
-audio capture exists anywhere in the codebase.
+### Banking boundary
 
-### Implementation decisions taken here
+VIVE does not independently:
 
-- **Quality is measured, never estimated.** `AudioQualityMeter` reports RMS and
-  clipping ratio, which are properties of the samples. SNR and MOS would need a
-  model or a reference signal, so they are not reported at all rather than
-  guessed.
-- **The demo source generates rather than ships audio**, so the repo carries no
-  media asset and every run is byte-identical.
+- transfer money;
+- freeze accounts;
+- access private banking databases;
+- retrieve credentials;
+- bypass authentication;
+- make unauthorized transaction decisions.
 
-## Phase 8 — Real ML `[ ]`
+VIVE provides risk/policy information for authorized organizational workflows.
 
-Last major phase. Strictly sequential (`ML_SPEC.md` §9). Training on Kaggle or
-Google Colab; no local GPU assumed.
+---
 
-- [ ] Dataset manifests, licenses, leakage checks (`DATA_SPEC.md` §5)
-- [ ] `silero-vad` → `aasist` → `ecapa-tdnn` → `indicconformer`
-      → `intent-classifier` → `behavior-classifier`
-- [ ] Per model: real sample, recorded inference time and version, UI verified
-- [ ] Fusion recalibrated against real outputs
-- [ ] Evaluation report
+# PHASE 0 — REPOSITORY & SPECIFICATIONS
 
-**Exit:** adapters report `mode: "real"`; every metric traces to a measured run.
+**Status:** COMPLETE
 
-## Phase 9 — Verification and hardening `[~]`
+## Objective
 
-- [x] Backend tests — pipeline, fusion, temporal, policy (92 total)
-- [x] Android tests — states, navigation, serialization, audio (84 total)
-- [x] Integration — REST + WebSocket contract, live server verified
-- [x] End-to-end — DEMO_SPEC scenarios S1–S4
-- [x] Latency measured and recorded, not claimed
-- [x] Security controls implemented and tested; report in `PHASE6_REPORTS.md`
-- [x] Privacy controls: deletion, retention defaults, log redaction
-- [x] Failure modes exercised: disconnect, reconnect, malformed input,
-      oversized frames, empty transcript, model unavailable, deleted session
-- [x] Demo hardening: deterministic scenarios, reset endpoint, MOCK/REAL
-      boundary enforced in code and surfaced in the UI
-- [ ] Scenarios S5–S10 (need real adapters or a second device)
-- [ ] Design quality gate re-run after any further UI change
+Create the safe, isolated, documented VIVE repository and establish a single technical source of truth.
 
-**Exit (partial):** 176 tests pass across both sides. The remaining items
-depend on real models, which is Phase 8.
+## Completed
 
-## Notes on sequencing
+- Git root corrected to `VIVE/`;
+- parent-repository risk identified;
+- `frontend/` removed;
+- final project structure created;
+- `CLAUDE.md` created;
+- project specifications created;
+- packet schema conflicts reconciled;
+- blocker format established;
+- architecture finalized.
 
-Phases 3 and 4 may run alongside Phase 2 once Phase 1 is frozen — the contract is
-what decouples them. Phase 8 must not begin before Phase 5's exit criterion is
-met. Nothing in Phases 0–7 requires a GPU or a large model download.
+## Required artifacts
+
+```text
+CLAUDE.md
+README.md
+docs/PROJECT_SPEC.md
+docs/ARCHITECTURE.md
+docs/UI_SPEC.md
+docs/API_SPEC.md
+docs/ML_SPEC.md
+docs/DATA_SPEC.md
+docs/SECURITY_SPEC.md
+docs/DEMO_SPEC.md
+docs/IMPLEMENTATION_PLAN.md
+docs/BLOCKERS.md
+```
+
+## Acceptance
+
+- repository isolated;
+- specifications mutually consistent;
+- Git clean;
+- no accidental parent-repository tracking.
+
+---
+
+# PHASE 1 — ANDROID FOUNDATION
+
+**Status:** COMPLETE  
+**Commit:** `2aa728b`
+
+## Objective
+
+Create the Android application foundation without complete UI or real ML.
+
+## Completed
+
+- Gradle/AGP/Kotlin configuration;
+- Compose foundation;
+- package architecture;
+- navigation;
+- state architecture;
+- typed data models;
+- design tokens;
+- repositories/interfaces;
+- REST/WebSocket interfaces;
+- logging/error boundaries;
+- tests.
+
+## Acceptance
+
+- Android builds;
+- emulator launches;
+- navigation does not crash;
+- architecture is ready for Phase 2.
+
+---
+
+# PHASE 2 — COMPLETE ANDROID UI
+
+**Status:** COMPLETE  
+**Commit:** `2353869`
+
+## Objective
+
+Implement the complete VIVE interface using the approved design system.
+
+## Completed
+
+All 24 specified screens and reusable components including:
+
+- RiskGauge;
+- PacketRow;
+- RiskTimeline;
+- ContributionBar;
+- active-call analysis;
+- packet detail;
+- alerts;
+- sessions;
+- reports;
+- settings;
+- integrations;
+- help;
+- profile/about.
+
+## Correctness fixes
+
+1. Intent severity was incorrectly derived from classifier confidence.
+2. Session current risk could drift from the latest packet.
+
+Both were corrected.
+
+## Acceptance
+
+- all screens navigable;
+- UI follows `UI_SPEC.md`;
+- demo scenarios render;
+- emulator verification passes.
+
+---
+
+# PHASE 3 — FASTAPI + WEBSOCKET BACKEND
+
+**Status:** COMPLETE  
+**Commit:** `62b737c`
+
+## Objective
+
+Create the backend contract consumed by Android and future ML services.
+
+## Completed
+
+- FastAPI;
+- configuration;
+- structured/redacted logging;
+- structured errors;
+- session manager;
+- REST endpoints;
+- WebSocket;
+- heartbeat;
+- reconnect-safe sequencing;
+- mock model adapters;
+- fusion;
+- temporal risk;
+- policy engine;
+- in-memory store;
+- webhook boundary;
+- tests.
+
+## Important fixes
+
+### Keyword false match
+
+Substring matching caused `"fir"` to match inside `"confirm"`. Token-aware matching replaced it.
+
+### Fusion cancellation
+
+A weighted average allowed low anti-spoof evidence to cancel high intent risk. Fusion was changed to noisy-OR-style risk combination with guard rails.
+
+## Acceptance flow
+
+```text
+create session
+→ WebSocket
+→ packet
+→ result
+→ session query
+→ event history
+→ policy
+→ webhook
+→ disconnect
+→ reconnect
+```
+
+---
+
+# PHASE 4 — ANDROID ↔ BACKEND INTEGRATION
+
+**Status:** COMPLETE  
+**Commit:** `f26254a`
+
+## Objective
+
+Make Android consume real backend session/event state.
+
+## Completed
+
+- Retrofit;
+- OkHttp WebSocket;
+- DTO/domain separation;
+- typed error mapping;
+- backend-first repositories;
+- controlled demo fallback;
+- live WebSocket event processing;
+- backend-driven packet timeline;
+- backend-driven packet details;
+- backend-driven risk graph.
+
+## Live verification
+
+On an emulator:
+
+```text
+backend sessions listed
+packet count 5 → 7
+P001–P007 rendered
+backend-computed risk shown
+packet detail matched backend
+```
+
+## Acceptance
+
+- Android creates sessions;
+- WebSocket works;
+- backend events reach UI;
+- packet data is traceable;
+- reconnect/error handling works.
+
+---
+
+# PHASE 5 — COMMUNICATION INTEGRATION
+
+**Status:** COMPLETE  
+**Commit:** `84d0bc5`
+
+## Objective
+
+Provide supported phone-facing and authorized audio paths.
+
+### Path A — Cellular
+
+Uses:
+
+```text
+CallScreeningService
+```
+
+Characteristics:
+
+- metadata only;
+- role handling;
+- no unrestricted cellular audio;
+- no unsupported recording.
+
+### Path B — Full authorized audio
+
+Includes:
+
+- audio-source abstraction;
+- canonical 16 kHz format;
+- VAD interface;
+- bounded ring buffer;
+- 2-second windows;
+- 1-second step;
+- measured audio-quality fields;
+- deterministic demo source;
+- binary WebSocket audio path.
+
+## Verified
+
+A generated 10-second demo audio stream produced 9 overlapping windows and reached the backend analysis pipeline.
+
+## Acceptance
+
+- screening path works;
+- authorized audio path works;
+- packetization works;
+- ring buffer works;
+- timestamps and packet IDs are traceable;
+- demo audio reaches backend.
+
+---
+
+# PHASE 6 — SECURITY, PRIVACY & HARDENING
+
+**Status:** COMPLETE  
+**Commit:** `36fad4b`
+
+## Objective
+
+Harden the end-to-end prototype before real ML.
+
+## Completed
+
+- principals;
+- RBAC;
+- session ownership;
+- 404 behavior for unauthorized session probing;
+- rate limiting;
+- replay guard;
+- audit events;
+- HMAC signatures;
+- TLS-readiness flag;
+- log redaction;
+- real session deletion;
+- demo reset;
+- resilience/failure handling.
+
+## Measured latency
+
+With mock adapters:
+
+```text
+p50 = 2.0 ms
+p95 = 2.7 ms
+```
+
+These are prototype/mock measurements, not final ML performance claims.
+
+## Not implemented
+
+- persistence across restart;
+- token rotation;
+- distributed rate limiting;
+- encryption at rest;
+- external security audit.
+
+## Acceptance
+
+Security, privacy, resilience and demo behavior verified; 176 tests passing.
+
+---
+
+# PHASE 7 — DATA PREPARATION + CLOUD TRAINING
+
+**Status:** NEXT
+
+## Objective
+
+Prepare legally usable datasets and train project-specific ML components using cloud GPU resources.
+
+## First task — resolve O5
+
+Before training:
+
+**Verify dataset licenses and provenance.**
+
+For every dataset record:
+
+```text
+dataset name
+source URL
+version
+license
+license verification status
+provenance
+language
+speaker information where available
+real/synthetic label
+generator information where available
+split information
+preprocessing
+intended use
+restrictions
+```
+
+Do not train merely because a dataset is publicly downloadable.
+
+## Data categories
+
+### Anti-spoofing
+
+Potential resources:
+
+- ASVspoof;
+- Indic synthetic-speech datasets such as IndicSynth where permitted;
+- other legally usable synthetic/genuine speech datasets.
+
+### Speaker verification
+
+Potential foundation:
+
+- VoxCeleb;
+- other legally usable speaker datasets.
+
+### Indic speech
+
+Potential resources:
+
+- Vaani;
+- Common Voice where permitted;
+- consented recordings;
+- other approved Indian-language datasets.
+
+### Intent/behaviour
+
+Potential resources:
+
+- ScamShield;
+- Hinglish/English financial scam datasets;
+- other legally usable social-engineering datasets;
+- carefully constructed/consented examples.
+
+## Language priority
+
+1. Hindi
+2. Tamil
+3. English where stable
+4. additional Indic languages later
+
+Support code-switching where the selected model supports it.
+
+## Preprocessing
+
+Create reproducible pipelines for:
+
+- format;
+- sample rate;
+- channels;
+- duration;
+- silence;
+- segmentation;
+- normalization;
+- codec/channel transformations;
+- language labels;
+- speaker labels;
+- synthetic/genuine labels;
+- generator labels.
+
+Avoid leakage.
+
+Use speaker-disjoint and generator-disjoint evaluation.
+
+## Training strategy
+
+Do not train huge foundation models from scratch.
+
+Prefer:
+
+```text
+pretrained model
+→ project adaptation
+→ validation
+→ checkpoint
+→ evaluation
+```
+
+Train in a controlled order:
+
+```text
+1. Anti-spoofing
+2. Speaker verification foundation
+3. Indic ASR evaluation/integration
+4. Intent classifier
+5. Behaviour classifier
+6. Calibration/fusion data
+```
+
+Use Kaggle/Colab or another available GPU environment for heavy training.
+
+## Deliverables
+
+- verified dataset manifests;
+- preprocessing scripts;
+- reproducible splits;
+- training notebooks/scripts;
+- checkpoints;
+- model metadata/cards;
+- initial evaluation results;
+- reproducibility instructions;
+- license/provenance documentation.
+
+## Acceptance gate
+
+Do not proceed to Phase 8 until:
+
+- dataset licenses are verified;
+- provenance is documented;
+- splits are reproducible;
+- training scripts run;
+- checkpoints are versioned;
+- initial model evaluation exists;
+- no fabricated metrics exist;
+- model artifacts can be loaded independently.
+
+---
+
+# PHASE 8 — REAL ML INTEGRATION
+
+**Status:** NOT STARTED
+
+## Objective
+
+Replace deterministic analyzers with real ML models without breaking the application architecture.
+
+## Model boundary
+
+```text
+Backend
+   ↓
+Model Interface
+   ↓
+Real Model Adapter
+   ↓
+Model Artifact
+```
+
+Do not put ML inference directly inside Android Compose screens.
+
+## AASIST
+
+```text
+audio → synthetic/spoof evidence
+```
+
+## ECAPA-TDNN
+
+```text
+audio → speaker embedding
+```
+
+Only compare against a legitimate reference when one exists.
+
+Without a reference:
+
+```text
+speaker_state = NO_REFERENCE
+```
+
+Do not invent identity.
+
+## Indic ASR
+
+```text
+audio → transcript
+```
+
+Priority:
+
+- Hindi;
+- Tamil;
+- English;
+- additional Indic languages later.
+
+## Intent taxonomy
+
+```text
+NORMAL_CONVERSATION
+OTP_REQUEST
+PASSWORD_REQUEST
+CARD_DETAILS_REQUEST
+BANKING_CREDENTIAL_REQUEST
+MONEY_TRANSFER_REQUEST
+ACCOUNT_CHANGE_REQUEST
+REMOTE_ACCESS_REQUEST
+URGENT_ACTION
+THREAT_OR_INTIMIDATION
+CONFIDENTIAL_INFORMATION
+UNKNOWN
+```
+
+## Behaviour taxonomy
+
+```text
+AUTHORITY_IMPERSONATION
+URGENCY
+THREAT
+FEAR
+SECRECY
+PRESSURE
+REWARD_PROMISE
+NORMAL
+```
+
+## OOD / uncertainty
+
+Target states:
+
+```text
+GENUINE_LIKELY
+KNOWN_SYNTHETIC_LIKELY
+UNKNOWN_SYNTHETIC_PATTERN
+UNCERTAIN
+INSUFFICIENT_AUDIO
+```
+
+## Acceptance gate
+
+- real AASIST adapter works;
+- real ECAPA adapter works;
+- real ASR works;
+- real intent model works;
+- real behaviour model works;
+- model versions are visible;
+- demo/mock mode remains available;
+- model failures degrade gracefully;
+- latency is measured;
+- real-model mode contains no fabricated outputs.
+
+---
+
+# PHASE 9 — ML EVALUATION, CALIBRATION & ROBUSTNESS
+
+**Status:** NOT STARTED
+
+## Objective
+
+Measure the real ML system under documented, reproducible conditions.
+
+## Metrics
+
+### Anti-spoofing
+
+- EER;
+- minDCF where applicable;
+- FAR;
+- miss/FNR;
+- ROC-AUC/PR-AUC where useful.
+
+### Speaker verification
+
+- EER;
+- FAR;
+- FRR;
+- threshold analysis.
+
+### ASR
+
+- WER;
+- language-specific WER;
+- code-switching evaluation where possible.
+
+### Intent
+
+- accuracy;
+- precision;
+- recall;
+- F1;
+- macro-F1.
+
+### Behaviour
+
+- precision;
+- recall;
+- F1;
+- macro-F1.
+
+### Complete risk system
+
+- precision;
+- recall;
+- F1;
+- FPR;
+- FNR;
+- calibration;
+- time-to-first-warning;
+- latency;
+- throughput.
+
+## Required experiments
+
+### A — Leave-One-Generator-Out
+
+```text
+Train: A + B + C + D
+Test:  E
+```
+
+Rotate generators.
+
+### B — Telephone/VoIP robustness
+
+Evaluate:
+
+- codec compression;
+- low bitrate;
+- noise;
+- reverberation;
+- GSM/telephone-like degradation;
+- VoIP processing.
+
+### C — Evidence ablation
+
+Compare:
+
+```text
+voice only
+voice + speaker
+voice + intent
+voice + intent + context
+full system
+```
+
+### D — Indic robustness
+
+Evaluate:
+
+- Hindi;
+- Tamil;
+- English;
+- code-switching where supported.
+
+### E — Real human scam
+
+Test suspicious/scam intent using genuine human speech.
+
+### F — Synthetic legitimate conversation
+
+Test synthetic speech that is not malicious.
+
+### G — Early warning
+
+Measure:
+
+```text
+time-to-first-warning
+time-to-high-risk
+time-to-critical
+```
+
+### H — Calibration
+
+Determine whether confidence/risk is calibrated.
+
+Do not call a score a probability unless calibrated and defined as such.
+
+### I — OOD/unknown-generator
+
+Evaluate unseen generators separately.
+
+### J — End-to-end latency
+
+Measure:
+
+- inference;
+- backend;
+- WebSocket;
+- Android update;
+- first-result latency.
+
+## Accuracy claim policy
+
+Never claim a universal:
+
+```text
+95%
+98%
+99%
+99.9%
+100%
+zero false positives
+```
+
+without a controlled evaluation supporting the exact statement.
+
+Every claim must identify:
+
+```text
+metric
+dataset
+sample count
+split
+population
+protocol
+model version
+conditions
+```
+
+## Acceptance gate
+
+- held-out evaluation;
+- no leakage;
+- reproducible metrics;
+- robustness results;
+- calibration results;
+- OOD behavior;
+- component metrics;
+- limitations;
+- no unsupported accuracy claims.
+
+---
+
+# PHASE 10 — FINAL END-TO-END INTEGRATION
+
+**Status:** NOT STARTED
+
+## Objective
+
+Integrate the validated ML system into the full VIVE prototype and produce the final reproducible demonstration.
+
+## Final flow
+
+```text
+Real authorized communication
+        ↓
+Secure ingestion
+        ↓
+Session Manager
+        ↓
+VAD + DSP + quality
+        ↓
+┌────────┬────────┬─────────┐
+↓        ↓        ↓
+AASIST   ECAPA    Indic ASR
+↓        ↓        ↓
+Synthetic Speaker Transcript
+Voice
+        ↓
+Intent + Behaviour
+        ↓
+Context
+        ↓
+OOD / Uncertainty
+        ↓
+Calibrated Risk Fusion
+        ↓
+Temporal Engine
+        ↓
+Policy Engine
+        ↓
+┌────────────┬─────────────┬────────────┐
+↓            ↓             ↓
+Dashboard   Mobile Alert   API/Webhook
+```
+
+## Dashboard
+
+Must show:
+
+- call/session ID;
+- duration;
+- packet count;
+- current risk;
+- risk level;
+- confidence;
+- synthetic evidence;
+- speaker consistency;
+- intent risk;
+- context risk;
+- overall risk graph;
+- every packet in the timeline;
+- first anomaly;
+- first warning;
+- escalation timing;
+- recommended action.
+
+## Packet detail
+
+Every packet must be clickable.
+
+Show:
+
+- packet ID;
+- timestamp;
+- start/end;
+- duration;
+- language;
+- synthetic score;
+- speaker evidence;
+- transcript;
+- intent;
+- behaviour;
+- context;
+- uncertainty;
+- packet risk;
+- confidence;
+- contribution graph;
+- model/version metadata where applicable.
+
+## Alerts
+
+Where implemented:
+
+- dashboard;
+- Android notification;
+- secure webhook;
+- email.
+
+## API/SDK
+
+Finalize applicable:
+
+- REST;
+- WebSocket;
+- gRPC;
+- authentication;
+- session lifecycle;
+- webhooks;
+- Python SDK;
+- Android SDK boundary;
+- JavaScript SDK;
+- enterprise integration.
+
+## Final demo scenarios
+
+### 1. Normal call
+
+```text
+normal speech
+→ low risk
+→ no unnecessary interruption
+```
+
+### 2. Synthetic voice
+
+```text
+synthetic indicators
+→ risk increases
+→ evidence shown
+```
+
+### 3. Human scam
+
+```text
+genuine voice
++
+OTP/credential request
++
+urgency
+→ high risk
+```
+
+### 4. Synthetic legitimate conversation
+
+```text
+synthetic voice
++
+normal conversation
+→ synthetic evidence
+→ not automatically fraud
+```
+
+### 5. Unknown generator
+
+```text
+unseen synthetic pattern
+→ uncertainty/OOD evidence
+→ cautious handling
+```
+
+### 6. Poor audio
+
+```text
+low-quality audio
+→ insufficient/uncertain evidence
+→ no fabricated confidence
+```
+
+## Acceptance gate
+
+- real ML runs end to end;
+- packet results are traceable;
+- dashboard is backend/model driven;
+- alerts work;
+- APIs work;
+- authorized communication paths work;
+- security controls remain active;
+- evaluation metrics are documented;
+- demo scenarios are reproducible;
+- known limitations are visible;
+- Git tree is clean;
+- final documentation is complete.
+
+---
+
+# AFTER PHASE 10 — PRODUCTION ROADMAP
+
+Phase 10 completes the implementation roadmap, but not the product lifecycle.
+
+## Production readiness
+
+- persistent database;
+- scalable event storage;
+- distributed rate limiting;
+- token rotation;
+- encryption at rest;
+- secret management;
+- production TLS;
+- observability;
+- backups;
+- disaster recovery.
+
+## Model operations
+
+- model registry;
+- model versioning;
+- drift monitoring;
+- data drift;
+- generator drift;
+- language drift;
+- performance monitoring;
+- retraining pipeline;
+- rollback.
+
+## Security
+
+- threat modeling;
+- penetration testing;
+- dependency scanning;
+- mobile security review;
+- API security review;
+- ML security review;
+- external audit where required.
+
+## Legal/compliance
+
+Obtain qualified review for applicable:
+
+- privacy;
+- telecom;
+- banking;
+- consent/recording;
+- retention;
+- cross-border processing;
+- organizational requirements.
+
+Do not label the system compliant merely because technical controls were implemented.
+
+## Real organizational integration
+
+Only with appropriate authorization:
+
+```text
+Bank
+Telecom
+Contact Centre
+Enterprise
+```
+
+can connect their workflows to VIVE.
+
+VIVE remains a risk/evidence service rather than an unauthorized controller of financial transactions.
+
+---
+
+# PERMANENT LIMITATIONS
+
+## P1 — Cellular audio
+
+Ordinary third-party Android applications cannot be assumed to have unrestricted access to both sides of standard cellular-call audio.
+
+## P2 — Unknown generators
+
+No system can honestly guarantee detection of every future/unseen synthetic generator.
+
+VIVE should report uncertainty/OOD evidence.
+
+## P3 — Synthetic ≠ fraud
+
+Synthetic speech can be legitimate.
+
+Human speech can be fraudulent.
+
+Risk therefore requires multiple evidence sources.
+
+## P4 — ASR variability
+
+ASR quality varies with:
+
+- language;
+- accent;
+- noise;
+- codec;
+- code-switching;
+- speaker characteristics.
+
+Poor transcription must not be treated as proof of malicious intent.
+
+---
+
+# CURRENT OPEN BLOCKERS
+
+Reported open blockers:
+
+```text
+O1 — Parent/home Git metadata remains outside VIVE
+O2 — Some original source material is outside the VIVE repository
+O3 — Speaker-enrolment/reference source is not finalized
+O4 — Long-term backend persistence engine is not finalized
+O5 — Dataset licenses/provenance are not yet fully verified
+O6 — Fusion weights/calibration remain provisional until real ML outputs exist
+```
+
+Current impact:
+
+- O1/O2: repository/documentation hygiene;
+- O3: important for real ECAPA identity comparison;
+- O4: production persistence/scaling;
+- O5: directly relevant to Phase 7;
+- O6: directly relevant to Phase 9.
+
+---
+
+# GIT CHECKPOINT POLICY
+
+Every phase receives a separate commit.
+
+```text
+Phase 0 → commit
+Phase 1 → commit
+Phase 2 → commit
+Phase 3 → commit
+Phase 4 → commit
+Phase 5 → commit
+Phase 6 → commit
+Phase 7 → commit
+Phase 8 → commit
+Phase 9 → commit
+Phase 10 → final commit
+```
+
+Before commit:
+
+```text
+git status
+git diff
+```
+
+After commit:
+
+```text
+git status
+git log --oneline -5
+```
+
+The working tree should be clean at each checkpoint.
+
+---
+
+# AUTONOMOUS ERROR RECOVERY POLICY
+
+For every implementation phase:
+
+1. Read the complete error.
+2. Diagnose the root cause.
+3. Inspect source/configuration/dependencies.
+4. Apply the smallest safe fix.
+5. Re-run the failing check.
+6. Try up to three technically different fixes where reasonable.
+7. Do not repeat a failed approach without new evidence.
+8. Isolate genuine blockers.
+9. Record blockers in `docs/BLOCKERS.md`.
+10. Continue independent work.
+11. Never fabricate success.
+12. Never fabricate metrics.
+13. Never mark an acceptance gate passed without verification.
+
+---
+
+# TESTING PHILOSOPHY
+
+Keep these separate:
+
+```text
+Software correctness
+        ≠
+ML accuracy
+        ≠
+Security assurance
+        ≠
+Production readiness
+```
+
+A passing test suite proves only what those tests cover.
+
+Real ML performance requires controlled evaluation.
+
+Security readiness requires appropriate security testing/review.
+
+Production readiness requires infrastructure, operations, security and organizational controls beyond the prototype.
+
+---
+
+# FINAL DEFINITION OF DONE
+
+VIVE is fully implemented at Phase 10 when:
+
+```text
+Real authorized communication
+        ↓
+Secure ingestion
+        ↓
+Streaming packetization
+        ↓
+Real ML inference
+        ↓
+Synthetic voice evidence
+        ↓
+Speaker evidence where reference exists
+        ↓
+Indic ASR
+        ↓
+Intent
+        ↓
+Behaviour
+        ↓
+Context
+        ↓
+OOD / uncertainty
+        ↓
+Calibrated risk fusion
+        ↓
+Temporal analysis
+        ↓
+Explainable packet-level evidence
+        ↓
+Call-level evidence
+        ↓
+Dashboard
+        ↓
+Alerts
+        ↓
+Secure APIs/webhooks
+        ↓
+Measured evaluation
+        ↓
+Robustness validation
+```
+
+The final system must clearly communicate:
+
+- what it knows;
+- what it does not know;
+- why risk increased;
+- which evidence contributed;
+- confidence/uncertainty;
+- when evidence is insufficient;
+- recommended action;
+- which capabilities are measured versus provisional.
+
+---
+
+# PHASE STATUS TEMPLATE
+
+At every phase checkpoint:
+
+```text
+PHASE:
+NAME:
+
+STATUS:
+COMPLETE / PARTIAL / BLOCKED
+
+COMMIT:
+<hash>
+
+IMPLEMENTED:
+<list>
+
+TESTS:
+<passed>/<total>
+
+FAILURES:
+<list>
+
+FIXES:
+<list>
+
+BLOCKERS:
+<list>
+
+MEASUREMENTS:
+<actual measurements only>
+
+MOCK/DEMO:
+<what remains mocked>
+
+REAL:
+<what is actually real>
+
+NEXT:
+<next phase>
+```
+
+---
+
+# FINAL ROADMAP
+
+```text
+PHASE 0  ✅ Repository & Specifications
+    ↓
+PHASE 1  ✅ Android Foundation
+    ↓
+PHASE 2  ✅ Complete Android UI
+    ↓
+PHASE 3  ✅ FastAPI + WebSocket Backend
+    ↓
+PHASE 4  ✅ Android ↔ Backend Integration
+    ↓
+PHASE 5  ✅ Communication Integration
+    ↓
+PHASE 6  ✅ Security, Privacy & Hardening
+    ↓
+PHASE 7  ← NEXT: Data Preparation + Cloud Training
+    ↓
+PHASE 8  ⏳ Real ML Integration
+    ↓
+PHASE 9  ⏳ Evaluation, Calibration & Robustness
+    ↓
+PHASE 10 ⏳ Final End-to-End Integration
+    ↓
+PRODUCTION READINESS
+```
+
+**Current next objective: Phase 7 — Data Preparation + Cloud Training.**
+
+Before training, reconcile the phase-numbering documentation and verify dataset licenses/provenance.  

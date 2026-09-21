@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
  * Live session stream. Mirrors WS /api/v1/sessions/{id}/stream
  * (docs/API_SPEC.md 6).
  *
- * Interface only in Phase 1; an OkHttp-backed implementation lands in Phase 5.
+ * Interface only in Phase 1; an OkHttp-backed implementation arrived in Phase 4.
  *
  * Implementations are responsible for reconnect with backoff and for reporting
  * [connectionState] so the UI can distinguish Offline from Error. They must NOT

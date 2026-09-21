@@ -14,7 +14,7 @@ import com.vive.data.model.TranscriptLine
  * REST surface. Mirrors docs/API_SPEC.md 2, 3 and 5 exactly.
  *
  * Declared as an interface with no networking dependency so Phase 1 stays free
- * of transport concerns. A Retrofit-backed implementation arrives in Phase 5
+ * of transport concerns. A Retrofit-backed implementation arrived in Phase 4
  * (docs/IMPLEMENTATION_PLAN.md); until then FakeViveApi serves the same contract.
  *
  * All methods return ViveResult rather than throwing, so callers must handle
