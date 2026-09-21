@@ -130,6 +130,69 @@ diverge from the design references.
 - **Required external action:** recalibrate against real outputs in Phase 9;
   never present provisional weights as measured accuracy.
 
+### O7 — Indic ASR model access not granted · `OPEN`
+
+- **Blocker:** `ai4bharat/indicwav2vec-hindi` and
+  `ai4bharat/indic-conformer-600m-multilingual` return `403 Client Error` on
+  file download, so no real Indic ASR model can be loaded.
+- **Cause:** both repositories are `gated: auto` on HuggingFace. A valid token
+  is configured and authenticates (`whoami` succeeds as `shivam2607`), and the
+  repository *metadata* is readable — but a gated repo still blocks **file**
+  downloads until the account holder accepts the model's terms on its page.
+  This is a per-repository consent click that cannot be performed via the API.
+- **Attempted fixes:** (1) verified the token is present and authenticates;
+  (2) confirmed `HfApi.model_info` succeeds, proving the token reaches the hub
+  and isolating the failure to file access rather than auth; (3) tried the
+  alternative AI4Bharat conformer repository, which is gated identically.
+- **Current status:** ASR is the one stage of the model stack with no real
+  model. Silero VAD, AASIST and ECAPA-TDNN all load and run. The backend still
+  uses its mock ASR adapter, so nothing is broken — but real transcription is
+  unavailable, and with it the Hindi/Tamil ASR evaluation splits.
+- **Required external action:** visit
+  <https://huggingface.co/ai4bharat/indicwav2vec-hindi> while signed in as
+  `shivam2607` and accept the terms. Approval is automatic. Re-running
+  `scripts/training/check_pretrained.py` then verifies access.
+
+### O8 — No Tamil training or evaluation data · `OPEN`
+
+- **Blocker:** VIVE names Hindi, Tamil and English as priority languages, but
+  no Tamil data is available for the text classifiers.
+- **Cause:** the scamshield corpus covers English (76,246), Hindi (6,352) and
+  Hinglish (3,004) only. No openly-licensed Tamil scam/social-engineering text
+  corpus has been identified.
+- **Attempted fixes:** searched HuggingFace for scam, phishing and fraud text
+  datasets; every ungated candidate is English-dominant.
+- **Current status:** the trained classifiers cover English, Hindi and
+  Hinglish. Tamil is **not supported** and must not be described as supported.
+  The Tamil evaluation split defined in `ML_SPEC` cannot be populated.
+- **Required external action:** source or commission a Tamil corpus, or accept
+  that Tamil intent/behaviour classification is out of scope for now.
+
+### O9 — Seven taxonomy labels have no training data · `OPEN`
+
+- **Blocker:** the trained classifiers cannot predict 5 of the 12 intents or
+  2 of the 8 behaviours, and `OTP_REQUEST` is trained on 103 samples (~0.1%).
+- **Cause:** the scamshield corpus is SMS spam/scam text. It has no source for
+  `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`,
+  `REMOTE_ACCESS_REQUEST`, `CONFIDENTIAL_INFORMATION`, `THREAT` or `SECRECY` —
+  those belong to interactive voice social engineering, which SMS does not
+  contain. OTP requests appear in SMS mainly as *delivered* codes rather than
+  as a caller soliciting one.
+- **Attempted fixes:** (1) reviewed every public intent label in the corpus and
+  mapped what genuinely corresponded, refusing to force genre labels such as
+  "Lottery / Prize" onto an intent; (2) searched for supplementary ungated
+  corpora — `BothBosu/multi-agent-scam-conversation` (Apache-2.0) is
+  conversational and a better register match but its label scheme was not
+  mapped in this phase.
+- **Current status:** measured and documented rather than hidden. The absent
+  labels render as "no data, cannot be predicted" in every generated metrics
+  table, and the macro-F1 denominator is stated wherever the figure appears.
+  `OTP_REQUEST` scores 0.632 on 8 test records — weak, and statistically
+  fragile at that support.
+- **Required external action:** acquire or commission a call-transcript corpus
+  covering the missing labels, or scope the product to the labels that have
+  data. Until then these labels must not be described as supported.
+
 ---
 
 ## Deferred

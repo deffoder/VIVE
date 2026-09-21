@@ -111,6 +111,63 @@ evaluation runs record the manifest version they consumed, so a result can be
 traced to an exact dataset state. Manifest changes are commits, not edits in
 place.
 
+## 8.1 Data inventory (verified 2026-09-21)
+
+License and gating status below were read from each repository's own metadata,
+not assumed. Sample counts come from the built manifests.
+
+### Acquired and in use
+
+| Field | Value |
+|---|---|
+| Dataset | `sidzzz07/scamshield-dataset` |
+| Source | <https://huggingface.co/datasets/sidzzz07/scamshield-dataset> |
+| License | **MIT** — declared as `license:mit` in repository metadata |
+| Gated | No |
+| Permitted use | Research and commercial, with attribution |
+| Language | English 76,246 · Hindi 6,352 · Hinglish 3,004 |
+| Task | intent (single-label), behaviour (multi-label) |
+| Samples | 85,602 unique after de-duplication (78 duplicates removed) |
+| Splits | train 68,412 · val 8,546 · test 8,644 |
+| Provenance | Smishing_Dataset 69,343 · UCI_SMS_Spam 5,153 · Kaggle_Hindi_Merged 4,567 · Synthetic_Tier_C 3,720 · Indian_Telecom_SMS 2,032 · Indian_Cyber_Scam_Hinglish 743 · Benchmark_Ground_Truth 44 |
+| Preprocessing | Whitespace normalised; content-hashed for de-duplication |
+
+**Known limitations — these bound every claim made from this corpus:**
+
+1. **It is SMS/short-message text, not call transcripts.** Register, length and
+   turn-taking all differ from speech. A classifier trained here is a starting
+   point for call analysis, not a validated call model.
+2. **`OTP_REQUEST` has 103 samples** — roughly 0.1% — despite being the
+   highest-value intent in the whole product.
+3. **Five of twelve intents have no data at all:** `PASSWORD_REQUEST`,
+   `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`, `REMOTE_ACCESS_REQUEST`,
+   `CONFIDENTIAL_INFORMATION`. The classifier cannot predict them.
+4. **Two of eight behaviours have no label source:** `THREAT` and `SECRECY`.
+5. **No Tamil** (`BLOCKERS.md` O8), despite Tamil being a priority language.
+6. `Synthetic_Tier_C` (3,720 records) is itself synthetic; it is retained but
+   flagged in the `provenance` field so it can be excluded from evaluation.
+
+### Investigated and rejected or deferred
+
+| Dataset | Status | Reason |
+|---|---|---|
+| ASVspoof | **NOT ACQUIRED** | Requires registration/agreement that cannot be completed programmatically. AASIST ships a usable pretrained checkpoint, so anti-spoofing works without it — but **no independent EER can be reported**. |
+| VoxCeleb | **NOT ACQUIRED** | Requires a request form. ECAPA-TDNN ships pretrained weights, so speaker embedding works without it. |
+| Common Voice 17 | **AVAILABLE, not yet used** | Ungated, but no declared license in repository metadata — marked **UNVERIFIED** until the terms are read. Not used for training. |
+| IndicSynth, Vaani, ScamShield (original) | **UNVERIFIED** | Not located as openly-licensed downloadable corpora under those names. The HuggingFace `scamshield-dataset` above is a different, MIT-licensed resource. |
+| `BothBosu/multi-agent-scam-conversation` | **AVAILABLE, not used** | Apache-2.0, ungated, and conversational rather than SMS — a better register match. Deferred: its label scheme was not mapped in this phase. |
+
+### Pretrained models verified (2026-09-21)
+
+Load-and-run smoke tests only. **No accuracy was measured for any of these.**
+
+| Model | License | Status |
+|---|---|---|
+| Silero VAD | MIT | **OK** — loads from torch.hub, runs |
+| AASIST | MIT | **OK** — checkpoint loads, 229 tensors. Model class not yet vendored, so no forward pass |
+| ECAPA-TDNN (SpeechBrain) | Apache-2.0 | **OK** — produces a 192-dim embedding |
+| AI4Bharat Indic ASR | Apache-2.0 | **BLOCKED** — gated repo, 403 on file download (`BLOCKERS.md` O7) |
+
 ## 9. Test fixtures
 
 `tests/fixtures/` holds short audio for automated tests and demo replay. These

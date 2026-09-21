@@ -1,0 +1,122 @@
+{
+  "built_at": "2026-09-21",
+  "source_manifest": "scamshield.test.jsonl",
+  "source_records": 8644,
+  "available_splits": 6,
+  "unavailable_splits": 8,
+  "splits": [
+    {
+      "name": "standard_heldout",
+      "available": true,
+      "count": 8644,
+      "path": "data/manifests/eval/standard_heldout.jsonl",
+      "description": "Full held-out test split with its natural class distribution.",
+      "caveat": "Class imbalance is extreme; macro-F1 is the honest headline, not accuracy."
+    },
+    {
+      "name": "language_english",
+      "available": true,
+      "count": 7757,
+      "path": "data/manifests/eval/language_english.jsonl",
+      "description": "Held-out records in english.",
+      "caveat": ""
+    },
+    {
+      "name": "language_hindi",
+      "available": true,
+      "count": 622,
+      "path": "data/manifests/eval/language_hindi.jsonl",
+      "description": "Held-out records in hindi.",
+      "caveat": "Small sample; per-class figures will be unstable."
+    },
+    {
+      "name": "language_hinglish",
+      "available": true,
+      "count": 265,
+      "path": "data/manifests/eval/language_hinglish.jsonl",
+      "description": "Held-out records in hinglish.",
+      "caveat": "Small sample; per-class figures will be unstable."
+    },
+    {
+      "name": "language_tamil",
+      "available": false,
+      "count": 0,
+      "description": "Held-out Tamil records.",
+      "reason": "The corpus contains no Tamil. Tamil intent/behaviour classification is not supported and must not be described as supported.",
+      "blocker": "O8"
+    },
+    {
+      "name": "social_engineering",
+      "available": true,
+      "count": 1906,
+      "path": "data/manifests/eval/social_engineering.jsonl",
+      "description": "Records exhibiting at least one social-engineering behaviour.",
+      "caveat": ""
+    },
+    {
+      "name": "human_scam",
+      "available": true,
+      "count": 3059,
+      "path": "data/manifests/eval/human_scam.jsonl",
+      "description": "Scam records from real-world corpora, excluding synthetically generated ones.",
+      "caveat": "Tests whether risk is driven by semantics rather than by generation artefacts."
+    },
+    {
+      "name": "synthetic_but_legitimate",
+      "available": false,
+      "count": 0,
+      "description": "Machine-generated but legitimate messages, to test that synthetic origin alone does not raise risk.",
+      "reason": "No corpus record is labelled both synthetic-origin and legitimate. Synthetic_Tier_C records are synthetic AND scam, so they cannot separate the two factors.",
+      "blocker": ""
+    },
+    {
+      "name": "benchmark_ground_truth",
+      "available": false,
+      "count": 0,
+      "description": "Human-curated benchmark records.",
+      "reason": "Only 1 held-out record(s) - below the 30-record minimum for a meaningful metric. Reported as blocked rather than built.",
+      "blocker": ""
+    },
+    {
+      "name": "generator_disjoint",
+      "available": false,
+      "count": 0,
+      "description": "Anti-spoofing evaluation where test-set generators are unseen in training.",
+      "reason": "No anti-spoofing corpus was acquired. ASVspoof requires registration, and AASIST is used as a pretrained checkpoint without independent evaluation. No EER can be reported.",
+      "blocker": "O5"
+    },
+    {
+      "name": "codec_noise_robustness",
+      "available": false,
+      "count": 0,
+      "description": "Codec, bandwidth and noise degradation robustness.",
+      "reason": "Requires an audio corpus. The text classifiers cannot be evaluated for acoustic robustness.",
+      "blocker": ""
+    },
+    {
+      "name": "speaker_disjoint",
+      "available": false,
+      "count": 0,
+      "description": "Speaker verification with speakers unseen in training.",
+      "reason": "No speaker corpus was acquired; VoxCeleb requires a request form. ECAPA-TDNN is used pretrained, and there is no enrolment source anyway.",
+      "blocker": "O3"
+    },
+    {
+      "name": "asr_hindi",
+      "available": false,
+      "count": 0,
+      "description": "Hindi ASR word-error-rate evaluation.",
+      "reason": "No real ASR model is loadable: the AI4Bharat repositories are gated and return 403 on download.",
+      "blocker": "O7"
+    },
+    {
+      "name": "asr_tamil",
+      "available": false,
+      "count": 0,
+      "description": "Tamil ASR word-error-rate evaluation.",
+      "reason": "Blocked by both the gated ASR model and the absence of Tamil data.",
+      "blocker": "O7, O8"
+    }
+  ],
+  "note": "Unavailable splits are recorded rather than dropped. An evaluation that omits them must say so; none may be reported as passed."
+}

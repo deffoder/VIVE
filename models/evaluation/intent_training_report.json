@@ -1,0 +1,109 @@
+{
+  "task": "intent",
+  "base_model": "distilbert/distilbert-base-multilingual-cased",
+  "labels": [
+    "NORMAL_CONVERSATION",
+    "OTP_REQUEST",
+    "PASSWORD_REQUEST",
+    "CARD_DETAILS_REQUEST",
+    "BANKING_CREDENTIAL_REQUEST",
+    "MONEY_TRANSFER_REQUEST",
+    "ACCOUNT_CHANGE_REQUEST",
+    "REMOTE_ACCESS_REQUEST",
+    "URGENT_ACTION",
+    "THREAT_OR_INTIMIDATION",
+    "CONFIDENTIAL_INFORMATION",
+    "UNKNOWN"
+  ],
+  "seed": 20260921,
+  "hyperparameters": {
+    "epochs": 2,
+    "batch_size": 16,
+    "grad_accum": 4,
+    "effective_batch": 64,
+    "lr": 3e-05,
+    "max_length": 96,
+    "class_weighting": "inverse-frequency, capped at 20"
+  },
+  "data": {
+    "manifest": "scamshield",
+    "train": 68412,
+    "val": 8546,
+    "test": 8644
+  },
+  "environment": {
+    "python": "3.11.9",
+    "torch": "2.5.1+cu118",
+    "device": "GeForce GTX 1650 Ti",
+    "platform": "Windows-10-10.0.28120-SP0"
+  },
+  "timing": {
+    "started_utc": "2026-09-21T06:35:45.559981+00:00",
+    "finished_utc": "2026-09-21T08:35:53.592380+00:00",
+    "duration_sec": 7208
+  },
+  "peak_vram_gb": 1.51,
+  "test_metrics": {
+    "macro_f1": 0.9219291761366539,
+    "weighted_f1": 0.9799223928475785,
+    "per_class": {
+      "NORMAL_CONVERSATION": {
+        "precision": 0.9866885485047411,
+        "recall": 0.9875889760905274,
+        "f1-score": 0.9871385569643346,
+        "support": 5479.0
+      },
+      "OTP_REQUEST": {
+        "precision": 0.5454545454545454,
+        "recall": 0.75,
+        "f1-score": 0.631578947368421,
+        "support": 8.0
+      },
+      "BANKING_CREDENTIAL_REQUEST": {
+        "precision": 0.9695121951219512,
+        "recall": 0.99375,
+        "f1-score": 0.9814814814814815,
+        "support": 160.0
+      },
+      "MONEY_TRANSFER_REQUEST": {
+        "precision": 0.9536423841059603,
+        "recall": 0.9536423841059603,
+        "f1-score": 0.9536423841059603,
+        "support": 151.0
+      },
+      "URGENT_ACTION": {
+        "precision": 0.9489795918367347,
+        "recall": 0.9587628865979382,
+        "f1-score": 0.9538461538461539,
+        "support": 97.0
+      },
+      "THREAT_OR_INTIMIDATION": {
+        "precision": 0.9885057471264368,
+        "recall": 0.9662921348314607,
+        "f1-score": 0.9772727272727273,
+        "support": 89.0
+      },
+      "UNKNOWN": {
+        "precision": 0.970554926387316,
+        "recall": 0.9665413533834587,
+        "f1-score": 0.9685439819174986,
+        "support": 2660.0
+      },
+      "accuracy": 0.9798704303563165,
+      "macro avg": {
+        "precision": 0.9090482769339551,
+        "recall": 0.9395111050013351,
+        "f1-score": 0.9219291761366539,
+        "support": 8644.0
+      },
+      "weighted avg": {
+        "precision": 0.9800157659571149,
+        "recall": 0.9798704303563165,
+        "f1-score": 0.9799223928475785,
+        "support": 8644.0
+      }
+    }
+  },
+  "artifact_path": "C:\\Users\\cvumj\\Downloads\\SIH26104-ALL\\VIVE\\models\\artifacts\\intent-classifier",
+  "caveat": "Measured on a held-out split of the scamshield SMS corpus only. Not a call-transcript benchmark and not a VIVE end-to-end accuracy claim."
+}

@@ -1,0 +1,58 @@
+{
+  "dataset_id": "scamshield",
+  "source": "https://huggingface.co/datasets/sidzzz07/scamshield-dataset",
+  "version": "2026-09-21-snapshot",
+  "license": "MIT",
+  "license_status": "VERIFIED",
+  "built_at": "2026-09-21",
+  "total_records": 85602,
+  "duplicates_removed": 78,
+  "cross_split_collisions": 0,
+  "splits": {
+    "train": 68412,
+    "val": 8546,
+    "test": 8644
+  },
+  "languages": {
+    "en": 76246,
+    "hi-en": 3004,
+    "hi": 6352
+  },
+  "intent_distribution": {
+    "NORMAL_CONVERSATION": 54589,
+    "URGENT_ACTION": 1072,
+    "UNKNOWN": 25977,
+    "BANKING_CREDENTIAL_REQUEST": 1474,
+    "THREAT_OR_INTIMIDATION": 782,
+    "MONEY_TRANSFER_REQUEST": 1605,
+    "OTP_REQUEST": 103
+  },
+  "behavior_distribution": {
+    "NORMAL": 66589,
+    "PRESSURE": 4999,
+    "AUTHORITY_IMPERSONATION": 3313,
+    "FEAR": 3272,
+    "URGENCY": 6552,
+    "REWARD_PROMISE": 9948
+  },
+  "provenance_counts": {
+    "Smishing_Dataset": 69343,
+    "UCI_SMS_Spam": 5153,
+    "Synthetic_Tier_C": 3720,
+    "Kaggle_Hindi_Merged": 4567,
+    "ysangam/Indian_Cyber_Scam_Hinglish": 743,
+    "Benchmark_Ground_Truth": 44,
+    "Indian_Telecom_SMS": 2032
+  },
+  "behaviors_without_label_source": [
+    "THREAT",
+    "SECRECY"
+  ],
+  "known_limitations": [
+    "No Tamil records: the corpus covers English, Hindi and Hinglish only.",
+    "OTP_REQUEST is severely under-represented despite being the highest-value VIVE intent.",
+    "THREAT and SECRECY behaviours have no label source and are not trained.",
+    "Corpus is SMS/short-message text, not call transcripts; register differs from speech.",
+    "Four public genre labels map to UNKNOWN because they do not determine an intent."
+  ]
+}

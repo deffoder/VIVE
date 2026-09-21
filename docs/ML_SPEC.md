@@ -199,6 +199,78 @@ silero-vad → aasist → ecapa-tdnn → indicconformer
            → intent-classifier → behavior-classifier → risk-fusion calibration
 ```
 
+## 9.1 Phase 7 status (data preparation + training)
+
+What is actually built, as distinct from what is planned.
+
+### Pretrained stack — verified to load and run
+
+| Model | License | Status |
+|---|---|---|
+| `silero-vad` | MIT | **Loads and runs.** torch.hub, no credentials |
+| `aasist` | MIT | **Checkpoint loads** (229 tensors, 1.28 MB). Model class not vendored, so no forward pass yet |
+| `ecapa-tdnn` | Apache-2.0 | **Loads and runs.** Produces a 192-dim embedding |
+| `indicconformer` / `indicwav2vec` | Apache-2.0 | **BLOCKED.** Gated repository, 403 on file download (`BLOCKERS.md` O7) |
+
+These are load-and-run smoke tests. **No accuracy, EER or WER has been measured
+for any of them**, and none may be quoted.
+
+### Trained in this phase
+
+`intent-classifier` and `behavior-classifier` are fine-tuned locally from
+multilingual DistilBERT on the scamshield corpus. Both runs completed on
+2026-09-21 (2 epochs, seed 20260921, ~120 min each, peak VRAM 1.51 GB).
+
+| Model | Test macro-F1 | Also |
+|---|---|---|
+| `intent-classifier` | **0.9219** over the 7 of 12 intents with data | weighted-F1 0.9799 |
+| `behavior-classifier` | **0.7095** over all 8 behaviours | micro-F1 0.9728; 0.9460 over the 6 with data |
+
+The two denominators differ because sklearn drops absent classes from a
+single-label macro average but keeps them as zero columns in a multi-label one.
+Both are stated wherever the figures appear; neither covers the labels with no
+data. Full per-class tables: `docs/PHASE7_REPORT.md` §3, generated from the
+report JSON by `scripts/training/render_metrics.py`.
+
+**`OTP_REQUEST` scores 0.632 on 8 test records** — the weakest class and the
+highest-value intent in the product, which is the 103-sample training count
+surfacing exactly where it hurts. With 8 records the figure is fragile; it
+indicates weakness, not a 63% capability.
+
+These are **held-out F1 on an SMS corpus**, not a VIVE end-to-end figure.
+
+Backbone choice was forced by two real constraints, both verified rather than
+assumed:
+
+- MuRIL is the better Indic backbone but ships only a `.bin` checkpoint, which
+  transformers refuses to `torch.load` on torch < 2.6 (CVE-2025-32434).
+- XLM-RoBERTa base ships safetensors but its AdamW optimizer states exhaust the
+  4 GB development GPU — confirmed by an actual OOM.
+
+A Colab notebook (`models/notebooks/`) runs either backbone on cloud GPU.
+
+### Coverage gaps that bound every claim
+
+| Gap | Effect |
+|---|---|
+| 5 of 12 intents have no training data | `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`, `REMOTE_ACCESS_REQUEST` and `CONFIDENTIAL_INFORMATION` **cannot be predicted** |
+| 2 of 8 behaviours have no label source | `THREAT` and `SECRECY` are not trained |
+| `OTP_REQUEST` has 103 samples (~0.1%) | The highest-value intent is the worst-supported |
+| No Tamil (`BLOCKERS.md` O8) | Tamil is **not supported**, despite being a priority language |
+| Corpus is SMS, not call transcripts | Register differs from speech; transfer is unvalidated |
+
+### Evaluation splits
+
+`scripts/training/build_eval_splits.py` builds 6 splits and records 8 as
+**blocked**, each with a reason and blocker id, rather than omitting them:
+generator-disjoint, codec/noise robustness, speaker-disjoint, Hindi and Tamil
+ASR, Tamil text, synthetic-but-legitimate, and the human-curated benchmark
+slice. A blocked split is never reported as passed.
+
+A split is also blocked when it is merely *too small*: `MIN_EVAL_RECORDS = 30`.
+`benchmark_ground_truth` has 1 held-out record, so it is reported as blocked
+rather than built — a per-class F1 over one record is noise, not a measurement.
+
 ## 10. Known limitations
 
 Documented in `BLOCKERS.md` and stated to any evaluator:

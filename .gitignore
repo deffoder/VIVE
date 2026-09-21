@@ -56,11 +56,19 @@ models/artifacts/**
 *.ckpt
 
 # --- Datasets ---
-# Structure, manifests and README are tracked; audio corpora are not.
+# Structure, manifest INDEXES and README are tracked; corpora are not.
 data/raw/**
 !data/raw/.gitkeep
 data/processed/**
 !data/processed/.gitkeep
+
+# Full manifests carry the message bodies: ~76 MB, and the text contains
+# PII-shaped content (phone numbers, URLs, OTP digits). Only the *.index.jsonl
+# files, which replace the body with a hash, are tracked.
+data/manifests/*.jsonl
+!data/manifests/*.index.jsonl
+data/manifests/eval/*.jsonl
+!data/manifests/eval/*.index.jsonl
 
 # --- Audio ---
 *.wav
