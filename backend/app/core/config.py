@@ -46,7 +46,42 @@ class Settings(BaseSettings):
     ws_idle_timeout_seconds: int = Field(default=60, ge=5, le=600)
 
     adapter_mode: Literal["mock", "real"] = "mock"
-    """Only "mock" is implemented. Real adapters arrive in the ML phase."""
+    """Selects the analyzer bundle.
+
+    "mock" keeps the deterministic scripted adapters, which remain the default
+    so demos and tests are reproducible without multi-GB weights present.
+    "real" loads checkpoint-backed adapters.
+
+    A real adapter that cannot load reports LOAD_ERROR and stays in REAL mode.
+    The bundle NEVER silently downgrades to mock output, because a demo that
+    looks identical whether or not the model loaded is indistinguishable from
+    a fabricated result (docs/ML_SPEC.md 4).
+    """
+
+    asr_model_dir: str = ""
+    """Filesystem path to the IndicConformer CTC artifacts.
+
+    Empty means "not configured", which yields LOAD_ERROR in real mode rather
+    than a guess at a default location. Weights live outside Git
+    (docs/ML_SPEC.md 8.6); the path is deployment configuration.
+    """
+
+    asr_prefer_gpu: bool = False
+    """Request the CUDA execution provider when onnxruntime exposes one.
+
+    Default False: on the development machine onnxruntime has no CUDA provider
+    (it needs CUDA 12; the driver caps at 11.2) and the model already meets the
+    latency budget on CPU. The adapter reports the provider that actually
+    served the graph, not the one requested.
+    """
+
+    asr_default_language: str = "hi"
+    """Decoding language when no language-ID signal is available.
+
+    The CTC decoder applies a per-language vocabulary mask, so the language is
+    a required INPUT, not an output. There is no language-ID model yet
+    (docs/PHASE8_PREREQUISITES.md 6).
+    """
 
     max_audio_frame_bytes: int = Field(default=1_048_576, ge=1024)
     max_packets_per_session: int = Field(default=10_000, ge=10)

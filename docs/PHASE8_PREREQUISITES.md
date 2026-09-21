@@ -9,29 +9,24 @@ is skipped.
 
 ---
 
-## 1. Reconcile the ASR model id across 11 sites
+## 1. Reconcile the ASR model id — DONE (Phase 8A)
 
-The ASR architecture is now **selected**: `ai4bharat/indic-conformer-600m-multilingual`,
-CTC path (`ML_SPEC.md` §2.1). Canonical VIVE id **`indic-conformer-600m`**,
-`model_version` **`indic-conformer-600m-ctc-v1`**.
+Canonical VIVE id **`indic-conformer-600m`**, `model_version`
+**`indic-conformer-600m-ctc-v1`**. All 11 sites now agree; the stale
+`indicconformer` string no longer appears in any code path.
 
-The specs have been updated. The **code has not** - this checkpoint
-deliberately did not touch backend or Android runtime code, so the running
-system still emits the old `indicconformer` string:
+| Location | State |
+|---|---|
+| `docs/ML_SPEC.md` §2, §2.1, §9 | updated |
+| `docs/API_SPEC.md` §3, §5 | updated |
+| `backend/app/adapters/interfaces.py` (`MODEL_IDS`) | **updated** |
+| `backend/app/adapters/mock.py` (mock ASR id) | **updated** |
+| `backend/app/api/routes/system.py` (`/models`) | **updated** |
+| `backend/tests/test_api.py` | **updated**, and now asserts the stale id cannot resurface |
+| `android/.../DemoRepositories.kt`, `DemoData.kt`, `StubRepositories.kt` | **updated** |
 
-| Location | Use | State |
-|---|---|---|
-| `docs/ML_SPEC.md` §2, §2.1, §9 | inventory, selection, integration order | **updated** |
-| `docs/API_SPEC.md` §3, §5 | `model_version` example, model list | **updated** |
-| `backend/app/adapters/interfaces.py` | `MODEL_IDS["asr"]` | stale |
-| `backend/app/adapters/mock.py` | mock ASR `id` | stale |
-| `backend/app/api/routes/system.py` | `/models` response | stale |
-| `backend/tests/test_api.py` | asserts the id is present | stale |
-| `android/.../DemoRepositories.kt`, `DemoData.kt`, `StubRepositories.kt` | model info screen | stale |
-
-**Required:** change the six stale sites in one commit, with the test updated
-in the same change. Until then the spec and the running code **disagree on the
-id**, which is recorded here rather than left to be discovered.
+A regression guard is in place: `test_models_report_mode_and_no_accuracy`
+asserts `"indicconformer" not in ids`.
 
 ---
 

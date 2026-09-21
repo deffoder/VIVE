@@ -1,0 +1,62 @@
+{
+  "verified_at": "2026-09-22",
+  "phase": "8A",
+  "what_this_proves": "The backend ASR adapter performs real inference on real speech for Hindi and Tamil and returns transcripts through the existing AsrResult contract. It does NOT measure accuracy - WER/CER come from the Phase 7 evaluation.",
+  "model": {
+    "model_id": "indic-conformer-600m",
+    "model_version": "indic-conformer-600m-ctc-v1",
+    "repo": "ai4bharat/indic-conformer-600m-multilingual",
+    "architecture": "Conformer hybrid CTC/RNNT, CTC decoding path",
+    "mode": "real",
+    "execution_provider": "CPUExecutionProvider",
+    "languages_supported": 22,
+    "sample_rate": 16000,
+    "load_ms": 25419
+  },
+  "audio_source": "google/fleurs test split (CC-BY-4.0), first 2.0 s of each clip",
+  "window_sec": 2.0,
+  "cadence_budget_sec": 1.0,
+  "process_rss_gb": 2.503,
+  "languages": [
+    {
+      "language": "hi",
+      "fleurs_config": "hi_in",
+      "packets": 8,
+      "transcribed": 8,
+      "statuses": {
+        "AVAILABLE": 8
+      },
+      "latency_ms": {
+        "median": 326,
+        "min": 315,
+        "max": 873,
+        "n_timed": 7,
+        "excludes_first_packet": true,
+        "first_packet_ms": 9197,
+        "first_packet_note": "Dominated by this harness flushing FLEURS parquet downloads, not by model cost. load() warms the ONNX graphs, and a direct post-load profile shows 273-328 ms with no first-call spike."
+      },
+      "meets_cadence": true
+    },
+    {
+      "language": "ta",
+      "fleurs_config": "ta_in",
+      "packets": 8,
+      "transcribed": 7,
+      "statuses": {
+        "AVAILABLE": 7,
+        "INSUFFICIENT_AUDIO": 1
+      },
+      "latency_ms": {
+        "median": 494.5,
+        "min": 334,
+        "max": 2802,
+        "n_timed": 6,
+        "excludes_first_packet": true,
+        "first_packet_ms": 8690,
+        "first_packet_note": "Dominated by this harness flushing FLEURS parquet downloads, not by model cost. load() warms the ONNX graphs, and a direct post-load profile shows 273-328 ms with no first-call spike."
+      },
+      "meets_cadence": true
+    }
+  ],
+  "caveat": "Integrated adapter latency measured on real FLEURS audio. NOT comparable to the Phase 7 standalone figure of 0.2549 s, which used synthetic audio and bypassed the adapter. Neither is end-to-end pipeline latency; that is measured in Phase 8D."
+}

@@ -99,6 +99,69 @@ Kept so historical evidence is not destroyed and cannot resurface as fact:
 Also recorded in `models/evaluation/asr_comparison.json` under
 `superseded_measurements`. **Neither figure may be cited as a result.**
 
+## 2.3 Phase 8A — real ASR integrated
+
+The selected model now runs **inside the backend** behind the existing
+`AsrAdapter` protocol (`backend/app/adapters/real/asr_conformer.py`).
+
+| Property | Value |
+|---|---|
+| Adapter | `IndicConformerAsrAdapter`, CTC path |
+| Mode | `REAL` |
+| Execution provider | `CPUExecutionProvider` |
+| Languages loaded | 22 |
+| Load time | 25419 ms (includes a warm-up inference) |
+| Process RSS | 2.503 GB |
+
+**Verified on real speech** (`google/fleurs`, CC-BY-4.0, first 2.0 s of each
+clip — `models/evaluation/asr_integration_8a.json`):
+
+| Language | Packets | Transcribed | Median packet latency | Within 1.0 s cadence |
+|---|---:|---:|---:|---|
+| Hindi | 8 | 8 | **326 ms** | yes |
+| Tamil | 8 | 7 | **494.5 ms** | yes |
+
+One Tamil clip returned `INSUFFICIENT_AUDIO` rather than an empty string,
+which is the intended behaviour: the adapter reports a status instead of
+emitting a transcript it did not produce.
+
+### What these latency numbers are
+
+Integrated adapter cost on **real** audio, including pcm_s16le decoding and the
+`AudioWindow` envelope. They are **not** the Phase 7 standalone figure
+(0.2549 s on synthetic audio, bypassing the adapter) and **not** end-to-end
+pipeline latency, which Phase 8D measures. The three are reported separately.
+
+### Warm-up
+
+`load()` runs one throwaway inference. onnxruntime resolves kernels and
+allocates arenas on the **first** run, not at session creation: measured, the
+first packet cost ~8.7 s against a ~0.32 s steady state, which would have blown
+the cadence at the start of every session. Paying it once at load removes the
+spike — a direct post-load profile then shows 273-328 ms with no first-call
+outlier.
+
+### Failure states, and no silent downgrade
+
+`AnalyzerStatus` gained `LOAD_ERROR` and `INFERENCE_ERROR`. A real adapter that
+cannot load **stays in REAL mode** reporting `LOAD_ERROR`; it is never replaced
+by its mock counterpart, because output that looks identical whether or not the
+model loaded cannot be distinguished from a fabricated result. Mock adapters
+remain available and are still the default (`adapter_mode=mock`).
+
+### Still mock after 8A
+
+VAD, anti-spoofing, speaker, intent and behaviour remain mock and report
+`mode: mock`. A partially real bundle is represented honestly rather than
+advertised as fully real.
+
+### Not claimed
+
+Producing a transcript proves **integration**, not accuracy. WER and CER come
+only from the Phase 7 FLEURS evaluation, which is clean read speech and
+therefore a floor, not telephone accuracy. Tamil **transcription** works; Tamil
+**intent and behaviour** remain unsupported (`BLOCKERS.md` O11).
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,

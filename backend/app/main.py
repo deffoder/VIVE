@@ -15,7 +15,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.adapters.mock import build_mock_bundle
+from app.adapters.factory import build_bundle
 from app.api.deps import AppState
 from app.api.routes import sessions as sessions_routes
 from app.api.routes import system as system_routes
@@ -49,7 +49,7 @@ accuracy or detection capability. `GET /ready` reports the mode per adapter.
 
 def build_state(settings: Settings) -> AppState:
     store = InMemoryEventStore(max_packets_per_session=settings.max_packets_per_session)
-    adapters = build_mock_bundle()
+    adapters = build_bundle(settings)
     return AppState(
         settings=settings,
         store=store,

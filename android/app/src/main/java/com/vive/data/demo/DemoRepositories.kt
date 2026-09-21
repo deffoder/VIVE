@@ -141,7 +141,7 @@ class DemoModelRepository : ModelRepository {
         "silero-vad" -> "vad"
         "aasist" -> "antispoof"
         "ecapa-tdnn" -> "speaker"
-        "indicconformer" -> "asr"
+        "indic-conformer-600m" -> "asr"
         "intent-classifier" -> "intent"
         "behavior-classifier" -> "behavior"
         else -> modelId

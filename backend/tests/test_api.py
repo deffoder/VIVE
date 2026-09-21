@@ -111,7 +111,8 @@ def test_webhook_test_signs_but_does_not_deliver(client: TestClient) -> None:
 def test_models_report_mode_and_no_accuracy(client: TestClient) -> None:
     models = client.get("/api/v1/models").json()
     ids = {m["id"] for m in models}
-    assert {"aasist", "ecapa-tdnn", "indicconformer", "risk-fusion"} <= ids
+    assert {"aasist", "ecapa-tdnn", "indic-conformer-600m", "risk-fusion"} <= ids
+    assert "indicconformer" not in ids, "stale pre-selection ASR id must not resurface"
     for model in models:
         assert "accuracy" not in model, "no unmeasured metric may be published"
     assert all(m["mode"] == "mock" for m in models if m["id"] != "risk-fusion")

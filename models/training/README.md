@@ -11,8 +11,16 @@ verification.
 
 ## 1. Environment
 
-The ML stack is **deliberately separate** from the backend. The application must
-not gain a torch dependency (`docs/ARCHITECTURE.md` decision 8).
+The training stack is **deliberately separate** from the backend, so training
+dependencies never become runtime dependencies.
+
+> **Correction (Phase 8A).** An earlier version of this line claimed
+> `ARCHITECTURE.md` decision 8 forbids a backend torch dependency. It does not
+> — decision 8 is about **Android** never running the ML pipeline, and
+> decision 5 explicitly puts the backend on "the same runtime as the ML stack".
+> The backend therefore *may* host real models, and from Phase 8A it does, via
+> the optional `backend[ml]` extra with lazy imports so the base install and
+> its tests stay dependency-free.
 
 ```bash
 cd models && python -m venv .venv && . .venv/Scripts/activate

@@ -35,11 +35,27 @@ class AudioQuality(StrEnum):
 
 
 class AnalyzerStatus(StrEnum):
+    """Why an analyzer did or did not produce a value.
+
+    The two failure states below are distinct on purpose. A model that never
+    loaded and a model that loaded but failed on one packet need different
+    operator responses, and collapsing both into ERROR hid that. Neither ever
+    carries a value: a failed analyzer returns a status, never a substituted
+    or mock score (docs/PROJECT_SPEC.md 7).
+    """
+
     AVAILABLE = "AVAILABLE"
     UNAVAILABLE = "UNAVAILABLE"
     NO_REFERENCE = "NO_REFERENCE"
     INSUFFICIENT_AUDIO = "INSUFFICIENT_AUDIO"
+    LOAD_ERROR = "LOAD_ERROR"
+    """The model could not be loaded at all - missing weights, missing runtime
+    dependency, or an unreadable checkpoint. The adapter stays in REAL mode and
+    reports this; it does NOT fall back to mock output."""
+    INFERENCE_ERROR = "INFERENCE_ERROR"
+    """The model loaded but failed on this packet. Other packets may succeed."""
     ERROR = "ERROR"
+    """Retained for compatibility. Prefer LOAD_ERROR or INFERENCE_ERROR."""
 
 
 class AdapterMode(StrEnum):

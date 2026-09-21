@@ -13,6 +13,21 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.27"]
 
+# Real, checkpoint-backed adapters. OPTIONAL on purpose: the backend, its
+# tests and the mock bundle all run without these, so a deployment that only
+# needs the deterministic demo path does not pull ~1 GB of ML runtime.
+# app.adapters.real imports them lazily inside load(); a missing dependency
+# surfaces as LOAD_ERROR on one adapter rather than breaking start-up.
+#
+# torch is required only for the TorchScript audio preprocessor, so the CPU
+# build is sufficient - onnxruntime here has no CUDA provider anyway
+# (it needs CUDA 12; the development driver caps at 11.2).
+ml = [
+    "onnxruntime>=1.17",
+    "numpy>=1.26",
+    "torch>=2.2",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

@@ -33,7 +33,10 @@ _MODEL_CATALOG = [
     ("silero-vad", "Silero VAD", "Speech activity detection", "vad"),
     ("aasist", "AASIST", "Synthetic-voice evidence", "antispoof"),
     ("ecapa-tdnn", "ECAPA-TDNN", "Speaker consistency", "speaker"),
-    ("indicconformer", "IndicConformer", "Multilingual speech recognition", "asr"),
+    # Selected in Phase 7 on measured evidence (docs/ML_SPEC.md 2.1). The old
+    # id "indicconformer" never matched an obtained checkpoint.
+    ("indic-conformer-600m", "IndicConformer-600M (CTC)",
+     "Multilingual speech recognition, IN-22", "asr"),
     ("intent-classifier", "Intent Classifier", "Caller intent", "intent"),
     ("behavior-classifier", "Behaviour Classifier", "Social-engineering behaviour", "behavior"),
 ]

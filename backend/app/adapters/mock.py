@@ -23,6 +23,7 @@ import re
 
 from app.adapters.interfaces import (
     AdapterBundle,
+    AdapterInfo,
     AntiSpoofResult,
     AsrResult,
     AudioWindow,
@@ -43,6 +44,34 @@ DEMO_VERSION = "demo"
 """Deliberately not a semantic version, so it cannot be mistaken for a release."""
 
 _MODE = AdapterMode.MOCK
+
+
+class _MockInfo:
+    """Shared `describe()` for the mock adapters.
+
+    Every mock reports `mode=MOCK` and carries no execution provider, so a
+    consumer can never mistake scripted output for real inference. Mock
+    adapters are retained deliberately for deterministic tests and demo
+    fallback (docs/ML_SPEC.md 4).
+    """
+
+    adapter_key: str = "?"
+    architecture: str | None = "scripted"
+    languages: tuple[str, ...] = ()
+
+    def describe(self) -> AdapterInfo:
+        return AdapterInfo(
+            adapter_key=self.adapter_key,
+            model_id=self.id,
+            model_version=self.version,
+            mode=self.mode,
+            status=(AnalyzerStatus.AVAILABLE if self.available()
+                    else AnalyzerStatus.UNAVAILABLE),
+            architecture=self.architecture,
+            languages=self.languages,
+            sample_rate=16_000,
+            detail="Deterministic scripted output. Not model inference.",
+        )
 
 
 _WORD_RE = re.compile("[a-z0-9']+")
@@ -105,10 +134,11 @@ _BEHAVIOR_KEYWORDS: list[tuple[Behavior, tuple[str, ...]]] = [
 _SYNTHETIC_HINTS = ("synthetic", "cloned", "deepfake")
 
 
-class MockVadAdapter:
+class MockVadAdapter(_MockInfo):
     id = "silero-vad"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "vad"
 
     def available(self) -> bool:
         return True
@@ -146,10 +176,11 @@ class MockVadAdapter:
         )
 
 
-class MockAntiSpoofAdapter:
+class MockAntiSpoofAdapter(_MockInfo):
     id = "aasist"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "antispoof"
 
     def available(self) -> bool:
         return True
@@ -182,12 +213,13 @@ class MockAntiSpoofAdapter:
         )
 
 
-class MockSpeakerAdapter:
+class MockSpeakerAdapter(_MockInfo):
     """Always NO_REFERENCE: no enrolment source is defined (docs/BLOCKERS.md O3)."""
 
     id = "ecapa-tdnn"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "speaker"
 
     def available(self) -> bool:
         return True
@@ -210,12 +242,14 @@ class MockSpeakerAdapter:
         )
 
 
-class MockAsrAdapter:
+class MockAsrAdapter(_MockInfo):
     """Echoes the caller-supplied transcript hint. It does not transcribe audio."""
 
-    id = "indicconformer"
+    id = "indic-conformer-600m"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "asr"
+    languages = ('hi', 'ta', 'en')
 
     def available(self) -> bool:
         return True
@@ -253,10 +287,12 @@ def _guess_language(text: str) -> str:
     return "en"
 
 
-class MockIntentAdapter:
+class MockIntentAdapter(_MockInfo):
     id = "intent-classifier"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "intent"
+    languages = ('en', 'hi')
 
     def available(self) -> bool:
         return True
@@ -289,10 +325,12 @@ class MockIntentAdapter:
         )
 
 
-class MockBehaviorAdapter:
+class MockBehaviorAdapter(_MockInfo):
     id = "behavior-classifier"
     version = DEMO_VERSION
     mode = _MODE
+    adapter_key = "behavior"
+    languages = ('en', 'hi')
 
     def available(self) -> bool:
         return True

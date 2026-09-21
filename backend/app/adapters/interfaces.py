@@ -29,7 +29,9 @@ MODEL_IDS = {
     "vad": "silero-vad",
     "antispoof": "aasist",
     "speaker": "ecapa-tdnn",
-    "asr": "indicconformer",
+    # Selected in Phase 7 on measured evidence (docs/ML_SPEC.md 2.1). The old
+    # id "indicconformer" never corresponded to an obtained checkpoint.
+    "asr": "indic-conformer-600m",
     "intent": "intent-classifier",
     "behavior": "behavior-classifier",
     "fusion": "risk-fusion",
@@ -54,6 +56,36 @@ class AudioWindow:
     sample_rate: int = 16_000
     transcript_hint: str | None = None
     """Demo/replay only: lets a scripted scenario drive the pipeline without audio."""
+
+
+@dataclass(frozen=True)
+class AdapterInfo:
+    """Adapter-level metadata, fixed at load time rather than per packet.
+
+    Separate from `AdapterResult` because these describe the *model*, not the
+    inference: repeating them on every packet would bloat the WebSocket stream
+    for values that never change within a session.
+
+    `mode` is recorded here as well as on each result so a consumer can tell
+    REAL from MOCK without waiting for a packet. A real adapter that failed to
+    load stays `REAL` with a `LOAD_ERROR` status - it never reports itself as
+    mock (docs/ML_SPEC.md 4).
+    """
+
+    adapter_key: str
+    model_id: str
+    model_version: str
+    mode: AdapterMode
+    status: AnalyzerStatus
+    architecture: str | None = None
+    revision: str | None = None
+    languages: tuple[str, ...] = ()
+    execution_provider: str | None = None
+    sample_rate: int | None = None
+    load_ms: int | None = None
+    detail: str | None = None
+    """Human-readable reason when status is not AVAILABLE. Never a stack trace
+    and never a submitted value (docs/SECURITY_SPEC.md 6)."""
 
 
 @dataclass(frozen=True)
@@ -111,6 +143,8 @@ class ModelAdapter(Protocol):
 
     def available(self) -> bool: ...
 
+    def describe(self) -> AdapterInfo: ...
+
 
 @runtime_checkable
 class VadAdapter(ModelAdapter, Protocol):
@@ -157,33 +191,30 @@ class AdapterBundle:
     def mode(self) -> AdapterMode:
         return self.antispoof.mode
 
-    def states(self) -> dict[str, tuple[AnalyzerStatus, AdapterMode]]:
+    def infos(self) -> dict[str, AdapterInfo]:
+        """Full metadata per adapter, for /ready and /models."""
         return {
-            "vad": (
-                AnalyzerStatus.AVAILABLE if self.vad.available() else AnalyzerStatus.UNAVAILABLE,
-                self.vad.mode,
-            ),
-            "antispoof": (
-                AnalyzerStatus.AVAILABLE
-                if self.antispoof.available()
-                else AnalyzerStatus.UNAVAILABLE,
-                self.antispoof.mode,
-            ),
-            # Speaker is NO_REFERENCE rather than UNAVAILABLE: the adapter loads
-            # fine, there is simply no enrolled voice (docs/BLOCKERS.md O3).
-            "speaker": (AnalyzerStatus.NO_REFERENCE, self.speaker.mode),
-            "asr": (
-                AnalyzerStatus.AVAILABLE if self.asr.available() else AnalyzerStatus.UNAVAILABLE,
-                self.asr.mode,
-            ),
-            "intent": (
-                AnalyzerStatus.AVAILABLE if self.intent.available() else AnalyzerStatus.UNAVAILABLE,
-                self.intent.mode,
-            ),
-            "behavior": (
-                AnalyzerStatus.AVAILABLE
-                if self.behavior.available()
-                else AnalyzerStatus.UNAVAILABLE,
-                self.behavior.mode,
-            ),
+            "vad": self.vad.describe(),
+            "antispoof": self.antispoof.describe(),
+            "speaker": self.speaker.describe(),
+            "asr": self.asr.describe(),
+            "intent": self.intent.describe(),
+            "behavior": self.behavior.describe(),
         }
+
+    def states(self) -> dict[str, tuple[AnalyzerStatus, AdapterMode]]:
+        """Status and mode per adapter.
+
+        Derived from each adapter's own `describe()` so a real model that
+        failed to load surfaces as LOAD_ERROR rather than being flattened into
+        UNAVAILABLE - the two need different operator responses.
+        """
+        states: dict[str, tuple[AnalyzerStatus, AdapterMode]] = {}
+        for key, info in self.infos().items():
+            status = info.status
+            # Speaker is NO_REFERENCE rather than UNAVAILABLE when it loaded
+            # fine and there is simply no enrolled voice (docs/BLOCKERS.md O3).
+            if key == "speaker" and status is AnalyzerStatus.AVAILABLE:
+                status = AnalyzerStatus.NO_REFERENCE
+            states[key] = (status, info.mode)
+        return states
