@@ -119,9 +119,27 @@ the best available option.
 0.1164), so the UI must reflect lower confidence for Tamil rather than treating
 the two as equivalent.
 
-**Must not happen:** Tamil being listed as fully supported. Tamil **text**
-intent and behaviour classification is still untrained - the corpus has no
-Tamil (O8) - so working Tamil ASR resolves only the transcription half.
+**Must not happen:** Tamil being listed as fully supported.
+
+### 3.1 The Tamil text gap is separate and still open (O11)
+
+Working Tamil ASR resolves **transcription only**. Audited 2026-09-21:
+
+| Check | Result |
+|---|---|
+| Tamil records in the training corpus | **0 of 85,602** |
+| Tamil codepoints anywhere in the corpus | **0** |
+| Romanised Tamil (Tanglish) | 37 hits, **all false positives** |
+| Tamil scam-labelled corpora found (19 examined) | **0 under any licence** |
+
+So a Tamil call would be **transcribed correctly and then classified by a
+model that has never seen Tamil**. Phase 8 must therefore either route Tamil
+transcripts away from the intent/behaviour heads, or surface them with
+explicitly reduced confidence - it must not present a Tamil intent prediction
+as equivalent to an English one.
+
+Remediation plan, including the human-only test-split rule that blocks
+synthetic and translation leakage: `DATA_SPEC.md` §8.3.
 
 ---
 

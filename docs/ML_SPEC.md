@@ -262,7 +262,7 @@ A Colab notebook (`models/notebooks/`) runs either backbone on cloud GPU.
 | 5 of 12 intents have no training data | `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`, `REMOTE_ACCESS_REQUEST` and `CONFIDENTIAL_INFORMATION` **cannot be predicted** |
 | 2 of 8 behaviours have no label source | `THREAT` and `SECRECY` are not trained |
 | `OTP_REQUEST` has 103 samples (~0.1%) | The highest-value intent is the worst-supported |
-| No Tamil (`BLOCKERS.md` O8) | Tamil is **not supported**, despite being a priority language. Hindi ASR works; Tamil ASR has neither data nor evaluation |
+| No Tamil text (`BLOCKERS.md` O8, O11) | Tamil **ASR works** (WER 0.2833), but the text corpus has **0 Tamil records and 0 Tamil codepoints**, so Tamil intent/behaviour is **not supported**. Transcribing Tamil is not understanding it |
 | Corpus is SMS, not call transcripts | Register differs from speech; transfer is unvalidated |
 
 ### Evaluation splits

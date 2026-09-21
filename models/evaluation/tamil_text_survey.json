@@ -1,0 +1,421 @@
+{
+  "surveyed_at": "2026-09-21",
+  "purpose": "Tamil TEXT resources for intent + behaviour (BLOCKERS O8 text half)",
+  "method": "Licence and gating read from HuggingFace repository metadata before any download. A dataset with no declared licence is UNVERIFIED and is not treated as usable.",
+  "search_terms": [
+    "tamil scam",
+    "tamil spam",
+    "tamil fraud",
+    "tamil phishing",
+    "tamil offensive",
+    "tamil code-mixed",
+    "tanglish",
+    "dravidian codemix",
+    "tamil sentiment",
+    "tamil conversation",
+    "tamil hate speech"
+  ],
+  "candidates_examined": 19,
+  "licence_clear_count": 5,
+  "licence_clear_ids": [
+    "google/fleurs",
+    "Muthumari10/tamil-nlp-sentiment-and-fake-news-dataset",
+    "foreverlove/Tamil_first_ready_for_sentiment",
+    "krishan-CSE/Tamil_Hate_Speech",
+    "wlkla/Tamil_first_ready_for_sentiment"
+  ],
+  "usable_count": 0,
+  "with_scam_labels_count": 0,
+  "headline_finding": "No Tamil scam / social-engineering labelled text corpus was found under any licence. Tamil intent and behaviour classification therefore cannot be trained from public data as it stands.",
+  "candidates": [
+    {
+      "dataset_id": "google/fleurs",
+      "role": "benign",
+      "note": "Tamil read-speech transcripts, already used for ASR eval",
+      "metadata": "OK",
+      "license": "cc-by-4.0",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 99028,
+      "has_scam_labels": false,
+      "licence_ok": true,
+      "licence_blockers": [],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE OK, wrong task"
+    },
+    {
+      "dataset_id": "ai4bharat/IndicCorpV2",
+      "role": "benign",
+      "note": "large general Indic corpus",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 4320,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "Deepakvictor/tanglish-tamil",
+      "role": "codeswitch",
+      "note": "Tanglish text",
+      "metadata": "OK",
+      "license": "openrail",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 338,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "licence openrail carries use restrictions; needs a human read"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "Muthumari10/tamil-nlp-sentiment-and-fake-news-dataset",
+      "role": "adjacent",
+      "note": "sentiment + fake news, not scam intent",
+      "metadata": "OK",
+      "license": "cc-by-4.0",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 32,
+      "has_scam_labels": false,
+      "licence_ok": true,
+      "licence_blockers": [],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE OK, wrong task"
+    },
+    {
+      "dataset_id": "anthea1407/tanglishmedbench",
+      "role": "codeswitch",
+      "note": "Tanglish medical benchmark",
+      "metadata": "OK",
+      "license": "cc-by-nc-4.0",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 97,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "licence cc-by-nc-4.0 forbids commercial use"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "IsaacRodgz/DravidianCodeMix-Dataset",
+      "role": "codeswitch",
+      "note": "Dravidian code-mix",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 23,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "foreverlove/Tamil_first_ready_for_sentiment",
+      "role": "adjacent",
+      "note": "Tamil sentiment",
+      "metadata": "OK",
+      "license": "mit",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 7,
+      "has_scam_labels": false,
+      "licence_ok": true,
+      "licence_blockers": [],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE OK, wrong task"
+    },
+    {
+      "dataset_id": "DineshJ96/data_for_English_2_Tanglish",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 16,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "DineshJ96/task_2_English_Tanglish",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 14,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "HEMASENTHIL/hema_Tanglish_chatbot",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 6,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "HEMASENTHIL/tanglish_coding_dataset",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 13,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "HEMASENTHIL/tanglish_conversation_dataset_list",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 36,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "HEMASENTHIL/tanglish_trans_dataset",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 4,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "HEMASENTHIL/updated_tanglish_trans_dataset",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 7,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "abishekmahi/tamil-kavithai-tanglish",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 13,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "gokulraj/tanglish100rowsonly",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 5,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "krishan-CSE/Tamil_Hate_Speech",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": "apache-2.0",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 42,
+      "has_scam_labels": false,
+      "licence_ok": true,
+      "licence_blockers": [],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE OK, wrong task"
+    },
+    {
+      "dataset_id": "trajesh/english_tanglish_rajini_dialogues",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": null,
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "UNVERIFIED",
+      "gated": false,
+      "downloads_30d": 9,
+      "has_scam_labels": false,
+      "licence_ok": false,
+      "licence_blockers": [
+        "no licence declared in repository metadata (UNVERIFIED)"
+      ],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE BLOCKED"
+    },
+    {
+      "dataset_id": "wlkla/Tamil_first_ready_for_sentiment",
+      "role": "discovered",
+      "note": "from keyword search",
+      "metadata": "OK",
+      "license": "mit",
+      "license_source": "HuggingFace repository metadata",
+      "license_status": "VERIFIED",
+      "gated": false,
+      "downloads_30d": 3,
+      "has_scam_labels": false,
+      "licence_ok": true,
+      "licence_blockers": [],
+      "task_fit_for_intent": false,
+      "task_blockers": [
+        "no scam / social-engineering labels"
+      ],
+      "status": "LICENCE OK, wrong task"
+    }
+  ]
+}

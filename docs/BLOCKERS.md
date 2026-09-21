@@ -222,6 +222,35 @@ diverge from the design references.
   0.632 F1 must not be quoted as a capability. A concrete remediation plan,
   with a verified candidate corpus, is in `DATA_SPEC.md` §8.2.
 
+### O11 — No Tamil text for intent or behaviour · `OPEN`
+
+- **Blocker:** Tamil intent and behaviour classification cannot be trained.
+  Tamil **ASR** is solved (WER 0.2833); the **text** half has no data at all.
+- **Measured (2026-09-21):** 0 Tamil records and **0 Tamil codepoints**
+  (U+0B80-U+0BFF) across all 85,602 corpus records. A romanised-Tamil scan
+  returned 37 candidate hits, **all false positives** ("b*unga*low",
+  "chah*unga*"). Tamil is absent by script, not by labelling, so no
+  relabelling can recover it.
+- **Cause:** the scamshield corpus is English/Hindi/Hinglish SMS. Separately,
+  a survey of 19 Tamil text corpora
+  (`models/evaluation/tamil_text_survey.json`) found **no Tamil scam or
+  social-engineering labelled corpus under any licence**. Five are
+  licence-clear but carry the wrong labels; one is CC-BY-NC-4.0
+  (non-commercial, rejected); one is `openrail` (needs a human licence read);
+  eleven declare **no licence at all** and are UNVERIFIED.
+- **Attempted fixes:** keyword search across 11 Tamil/Tanglish/Dravidian terms
+  plus direct lookup of named corpora; licence and gating read from repository
+  metadata before any download.
+- **Current status:** Tamil intent/behaviour is **not supported and must not
+  be described as supported**. No Tamil intent or behaviour metric exists and
+  none may be quoted or estimated. The `language_tamil` text evaluation split
+  stays blocked.
+- **Required external action:** commission human-authored Tamil scam text
+  against the VIVE taxonomy. `DATA_SPEC.md` §8.3 sets out the plan, including
+  the ~300 human records per label needed to make a single label reportable,
+  the human-only test-split rule that prevents synthetic and translation
+  leakage, and the Tanglish coverage requirement.
+
 ### O10 — Intent and behaviour labels are collinear with `is_scam` · `OPEN`
 
 - **Blocker:** the two heads that risk fusion treats as independent evidence

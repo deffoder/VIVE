@@ -249,6 +249,134 @@ Adding it is a **Phase 8+ decision**, not a Phase 7 action: it changes the
 training distribution, so it would invalidate the measured Phase 7 figures and
 require a re-run and re-evaluation.
 
+## 8.3 Tamil data-gap remediation plan (O8 text half, O11)
+
+Audited 2026-09-21. Every figure here is measured or read from repository
+metadata; nothing is projected.
+
+### What the audit established
+
+| Check | Result |
+|---|---|
+| Tamil records in the training corpus | **0 of 85,602** |
+| Tamil codepoints (U+0B80-U+0BFF) anywhere in the corpus | **0** |
+| Romanised Tamil (Tanglish) markers | 37 candidate hits, **all false positives** ("b**unga**low", "chah**unga**") |
+| Tamil scam / social-engineering labelled corpora found | **0 under any licence** |
+| Tamil text corpora examined | 19 |
+| Licence-clear but wrong task | 5 |
+
+Tamil is absent **by script, not by labelling**, so no relabelling or
+re-parsing of the existing corpus can recover it. The gap is real data.
+
+Survey artifact: `models/evaluation/tamil_text_survey.json`.
+
+### Why nothing found is directly usable
+
+| Dataset | Licence | Why not |
+|---|---|---|
+| `google/fleurs` (ta_in) | CC-BY-4.0 | Licence clear. Read speech, **benign only**, no scam labels |
+| `Muthumari10/tamil-nlp-sentiment-and-fake-news` | CC-BY-4.0 | Sentiment / fake news, not caller intent |
+| `krishan-CSE/Tamil_Hate_Speech` | Apache-2.0 | Hate speech overlaps `THREAT` framing but is not social engineering |
+| `foreverlove/Tamil_first_ready_for_sentiment` | MIT | Sentiment only |
+| `anthea1407/tanglishmedbench` | **CC-BY-NC-4.0** | Non-commercial; **rejected** |
+| `Deepakvictor/tanglish-tamil` | **openrail** | Use restrictions; needs a human licence read before adoption |
+| 11 other Tanglish sets | **none declared** | **UNVERIFIED**; not usable regardless of content |
+
+### The plan
+
+Because no Tamil scam corpus exists, Tamil data must be **created**. The plan
+below is deliberately conservative about what such data can support.
+
+**1. Tamil intent classification.** Source in priority order:
+(a) **human-authored** Tamil scam scripts written against the 12-label intent
+taxonomy by a Tamil speaker, owned by the project so provenance and licence are
+unambiguous; (b) **translated** English/Hindi scam text, marked
+`provenance=translated`; (c) **LLM-generated** Tamil, marked
+`provenance=synthetic`. Tiers (b) and (c) are training-only - see leakage rules.
+
+**2. Tamil behaviour classification.** The 8 behaviour labels are annotated on
+the same records as intent, not collected separately, so a record can carry
+both. `THREAT` and `SECRECY` have **no source in any language**
+(`BLOCKERS.md` O9), so Tamil cannot fix them; they stay untrained.
+
+**3. Tamil benign / negative examples.** This is the part that can start now
+with clean licensing. `google/fleurs` `ta_in` is **CC-BY-4.0** and already
+downloaded for ASR evaluation; its **591 held-out transcripts** (plus larger
+train/validation splits) are real Tamil sentences carrying no scam intent.
+
+They are **read news-style sentences, not conversational**, so they are a
+partial fix: they teach the model what ordinary Tamil looks like, but not what
+a *legitimate Tamil phone call* looks like. Benign Tamil records that carry
+social-engineering behaviours - a real delivery notice using urgency - remain
+missing, which is the Tamil instance of **O10**.
+
+**4. Code-switching / Tanglish.** Real Tamil callers mix Tamil script, romanised
+Tamil and English in one utterance. A Tamil-script-only dataset would not
+represent them, and the ASR output itself is Tamil script, so the text model
+must handle both. Requirements: every collected record carries a measured
+`script_ratio` (share of letters in Tamil script); the corpus must span the
+range, not cluster at 1.0; and `language` takes a distinct value `ta-en`,
+mirroring the existing `hi-en`.
+
+**5. Train / validation / test separation.** Reuse the existing mechanism:
+content-addressed splits from a hash of the normalised text
+(`scripts/training/build_manifests.py`), 80/10/10, so a duplicate always lands
+in the same split. Tamil records enter the same manifest pipeline; no separate
+splitting logic.
+
+**6. Provenance and licence verification.** No dataset is downloaded before its
+licence is recorded. Each record carries `license`, `license_status`
+(`VERIFIED`/`UNVERIFIED`), `source`, `provenance` and `dataset_version`, as the
+manifest schema already requires. A corpus with no declared licence is
+**UNVERIFIED** and is not used, regardless of how well it fits.
+
+**7. Preventing synthetic and translation leakage.** Three rules, because the
+existing content-hash de-duplication does **not** catch either case - a
+translation and its source have different text and therefore different hashes:
+
+- Every record carries `provenance` in `{human, translated, synthetic}`.
+- **The test split contains `human` records only.** Synthetic and translated
+  records are training-only. A model evaluated on its own generator's output
+  measures imitation, not detection.
+- A translated record carries `source_sample_id` pointing at its original, and
+  the split is assigned from the **source** record's hash, so a translated pair
+  cannot straddle train and test.
+
+**8. Minimum support per label.** Consistent with the existing evaluation floor
+(`MIN_EVAL_RECORDS = 30`):
+
+| Tier | Requirement |
+|---|---|
+| Reportable at all | >= 30 **human** test records for that label |
+| Trainable | >= 200 train records |
+| Below either | label reported as `UNMEASURABLE` / `NO_DATA`, never as a score |
+
+At 80/10/10 this implies roughly **300 human records per label** to make one
+label reportable. Across even the 7 labels that have data in English, that is
+~2,100 human-authored Tamil records - a real collection effort, not a
+weekend task. Saying so now is the point of this plan.
+
+**9. Evaluation metrics.** Macro-F1 as the headline plus **per-class F1 with
+support**, using the existing renderer
+(`scripts/training/render_metrics.py`), which already states its denominator
+and prints `no data, cannot be predicted` for absent labels. Accuracy is not
+reported: the class distribution is too skewed for it to mean anything.
+
+**10. Tamil evaluated separately, never merged.** Tamil gets its own report and
+its own row. A combined multilingual macro-F1 would let 76,246 English records
+mask Tamil performance entirely. The existing per-language evaluation splits
+(`language_english`, `language_hindi`, `language_hinglish`) extend with
+`language_tamil` and `language_tanglish`, and each is subject to the same
+30-record floor - a Tamil split below it is reported **blocked**, not scored.
+
+### Honest limitation
+
+Until this data exists, **Tamil intent and behaviour classification are not
+supported and must not be described as supported.** Tamil ASR works
+(`PHASE7_REPORT.md` §7) and that is the transcription half only - transcribing
+Tamil is not understanding it. No Tamil intent or behaviour metric exists, and
+none may be quoted or estimated.
+
 ## 9. Test fixtures
 
 `tests/fixtures/` holds short audio for automated tests and demo replay. These
