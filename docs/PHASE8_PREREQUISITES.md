@@ -9,99 +9,73 @@ is skipped.
 
 ---
 
-## 1. The canonical ASR model id is wrong
+## 1. Reconcile the ASR model id across 11 sites
 
-`ML_SPEC.md` §2 names the ASR model `indicconformer`. That id is hard-coded in
-**11 places** across the specs, backend, tests and the Android client:
+The ASR architecture is now **selected**: `ai4bharat/indic-conformer-600m-multilingual`,
+CTC path (`ML_SPEC.md` §2.1). Canonical VIVE id **`indic-conformer-600m`**,
+`model_version` **`indic-conformer-600m-ctc-v1`**.
 
-| Location | Use |
-|---|---|
-| `docs/ML_SPEC.md` §2, §9 | model inventory, integration order |
-| `docs/API_SPEC.md` §3, §5 | `model_version` example, model list |
-| `backend/app/adapters/interfaces.py` | `MODEL_IDS["asr"]` |
-| `backend/app/adapters/mock.py` | mock ASR `id` |
-| `backend/app/api/routes/system.py` | `/models` response |
-| `backend/tests/test_api.py` | asserts the id is present |
-| `android/.../DemoRepositories.kt`, `DemoData.kt`, `StubRepositories.kt` | model info screen |
+The specs have been updated. The **code has not** - this checkpoint
+deliberately did not touch backend or Android runtime code, so the running
+system still emits the old `indicconformer` string:
 
-When this was written no `indicconformer` checkpoint had been obtained. One
-now has been, and it is the accuracy leader (§2) - so the id may turn out to be
-correct after all. It must still be reconciled deliberately rather than by
-coincidence, and `ML_SPEC.md` §2 currently describes it as covering hi/ta/en
-when the checkpoint covers IN-22.
+| Location | Use | State |
+|---|---|---|
+| `docs/ML_SPEC.md` §2, §2.1, §9 | inventory, selection, integration order | **updated** |
+| `docs/API_SPEC.md` §3, §5 | `model_version` example, model list | **updated** |
+| `backend/app/adapters/interfaces.py` | `MODEL_IDS["asr"]` | stale |
+| `backend/app/adapters/mock.py` | mock ASR `id` | stale |
+| `backend/app/api/routes/system.py` | `/models` response | stale |
+| `backend/tests/test_api.py` | asserts the id is present | stale |
+| `android/.../DemoRepositories.kt`, `DemoData.kt`, `StubRepositories.kt` | model info screen | stale |
 
-**Required:** decide the real id(s), then change all 11 sites in one commit
-with the test updated in the same change. Leaving a stale id would put a model
-name in the UI and in `model_version` that corresponds to nothing that ran —
-exactly the fabrication `CLAUDE.md` forbids.
-
-**Blocked on:** item 2, because the id depends on the routing decision.
+**Required:** change the six stale sites in one commit, with the test updated
+in the same change. Until then the spec and the running code **disagree on the
+id**, which is recorded here rather than left to be discovered.
 
 ---
 
-## 2. One multilingual model, or one model per language
+## 2. ASR architecture selection — DECIDED
 
-All three candidates measured on identical `google/fleurs` test splits through
-one shared normaliser (`models/training/asr_text.py`), and separately
-benchmarked on a fixed synthetic 2 s window in an isolated process
-(`scripts/training/measure_asr_window.py`).
+Selected on measured evidence, not preference. All candidates decoded identical
+`google/fleurs` splits through one shared normaliser
+(`models/training/asr_text.py`); per-window cost was measured directly on a
+fixed 2 s window in an isolated process, not extrapolated.
 
-| Model | Languages | License | WER hi | CER hi | WER ta | CER ta | RTF (utterance) | Cost / 2s window | Execution | VRAM | RAM | Streaming | Access |
-|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|
-| IndicWav2Vec Hindi | Hindi only | Apache-2.0 | 0.1872 | 0.0699 | not measured | not measured | 0.0038 | **0.0627 s** | PyTorch CUDA fp32 | 1.31 GB | 2.841 GB | YES - 16x headroom | gated, terms accepted |
-| Whisper large-v3-turbo | 100 incl. hi + ta | MIT | 0.3154 | 0.1218 | 0.6752 | 0.1952 | 0.7513 | **5.5478 s** | PyTorch CUDA fp16 | 1.717 GB | 2.99 GB | NO - 5.5x over budget | ungated |
-| IndicConformer-600M | IN-22 incl. hi + ta | MIT | 0.1164 | 0.0460 | 0.2833 | 0.1107 | 0.1218 | **0.2549 s** | ONNX Runtime CPU only | 0.0 GB | 2.755 GB | YES - 4x headroom | gated, terms accepted |
+| | IndicWav2Vec | Whisper turbo | **IndicConformer CTC** |
+|---|---:|---:|---:|
+| Hindi WER / CER | 0.1872 / 0.0699 | 0.3154 / 0.1218 | **0.1164 / 0.0460** |
+| Tamil WER / CER | no model | 0.6752 / 0.1952 | **0.2833 / 0.1107** |
+| Cost per 2 s window | 0.0627 s | 5.5478 s | **0.2549 s** |
+| Meets 1.0 s cadence | yes | **no (5.5x over)** | yes (~25% of budget) |
+| Execution | PyTorch CUDA | PyTorch CUDA | **ONNX CPU-only** |
+| VRAM | 1.31 GB | 1.72 GB | **0.00 GB** |
+| Languages | Hindi only | 100 | **IN-22** |
+| Licence | Apache-2.0 | MIT | **MIT** |
 
-wrote C:\Users\cvumj\Downloads\SIH26104-ALL\VIVE\models\evaluation\asr_comparison.json
+**Rationale:** best accuracy in both priority languages; fits the cadence while
+CPU-only, leaving the GPU free for the other analyzers; one model removes the
+need for a language-routing layer.
 
-### Cost per window is measured, not extrapolated
+**Rejected:** Whisper - worse at both languages it would unify and far over
+budget. **Not selected but retained:** IndicWav2Vec, ~4x cheaper per window but
+Hindi-only.
 
-The earlier table derived per-window cost as `RTF x 2.0` from FLEURS utterances
-averaging ~12 s. That is unsafe, and the measurement proves it: Whisper pads
-**every** input to a fixed 30 s of mel frames - a 2 s VIVE window produces
-**3000 mel frames, a 30 s equivalent**. Its real cost
-per window is **5.5478 s**, against
-**1.503 s** predicted by extrapolation: understated **3.7x**.
+**Superseded measurements**, retained in `ML_SPEC.md` §2.2 and
+`asr_comparison.json` and **never to be quoted**: the conformer RTF probe of
+1.3912 (taken under contention; real value 0.1218) and the extrapolated Whisper
+window cost of 1.503 s (real value 5.5478 s).
 
-The CTC candidates scale with input length, so their extrapolated and measured
-figures agree closely. Only the autoregressive, fixed-window model diverges -
-which is exactly the model the naive figure would have made look viable.
+### Open items this selection does not close
 
-### Superseded measurement
-
-An early conformer probe reported **RTF 1.3912** and "does not meet cadence".
-It was taken while the Whisper evaluation still held the machine and is
-**superseded**; the completed benchmark measures **RTF 0.1218**, about 11x
-faster. It is recorded in `models/evaluation/asr_comparison.json` under
-`superseded_measurements` so it cannot be mistaken for a result. **Do not quote
-1.3912 anywhere.**
-
-### What this settles, and what it does not
-
-**Whisper is eliminated on measurement.** Worse at *both* languages it would
-unify - Hindi 0.3154 vs 0.1872, Tamil 0.6752 vs 0.2833 - and **5.5x over** the
-per-window budget. Testing the single-multilingual-model preference was
-worthwhile; adopting it untested would have regressed Hindi by 68%.
-
-**Two candidates remain viable, for different reasons:**
-
-- **IndicConformer-600M** has the best accuracy in both languages and covers
-  IN-22 with one model. It fits the cadence at **25.5% of budget while running
-  CPU-only**, leaving the GPU entirely free for AASIST, ECAPA and the
-  classifiers. Its peak VRAM is effectively **0 GB**.
-- **IndicWav2Vec** is ~4x cheaper per window (**6.3% of budget**) and the
-  fastest by a wide margin, but covers **Hindi only** and would require a
-  second model plus language routing for Tamil.
-
-**Not decided here.** No selection has been made. The trade-off is one
-multilingual model with the best accuracy versus a faster Hindi-only model
-needing a Tamil partner and routing logic (item 6).
-
-**Still required before choosing:** confirm on target deployment hardware
-rather than this development machine. The conformer's CPU-only execution is an
-environment property - `onnxruntime-gpu` needs CUDA 12 and the driver here
-(461.72) caps at 11.2 - so its latency would change, though it already fits
-without a GPU.
+- **CPU-only is an environment property.** `onnxruntime-gpu` needs CUDA 12; the
+  driver here (461.72) caps at 11.2. The model already fits the budget without
+  a GPU, so this is upside rather than a prerequisite. No driver was changed.
+- **Confirm on target deployment hardware**, not this development machine.
+- **Loading cost:** 2.50 GB on disk, ~9-11 s load, ~2.6 GB RSS. Needs a
+  load-once lifecycle (§5), not per-request construction.
+- **FLEURS is clean read speech.** Every figure above is a benchmark floor, not
+  telephone or call-channel accuracy, which remains unmeasured.
 
 ---
 
@@ -164,11 +138,15 @@ before fitting weights. Until then weights stay expert-set and provisional
 The `interfaces.py` protocols are sufficient in shape, but the real adapters
 add requirements the mocks never exercised:
 
-- **Load cost.** Whisper is 809M params / 1.62 GB; indicwav2vec is 315M.
-  Loading per request is not viable. Adapters need a load-once lifecycle with
-  `available()` reflecting real load state rather than returning a constant.
-- **Device contention.** The models share one GPU. Concurrent sessions need a
-  queue or a worker; nothing in the current design arbitrates this.
+- **Load cost.** The selected ASR model is 2.50 GB on disk, takes ~9-11 s to
+  load and holds ~2.6 GB RSS. Loading per request is not viable. Adapters need
+  a load-once lifecycle with `available()` reflecting real load state rather
+  than returning a constant.
+- **Device contention.** ASR runs on **CPU** while AASIST, ECAPA and the text
+  classifiers run on the GPU, so the two do not contend for VRAM - a genuine
+  advantage of the selection. They do contend for CPU threads: onnxruntime
+  defaults to all 12 logical cores. Concurrent sessions still need a queue or
+  a worker; nothing in the current design arbitrates this.
 - **Checkpoint provenance.** `model_version` must carry the real checkpoint
   identity, and `models/artifacts/` is git-ignored, so deployment needs a
   documented fetch step. `scripts/training/safe_load_bin.py` must remain in the
@@ -182,13 +160,22 @@ add requirements the mocks never exercised:
 ## 6. Language detection must feed routing
 
 `AsrResult` already carries `language` and `language_confidence`. Nothing
-currently sets them from a real model or routes on them. If per-language models
-are chosen (item 2), a misdetected language silently selects the wrong model.
+currently sets them from a real model.
 
-**Required:** define behaviour when language confidence is low. The safe
-default is to lower overall confidence rather than guess — consistent with
-`PROJECT_SPEC.md` §2, where missing evidence reduces confidence and never
-raises risk.
+The selection changes the shape of this problem. IndicConformer is a **single
+multilingual model**, so a misdetected language no longer selects the wrong
+*model* - but the CTC decoder applies a **per-language vocabulary mask**
+(`language_masks.json`, 22 languages), so the language still determines which
+tokens can be emitted. A wrong language code produces confident output in the
+wrong script rather than an obvious failure.
+
+**Required:** decide how the language code is chosen per packet, and what
+happens when confidence in it is low. The safe default is to lower overall
+confidence rather than guess — consistent with `PROJECT_SPEC.md` §2, where
+missing evidence reduces confidence and never raises risk. The script-ratio
+check used during evaluation (`eval_asr_whisper.py`) is a cheap runtime guard:
+output that is not in the expected script signals a language error, not poor
+accuracy.
 
 ---
 
@@ -212,6 +199,12 @@ Carried forward because integration is exactly when they tend to slip:
 - `OTP_REQUEST` is **unmeasurable** at 8 test records, not "63% accurate".
 - Intent macro-F1 0.9219 covers 7 of 12 labels and partly measures the
   scam/not-scam boundary (O10). It is not intent-discrimination accuracy.
-- All ASR WERs are FLEURS read speech — a floor, not call-channel accuracy.
-- Tamil intent/behaviour classification remains unsupported: the text corpus
-  has no Tamil (O8), regardless of Tamil ASR working.
+- All ASR WERs are FLEURS **clean read speech** — a benchmark floor, not
+  telephone or call-channel accuracy, which has **not been measured**.
+- Tamil **intent/behaviour** classification remains unsupported: the text
+  corpus has **0 Tamil records and 0 Tamil codepoints** (O11), regardless of
+  Tamil ASR working. Tamil transcription is validated; Tamil understanding is
+  not. Do not describe VIVE as supporting Tamil scam detection.
+- The superseded conformer probe (RTF 1.3912) and the extrapolated Whisper
+  window cost (1.503 s) must never be quoted; the measured values are 0.1218
+  and 5.5478 s.

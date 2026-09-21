@@ -153,7 +153,7 @@ Additive only. Clients must tolerate their absence.
   "aasist":   { "status": "AVAILABLE", "model_version": "aasist-v1",
                 "inference_ms": 182 },
   "ecapa":    { "model_version": "ecapa-tdnn-v1", "inference_ms": 41 },
-  "asr":      { "status": "AVAILABLE", "model_version": "indicconformer-v1",
+  "asr":      { "status": "AVAILABLE", "model_version": "indic-conformer-600m-ctc-v1",
                 "inference_ms": 310 },
   "intent":   { "status": "AVAILABLE", "model_version": "intent-classifier-v1" },
   "behavior": { "status": "AVAILABLE", "model_version": "behavior-classifier-v1" },
@@ -238,8 +238,15 @@ Alert object:
 
 `GET /api/v1/models` returns, per model: `id`, `display_name`, `purpose`,
 `version`, `mode` (`mock` | `real`), `status`, `last_updated`. IDs are those in
-`ML_SPEC.md` §2 — `silero-vad`, `aasist`, `ecapa-tdnn`, `indicconformer`,
-`intent-classifier`, `behavior-classifier`, `risk-fusion`.
+`ML_SPEC.md` §2 — `silero-vad`, `aasist`, `ecapa-tdnn`,
+`indic-conformer-600m`, `intent-classifier`, `behavior-classifier`,
+`risk-fusion`.
+
+> The ASR id was `indicconformer` until the architecture was selected
+> (`ML_SPEC.md` §2.1). The backend and Android clients still emit the old
+> string; reconciling all of them is a Phase 8 task
+> (`PHASE8_PREREQUISITES.md` §1) and has **not** been done, so the running
+> code and this spec currently disagree on the id.
 
 ## 6. WebSocket
 

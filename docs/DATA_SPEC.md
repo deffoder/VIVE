@@ -181,7 +181,9 @@ Load-and-run smoke tests only. **No accuracy was measured for any of these.**
 | Silero VAD | MIT | **OK** — loads from torch.hub, runs |
 | AASIST | MIT | **OK** — checkpoint loads, 229 tensors. Model class not yet vendored, so no forward pass |
 | ECAPA-TDNN (SpeechBrain) | Apache-2.0 | **OK** — produces a 192-dim embedding |
-| AI4Bharat Indic ASR (`indicwav2vec-hindi`) | Apache-2.0 | **OK** — gate cleared; 1.26 GB snapshot downloads, `Wav2Vec2ForCTC` loads (315.5M params, vocab 68) and runs (`BLOCKERS.md` R7) |
+| **`indic-conformer-600m-multilingual`** | **MIT** | **SELECTED ASR** (`ML_SPEC.md` §2.1). Gated, terms accepted; CTC subset downloads (2.50 GB) and runs. Hindi WER 0.1164, Tamil WER 0.2833 |
+| `indicwav2vec-hindi` | Apache-2.0 | **Evaluated, not selected.** Gate cleared; `.bin` audited and converted to safetensors (`BLOCKERS.md` R7). Hindi-only, WER 0.1872 |
+| `whisper-large-v3-turbo` | MIT | **Evaluated, rejected.** Ungated. Worse at both languages, 5.5x over the per-window budget |
 
 ## 8.2 Data-gap remediation plan (O9, O10)
 

@@ -25,13 +25,79 @@
 | `silero-vad` | Speech activity detection | Pre-filter | speech/silence, quality input |
 | `aasist` | Anti-spoofing / synthetic-voice evidence | Per packet | `aasist.score` `0.0–1.0` |
 | `ecapa-tdnn` | Speaker consistency | Per packet, needs reference | `ecapa.similarity` `0.0–1.0` |
-| `indicconformer` | Multilingual ASR (hi/ta/en) | Per packet | transcript + confidence |
+| `indic-conformer-600m` | **Selected ASR** — multilingual, IN-22 (§2.1) | Per packet | transcript + confidence |
 | `intent-classifier` | Intent over transcript | Per packet | 1 of 12 labels + confidence |
 | `behavior-classifier` | Social-engineering behaviour | Per packet | 0..n of 8 labels + confidence |
 | `risk-fusion` | Evidence to calibrated risk | Per packet | score, level, confidence, reasons |
 
 Adapter keys used in `/ready` and configuration: `vad`, `antispoof`, `speaker`,
 `asr`, `intent`, `behavior`.
+
+## 2.1 Selected ASR architecture
+
+**`ai4bharat/indic-conformer-600m-multilingual`, CTC decoding path.**
+Selected 2026-09-21 on measured evidence (`PHASE7_REPORT.md` §7).
+
+| Field | Value |
+|---|---|
+| Canonical VIVE id | `indic-conformer-600m` |
+| `model_version` | `indic-conformer-600m-ctc-v1` |
+| HuggingFace repo | `ai4bharat/indic-conformer-600m-multilingual` |
+| Repo revision | `e9b71b369c048e2c6b634d4c131061c34e441179` |
+| Licence | **MIT**, read from repository metadata |
+| Access | Gated (`gated: auto`); terms accepted, files verified downloadable |
+| Decoding | **CTC** (`decoding="ctc"`), greedy, no external language model |
+| Runtime | ONNX Runtime; **CPU-only on the current machine** (§2.2) |
+| Components loaded | `encoder.onnx` + `ctc_decoder.onnx` — **2 of 28** |
+| Components not loaded | `rnnt_decoder`, `joint_enc/pred/pre_net`, 22x `joint_post_net_*` |
+| Preprocessor | `assets/preprocessor.ts` (TorchScript), run on CPU |
+| `BLANK_ID` | 256 |
+| Vocabulary | 257 tokens per language; 5,633 mask ids |
+| Languages | 22 (IN-22), including `hi` and `ta` |
+| On-disk size | 2.50 GB, git-ignored under `models/artifacts/` |
+
+### Why this and not the alternatives
+
+Measured on identical `google/fleurs` splits through one shared normaliser:
+
+| | IndicWav2Vec | Whisper turbo | **IndicConformer CTC** |
+|---|---:|---:|---:|
+| Hindi WER / CER | 0.1872 / 0.0699 | 0.3154 / 0.1218 | **0.1164 / 0.0460** |
+| Tamil WER / CER | no model | 0.6752 / 0.1952 | **0.2833 / 0.1107** |
+| Cost per 2 s window | 0.0627 s | 5.5478 s | **0.2549 s** |
+| Meets the 1.0 s cadence | yes | **no** | yes |
+| Languages | Hindi only | 100 | IN-22 |
+
+- Best accuracy in **both** priority languages.
+- Fits the cadence at ~25% of budget **while CPU-only**, leaving the GPU free
+  for the other analyzers.
+- One model covers both languages, so no language-routing layer is needed.
+- IndicWav2Vec is ~4x cheaper per window but **Hindi only**; Whisper is worse
+  at both languages and 5.5x over the per-window budget.
+
+### What this selection does NOT claim
+
+- FLEURS is **clean read speech**. These are benchmark figures, **not
+  telephone or call-channel accuracy**, which has not been measured.
+- Greedy CTC, no language model.
+- Tamil **transcription** is validated. Tamil **intent and behaviour
+  understanding is not** — the text corpus contains zero Tamil
+  (`BLOCKERS.md` O11). Transcribing Tamil is not understanding it.
+- CPU-only execution is an **environment** property, not a model property:
+  `onnxruntime-gpu` requires CUDA 12 and the current driver (461.72) caps at
+  CUDA 11.2. No driver or CUDA change was made.
+
+## 2.2 Superseded measurements (retained, never quoted)
+
+Kept so historical evidence is not destroyed and cannot resurface as fact:
+
+| Measurement | Value | Why superseded |
+|---|---|---|
+| Conformer RTF probe | 1.3912 | Taken while another evaluation held the machine. Completed benchmark: **0.1218** |
+| Extrapolated window cost (`RTF x 2.0`) | Whisper 1.503 s | Whisper pads every input to a fixed 30 s, so it does not scale with input length. Measured: **5.5478 s** |
+
+Also recorded in `models/evaluation/asr_comparison.json` under
+`superseded_measurements`. **Neither figure may be cited as a result.**
 
 ## 3. Interfaces (`models/interfaces/`)
 
@@ -195,7 +261,7 @@ Strictly sequential. After each: run a real sample, inspect output, record
 inference time and version, verify it renders correctly, then proceed.
 
 ```text
-silero-vad → aasist → ecapa-tdnn → indicconformer
+silero-vad → aasist → ecapa-tdnn → indic-conformer-600m (CTC)
            → intent-classifier → behavior-classifier → risk-fusion calibration
 ```
 
@@ -210,16 +276,19 @@ What is actually built, as distinct from what is planned.
 | `silero-vad` | MIT | **Loads and runs.** torch.hub, no credentials |
 | `aasist` | MIT | **Checkpoint loads** (229 tensors, 1.28 MB). Model class not vendored, so no forward pass yet |
 | `ecapa-tdnn` | Apache-2.0 | **Loads and runs.** Produces a 192-dim embedding |
-| `indicwav2vec-hindi` | Apache-2.0 | **Loads and runs.** Gate cleared; ships only a `.bin`, audited and converted to safetensors (`BLOCKERS.md` R7). WER measured — see `PHASE7_REPORT.md` §4.1 |
+| `indic-conformer-600m` | MIT | **SELECTED ASR** (§2.1). Loads and runs via ONNX CTC path; Hindi WER 0.1164, Tamil WER 0.2833 |
+| `indicwav2vec-hindi` | Apache-2.0 | **Evaluated, not selected.** Hindi-only; Hindi WER 0.1872. Retained as a Hindi-only fallback, not the planned primary |
+| `whisper-large-v3-turbo` | MIT | **Evaluated, rejected.** Worse at both languages and 5.5x over the per-window budget |
 
 Silero, AASIST and ECAPA are load-and-run smoke tests: **no accuracy or EER has
 been measured for them**, and none may be quoted.
 
-ASR is the exception and now has a real measured figure:
-**WER 0.1872 / CER 0.0699** on `google/fleurs` [`hi_in`]
-`test` (CC-BY-4.0), 418 utterances,
-greedy CTC with no language model. FLEURS is clean read speech, so this is a
-**floor**, not call-channel accuracy (`PHASE7_REPORT.md` §4.1).
+ASR is the exception and has real measured figures. The **selected** model
+(§2.1) measures **Hindi WER 0.1164 / CER 0.0460** (418 utterances) and
+**Tamil WER 0.2833 / CER 0.1107** (591 utterances) on `google/fleurs`
+(CC-BY-4.0), greedy CTC with no language model. FLEURS is clean read speech,
+so these are **floors**, not call-channel accuracy
+(`PHASE7_REPORT.md` §7).
 
 ### Trained in this phase
 

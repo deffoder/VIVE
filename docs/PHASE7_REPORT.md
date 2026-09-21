@@ -317,7 +317,11 @@ Windows trimmed the working set after the previous model was freed.
   0.1218): host-to-device transfer costs more than the preprocessing saves.
 - Tamil **text** classification remains unsupported regardless
   (`BLOCKERS.md` O8). Working Tamil ASR resolves only transcription.
-- **No model was selected and no application code was changed.**
+- **Selection made 2026-09-21** on this evidence:
+  `ai4bharat/indic-conformer-600m-multilingual`, CTC path
+  (`ML_SPEC.md` §2.1). No application code was changed; the backend and
+  Android clients still emit the old `indicconformer` id, which is a Phase 8
+  task (`PHASE8_PREREQUISITES.md` §1).
 
 ---
 
