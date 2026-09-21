@@ -145,9 +145,24 @@ class SessionManager:
             end_sec=end,
             pcm=pcm,
             transcript_hint=transcript_hint,
+            # Without this the ASR decodes every session in the adapter's
+            # default language. Measured: a Tamil session was transcribed as
+            # Hindi, which also made the text heads run instead of declining
+            # an unsupported language - defeating the O11 protection.
+            language=record.session.language,
         )
 
         a = self._adapters
+        # Sequential on purpose. Running the four window analyzers on a thread
+        # pool was tried and MEASURED: median packet latency went from 938 ms
+        # to 1197 ms on Hindi, and per-stage cost rose across the board
+        # (ASR 273->584 ms, AASIST 395->741 ms, ECAPA 81->732 ms).
+        #
+        # The reason is that torch and onnxruntime each already use every core,
+        # so concurrent analyzers oversubscribe the CPU and contend rather than
+        # overlap. Concurrency here buys nothing and costs clarity, so it was
+        # reverted. Parallelism would only pay once the models sit on separate
+        # devices, which is a deployment question, not a code one.
         vad = a.vad.analyze(window)
         antispoof = a.antispoof.analyze(window)
         speaker_result = a.speaker.analyze(window, record.reference_audio)

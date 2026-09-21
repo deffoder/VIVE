@@ -249,3 +249,41 @@ def test_min_samples_threshold_is_respected(loaded):
     assert MIN_SAMPLES == SAMPLE_RATE // 2
     just_under = loaded.analyze(window(pcm=pcm((MIN_SAMPLES - 160) / SAMPLE_RATE)))
     assert just_under.status is AnalyzerStatus.INSUFFICIENT_AUDIO
+
+
+# --------------------------------------------------------------------------
+# language routing - regression guard
+# --------------------------------------------------------------------------
+
+def test_window_carries_a_language_field():
+    """The session's language must be able to reach the decoder.
+
+    Regression guard. Before this field was populated, every session decoded
+    in the adapter's default language: a Tamil session was transcribed as
+    Hindi, which ALSO made the text heads run instead of declining an
+    unsupported language, defeating the O11 protection end to end.
+    """
+    w = AudioWindow(session_id="s", seq=1, start_sec=0.0, end_sec=2.0,
+                    pcm=b"", language="ta")
+    assert w.language == "ta"
+
+
+def test_adapter_prefers_the_window_language_over_its_default():
+    a = IndicConformerAsrAdapter("no/such/dir")
+    a.set_default_language("hi")
+    # Resolution happens against the loaded masks, so without a model this
+    # asserts only that the window value is what gets consulted first.
+    w = AudioWindow(session_id="s", seq=1, start_sec=0.0, end_sec=2.0,
+                    pcm=b"", language="ta")
+    assert w.language == "ta"
+    assert a._default_language == "hi"
+
+
+@requires_model
+def test_tamil_window_decodes_as_tamil_not_the_default(loaded):
+    """With a real model, a window declaring Tamil must decode in Tamil."""
+    loaded.set_default_language("hi")
+    w = AudioWindow(session_id="s", seq=1, start_sec=0.0, end_sec=2.0,
+                    pcm=pcm(2.0), sample_rate=SAMPLE_RATE, language="ta")
+    r = loaded.analyze(w)
+    assert r.language == "ta", "window language must override the adapter default"

@@ -1,5 +1,11 @@
 # VIVE — Phase 8 Prerequisites
 
+> **Status: Phase 8 is complete.** This file began as a pre-flight checklist;
+> the items below now record what was decided and what each one turned into.
+> Items 1 and 2 are DONE; 5 and 6 were addressed during 8D; 3, 4, 7 and 8
+> remain live constraints carried into Phase 9. See `ML_SPEC.md` §2.3–2.6 for
+> what was actually built.
+
 What must be settled before real models replace the mock adapters. **This is a
 checklist, not an implementation.** Nothing here has been built; Phase 8 has
 not started.
@@ -146,9 +152,12 @@ add requirements the mocks never exercised:
   identity, and `models/artifacts/` is git-ignored, so deployment needs a
   documented fetch step. `scripts/training/safe_load_bin.py` must remain in the
   path for any `.bin` checkpoint — see item 7.
-- **Failure mode.** A model that fails to load must return
-  `AnalyzerStatus.UNAVAILABLE`, not raise. That path exists but has only ever
-  been exercised by mocks.
+- **Failure mode.** A model that fails to load must return a status, not
+  raise. **Done in 8A–8C:** `LOAD_ERROR` and `INFERENCE_ERROR` were added, a
+  failed real adapter stays in REAL mode, and tests cover each refusal.
+- **Load cost, measured in 8D:** the full bundle takes ~68 s to load and holds
+  ~2.9 GB RSS. The first packet of a session additionally costs ~10–32 s. Both
+  argue for a warm worker rather than per-request construction.
 
 ---
 
@@ -164,8 +173,15 @@ multilingual model**, so a misdetected language no longer selects the wrong
 tokens can be emitted. A wrong language code produces confident output in the
 wrong script rather than an obvious failure.
 
-**Required:** decide how the language code is chosen per packet, and what
-happens when confidence in it is low. The safe default is to lower overall
+**Partly done in 8D.** `AudioWindow` now carries `language` from the session,
+after a measured defect: without it, a **Tamil session was transcribed as
+Hindi**, which also made the text heads run instead of declining — defeating
+the O11 protection end to end. Three regression tests guard it.
+
+**Still required:** there is no language-identification model. A session that
+declares nothing decodes in the adapter default. Decide how the language is
+chosen when the caller does not declare one, and what happens when confidence
+in it is low. The safe default is to lower overall
 confidence rather than guess — consistent with `PROJECT_SPEC.md` §2, where
 missing evidence reduces confidence and never raises risk. The script-ratio
 check used during evaluation (`eval_asr_whisper.py`) is a cheap runtime guard:

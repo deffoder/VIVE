@@ -148,30 +148,55 @@ document disagrees with it, `CLAUDE.md` wins.
 
 ## Current status
 
-**End-to-end prototype working on mock adapters.** The Android app drives a
-FastAPI backend over REST and WebSocket: sessions stream, packets are analysed
-and returned, and all 24 screens render backend data. **176 tests pass** (92
-backend, 84 Android).
+**End-to-end pipeline running on REAL models (Phase 8 complete).** The Android
+app drives a FastAPI backend over REST and WebSocket, and in `real` mode all
+six analyzers are checkpoint-backed:
 
-**No real ML runs anywhere.** Every analyzer is a deterministic mock; model
-versions read `"demo"`; `/ready` reports the mode per adapter; the app shows a
-non-dismissable **Demo data** badge. Nothing here may be cited as accuracy or
-detection capability.
+| Analyzer | Model | Licence |
+|---|---|---|
+| ASR | `ai4bharat/indic-conformer-600m-multilingual` (CTC) | MIT |
+| Intent | fine-tuned multilingual DistilBERT | Apache-2.0 |
+| Behaviour | fine-tuned multilingual DistilBERT | Apache-2.0 |
+| VAD | Silero VAD v5 | MIT |
+| Anti-spoofing | AASIST | MIT |
+| Speaker | ECAPA-TDNN | Apache-2.0 |
+
+**241 tests pass** (157 backend with all real models loaded, 84 Android).
+Mock adapters are retained and remain the default, so demos stay deterministic
+without multi-GB weights present. Model weights live outside Git.
+
+### What is NOT claimed
+
+- **No overall VIVE accuracy figure exists.** Component metrics come from
+  their own evaluations on clean read speech and an SMS corpus; neither is a
+  call-channel or end-to-end result.
+- **No synthetic-voice detection capability.** AASIST has no VIVE-measured
+  EER, and on a spot check it scored genuine human speech as synthetic
+  (`BLOCKERS.md` O12).
+- **Tamil is transcribed, not understood.** Tamil ASR is validated; Tamil
+  intent and behaviour return `UNSUPPORTED_LANGUAGE` because the training
+  corpus contains zero Tamil records (O11).
+- **Near-real-time is not demonstrated.** Median packet latency sits at the
+  1.0 s budget rather than inside it, 830–1197 ms across runs (O13).
+- **Risk is not a calibrated fraud probability.** Fusion weights are
+  expert-set and provisional (O6); calibration is Phase 9.
 
 Security, test and demo-readiness reports:
 [`docs/PHASE6_REPORTS.md`](docs/PHASE6_REPORTS.md).
-
-`backend/` is still empty; no dataset has been downloaded and no model trained.
+Phase 8 detail: [`docs/ML_SPEC.md`](docs/ML_SPEC.md) §2.3–2.6.
 
 Phase-by-phase status:
 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 Open decisions and limitations: [`docs/BLOCKERS.md`](docs/BLOCKERS.md).
 
-## Future ML phase
+## ML phase (done) and what comes next
 
-Real ML integration is deliberately the **last** major phase. The product must
-run end-to-end on mock adapters first, so that UI, transport and fusion defects
-are never confused with model defects.
+Real ML integration was deliberately sequenced last, so that UI, transport and
+fusion defects could never be confused with model defects. That sequencing paid
+off: every defect found during Phase 8 was attributable to a specific layer.
+
+Phase 9 owns evaluation, calibration and robustness — the questions Phase 8
+deliberately did not answer.
 
 The documented process — not yet executed — is:
 

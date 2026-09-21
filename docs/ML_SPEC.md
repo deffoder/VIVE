@@ -276,6 +276,65 @@ Phase 9 work.
 - `NO_REFERENCE` is **not** a speaker mismatch. There is no enrolment source
   (O3), so speaker consistency is unavailable rather than negative.
 
+## 2.6 Phase 8D — full real ML pipeline
+
+Real audio now flows through the complete backend: session, WebSocket, all six
+real adapters, fusion, temporal risk, policy and back out as packets. Verified
+by `scripts/verify_pipeline_e2e.py`
+(`models/evaluation/pipeline_e2e_8d.json`).
+
+| | Hindi | Tamil |
+|---|---|---|
+| Packets produced | 6 | 6 |
+| `adapter_mode` | `real` | `real` |
+| Decoded language | `hi` | `ta` |
+| ASR | `AVAILABLE` | `AVAILABLE` |
+| Intent / behaviour | `AVAILABLE` | **`UNSUPPORTED_LANGUAGE`** |
+| Risk | 57 MEDIUM, confidence 0.8998 | 58 MEDIUM, confidence **0.4716** |
+
+The Tamil column is the one to read. Tamil transcribes, both text heads
+decline, and **confidence halves while risk does not rise** — missing evidence
+lowers confidence rather than becoming incriminating evidence
+(`PROJECT_SPEC.md` §2). All packet fields are present in both languages, so
+traceability survives a partially unavailable analyzer set.
+
+### A real defect this found: every session decoded in one language
+
+The ASR adapter fell back to its configured default for every packet, because
+the session's language never reached it. Measured consequence: a **Tamil
+session was transcribed as Hindi**, and because the packet then carried
+`language: hi`, the text heads *ran* instead of declining — silently defeating
+the O11 protection end to end.
+
+`AudioWindow` now carries `language`, populated from the session, and three
+regression tests guard it. There is still **no language-identification model**
+(`PHASE8_PREREQUISITES.md` §6): a session that declares nothing decodes in the
+adapter default, which is a documented gap, not a silent one.
+
+### Latency: at the budget, not inside it (`BLOCKERS.md` O13)
+
+Median packet cost across runs: **830-1197 ms** against a **1.0 s** budget.
+Some runs fit, some do not. Per stage: AASIST ~364-395 ms, ASR ~254-273 ms,
+ECAPA ~68-87 ms, plus VAD, both text heads, fusion and transport. The first
+packet of a session costs ~10-32 s of setup.
+
+**Near-real-time operation is not claimed as demonstrated on this hardware.**
+
+An optimisation was tried and **measured rather than assumed**: running the
+four window analyzers on a thread pool made things *worse* (Hindi
+938 → 1197 ms; ASR 273 → 584 ms, AASIST 395 → 741 ms, ECAPA 81 → 732 ms),
+because torch and onnxruntime each already use every core, so concurrent
+analyzers contend rather than overlap. It was reverted, and the measurement is
+recorded in `session_manager.py` so the next person does not repeat it.
+
+### Risk fusion untouched
+
+Fusion, temporal risk and policy are exactly as they were; only the evidence
+feeding them changed from mock to real. Fusion weights remain expert-set and
+provisional (O6), intent and behaviour remain collinear in the training data
+(O10), and **no calibrated fraud probability is claimed**. Phase 9 owns
+calibration.
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,

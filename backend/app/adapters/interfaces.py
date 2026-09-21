@@ -57,6 +57,15 @@ class AudioWindow:
     transcript_hint: str | None = None
     """Demo/replay only: lets a scripted scenario drive the pipeline without audio."""
 
+    language: str | None = None
+    """Language to decode this window as.
+
+    A REQUIRED INPUT for CTC ASR, not an output: the decoder applies a
+    per-language vocabulary mask, so the language decides which tokens can be
+    emitted at all. There is no language-identification model yet
+    (docs/PHASE8_PREREQUISITES.md 6), so this carries the session's declared
+    language and falls back to the adapter default when unset."""
+
 
 @dataclass(frozen=True)
 class AdapterInfo:

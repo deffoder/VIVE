@@ -222,6 +222,39 @@ diverge from the design references.
   0.632 F1 must not be quoted as a capability. A concrete remediation plan,
   with a verified candidate corpus, is in `DATA_SPEC.md` §8.2.
 
+### O13 — Packet latency sits at the real-time budget, not inside it · `OPEN`
+
+- **Blocker:** VIVE analyses a 2.0 s window every 1.0 s, so a packet must cost
+  under 1.0 s end to end. Measured on real FLEURS audio through the full
+  backend, the median packet sits **at** that boundary rather than below it.
+- **Measured (Phase 8D, 6 packets per language, first packet excluded):**
+
+  | Run | Hindi median | Tamil median |
+  |---|---:|---:|
+  | sequential | 938 ms | 1039 ms |
+  | sequential (repeat) | **1062 ms** | **830 ms** |
+  | thread-pool across analyzers | 1197 ms | 1036 ms |
+
+  Range across runs: **830-1197 ms**. Some runs fit, some do not.
+- **Per-stage cost on a representative packet:** AASIST ~364-395 ms,
+  ASR ~254-273 ms, ECAPA ~68-87 ms, plus VAD, the two text heads, fusion,
+  temporal risk, policy and WebSocket transport.
+- **Attempted fix, measured and reverted:** running the four window analyzers
+  on a thread pool made it **worse** - Hindi 938 -> 1197 ms, with per-stage
+  cost rising across the board (ASR 273 -> 584 ms, AASIST 395 -> 741 ms,
+  ECAPA 81 -> 732 ms). torch and onnxruntime each already use every core, so
+  concurrent analyzers oversubscribe the CPU and contend rather than overlap.
+  The change was reverted and the measurement recorded in the code.
+- **Current status:** the pipeline runs end to end and produces correct
+  packets, but **near-real-time operation must not be claimed as demonstrated
+  on this hardware**. The first packet of a session additionally costs
+  ~10-32 s, dominated by per-session setup.
+- **Required external action:** either a GPU execution path (AASIST and the
+  text heads are CPU-bound here; `onnxruntime-gpu` needs CUDA 12 while the
+  development driver caps at 11.2), a faster anti-spoofing model, or a
+  decision to run some analyzers on a slower secondary cadence than ASR.
+  Choosing between those is Phase 9/10 work and needs target hardware.
+
 ### O12 — AASIST is unreliable out of domain · `OPEN`
 
 - **Blocker:** the pretrained AASIST checkpoint produces scores on

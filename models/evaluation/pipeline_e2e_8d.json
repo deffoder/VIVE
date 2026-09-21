@@ -1,0 +1,127 @@
+{
+  "verified_at": "2026-09-22",
+  "phase": "8D",
+  "what_this_proves": "Real audio flows through the real backend - session, WebSocket, all six real adapters, fusion, temporal risk and policy - and produces packets with full traceability. It measures COST, not accuracy.",
+  "bundle_load_ms": 49588,
+  "adapters": {
+    "vad": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "silero-vad-v5-jit",
+      "load_ms": 5597,
+      "execution_provider": "torch cpu"
+    },
+    "antispoof": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "aasist-pretrained-v1",
+      "load_ms": 77,
+      "execution_provider": "torch cpu"
+    },
+    "speaker": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "ecapa-tdnn-voxceleb-v1",
+      "load_ms": 4283,
+      "execution_provider": "torch cpu"
+    },
+    "asr": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "indic-conformer-600m-ctc-v1",
+      "load_ms": 30046,
+      "execution_provider": "CPUExecutionProvider"
+    },
+    "intent": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "intent-classifier-distilbert-v1",
+      "load_ms": 9317,
+      "execution_provider": "torch cpu"
+    },
+    "behavior": {
+      "mode": "real",
+      "status": "AVAILABLE",
+      "model_version": "behavior-classifier-distilbert-v1",
+      "load_ms": 197,
+      "execution_provider": "torch cpu"
+    }
+  },
+  "window_sec": 2.0,
+  "cadence_budget_sec": 1.0,
+  "process_rss_gb": 2.864,
+  "languages": [
+    {
+      "language": "hi",
+      "packets": 6,
+      "frame_types": [
+        "packet.new",
+        "risk.update",
+        "transcript.append"
+      ],
+      "end_to_end_ms": {
+        "median": 1062,
+        "min": 838,
+        "max": 3185,
+        "first_packet": 14429,
+        "excludes_first_packet": true
+      },
+      "meets_cadence": false,
+      "stage_inference_ms_last_packet": {
+        "asr": 254,
+        "intent": null,
+        "behavior": null,
+        "aasist": 364,
+        "ecapa": 68
+      },
+      "missing_packet_fields": [],
+      "adapter_mode": "real",
+      "last_packet_statuses": {
+        "asr": "AVAILABLE",
+        "intent": "AVAILABLE",
+        "behavior": "AVAILABLE",
+        "aasist": "AVAILABLE",
+        "ecapa": "NO_REFERENCE"
+      }
+    },
+    {
+      "language": "ta",
+      "packets": 6,
+      "frame_types": [
+        "packet.new",
+        "risk.update",
+        "transcript.append"
+      ],
+      "end_to_end_ms": {
+        "median": 830,
+        "min": 786,
+        "max": 1910,
+        "first_packet": 32281,
+        "excludes_first_packet": true
+      },
+      "meets_cadence": true,
+      "stage_inference_ms_last_packet": {
+        "asr": 265,
+        "intent": null,
+        "behavior": null,
+        "aasist": 387,
+        "ecapa": 76
+      },
+      "missing_packet_fields": [],
+      "adapter_mode": "real",
+      "last_packet_statuses": {
+        "asr": "AVAILABLE",
+        "intent": "UNSUPPORTED_LANGUAGE",
+        "behavior": "UNSUPPORTED_LANGUAGE",
+        "aasist": "AVAILABLE",
+        "ecapa": "NO_REFERENCE"
+      }
+    }
+  ],
+  "caveats": [
+    "End-to-end packet cost on real audio, measured through the HTTP and WebSocket layers. Not comparable to the per-model figures.",
+    "The first packet is reported separately; it carries per-session setup that later packets do not.",
+    "No accuracy is measured here. AASIST has no VIVE-measured EER (BLOCKERS O5) and behaves unreliably out of domain (O12).",
+    "Tamil intent and behaviour are UNSUPPORTED_LANGUAGE by design (BLOCKERS O11), not a pipeline failure."
+  ]
+}
