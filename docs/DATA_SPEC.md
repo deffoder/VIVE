@@ -183,6 +183,72 @@ Load-and-run smoke tests only. **No accuracy was measured for any of these.**
 | ECAPA-TDNN (SpeechBrain) | Apache-2.0 | **OK** — produces a 192-dim embedding |
 | AI4Bharat Indic ASR (`indicwav2vec-hindi`) | Apache-2.0 | **OK** — gate cleared; 1.26 GB snapshot downloads, `Wav2Vec2ForCTC` loads (315.5M params, vocab 68) and runs (`BLOCKERS.md` R7) |
 
+## 8.2 Data-gap remediation plan (O9, O10)
+
+Derived from `scripts/training/audit_label_coverage.py`, whose output is
+`models/evaluation/label_coverage_audit.json`. Every figure below is measured,
+not estimated.
+
+### What is actually wrong
+
+| Gap | Measured | Effect |
+|---|---|---|
+| 5 intents with no data | `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`, `ACCOUNT_CHANGE_REQUEST`, `REMOTE_ACCESS_REQUEST`, `CONFIDENTIAL_INFORMATION` all 0 | Cannot be predicted at all |
+| 2 behaviours with no data | `THREAT`, `SECRECY` all 0 | Cannot be predicted at all |
+| `OTP_REQUEST` under-supported | 80 train / 15 val / **8 test** | Below the 30-record floor: **unmeasurable**, not merely weak |
+| Intent collinear with `is_scam` | **100.0000%** | The intent head is a scam detector with sub-classes |
+| No benign behaviour examples | **0** of 85,602 | Behaviour head has never seen legitimate urgency |
+
+The last two are the serious ones, and they are not fixed by adding more of
+the same data. They are properties of the corpus design.
+
+### Why collinearity matters for risk fusion
+
+`app/risk/fusion.py` combines intent and behaviour with a noisy-OR, which
+assumes the inputs carry **independent** evidence. In this corpus they do not:
+both are derived from the same underlying `is_scam` flag. Two signals that are
+really one signal, combined as if independent, inflate the fused score and its
+confidence. Fusion weights stay provisional (`BLOCKERS.md` O6) until they are
+calibrated against data where intent and behaviour can disagree.
+
+### Remediation, in priority order
+
+**1. Acquire benign-with-behaviour examples (highest value, unblocks O10).**
+`BothBosu/multi-agent-scam-conversation` — Apache-2.0, ungated, verified by
+inspection: 1,280 dialogues, balanced 640 benign / 640 scam, in **call
+register** rather than SMS. Its benign scenarios (`appointment`, `delivery`,
+`insurance`, `wrong` number) are legitimate calls that use authority and
+urgency framing, which is exactly the negative evidence the behaviour head
+lacks.
+
+**2. Fill two missing intents from the same source.** Inspection of the
+dialogue text confirms `ssn` scenarios are Social-Security impersonation
+(`CONFIDENTIAL_INFORMATION`) and `support` scenarios are tech-support intrusion
+(`REMOTE_ACCESS_REQUEST`). Mapping must be verified per dialogue, not assumed
+from the scenario name.
+
+**3. `OTP_REQUEST` needs targeted collection, not augmentation.** 8 test
+records cannot support a metric however the training set grows. SMS contains
+OTP codes being *delivered*; VIVE needs a caller *soliciting* one, which is a
+different speech act. This requires either scripted collection or a
+conversational corpus, and until then `OTP_REQUEST` performance is
+**unmeasurable and must not be quoted**.
+
+**4. Still unsourced:** `PASSWORD_REQUEST`, `CARD_DETAILS_REQUEST`,
+`ACCOUNT_CHANGE_REQUEST`, `THREAT`, `SECRECY`. No openly-licensed corpus has
+been identified. These stay unsupported and must not be described otherwise.
+
+### Constraints on any of the above
+
+The conversational corpus is **English-only** in the sampled rows, so it does
+nothing for Hindi or Tamil coverage. It is also **LLM-generated**, so it is
+suitable for teaching label boundaries but cannot support a real-world
+accuracy claim, and any model trained with it must record that provenance.
+
+Adding it is a **Phase 8+ decision**, not a Phase 7 action: it changes the
+training distribution, so it would invalidate the measured Phase 7 figures and
+require a re-run and re-evaluation.
+
 ## 9. Test fixtures
 
 `tests/fixtures/` holds short audio for automated tests and demo replay. These

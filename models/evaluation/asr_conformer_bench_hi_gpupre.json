@@ -1,0 +1,143 @@
+{
+  "utterances": 20,
+  "audio_seconds": 234.66,
+  "wall_seconds": 73.91,
+  "rtf": 0.315,
+  "stage_seconds": {
+    "preprocess": 19.029,
+    "encode": 53.957,
+    "decode": 0.867
+  },
+  "stage_share_pct": {
+    "preprocess": 25.7,
+    "encode": 73.0,
+    "decode": 1.2
+  },
+  "projected_cost_per_2s_window_sec": 0.63,
+  "vive_cadence_budget_sec": 1.0,
+  "meets_cadence": true,
+  "peak_vram_gb": 0.024,
+  "process_rss_gb": 2.913,
+  "per_utterance": [
+    {
+      "audio_sec": 9.12,
+      "wall_sec": 53.4754,
+      "rtf": 5.8635
+    },
+    {
+      "audio_sec": 13.8,
+      "wall_sec": 4.5034,
+      "rtf": 0.3263
+    },
+    {
+      "audio_sec": 15.0,
+      "wall_sec": 1.7436,
+      "rtf": 0.1162
+    },
+    {
+      "audio_sec": 5.1,
+      "wall_sec": 1.388,
+      "rtf": 0.2722
+    },
+    {
+      "audio_sec": 13.2,
+      "wall_sec": 0.9024,
+      "rtf": 0.0684
+    },
+    {
+      "audio_sec": 10.62,
+      "wall_sec": 0.7159,
+      "rtf": 0.0674
+    },
+    {
+      "audio_sec": 17.1,
+      "wall_sec": 1.2468,
+      "rtf": 0.0729
+    },
+    {
+      "audio_sec": 8.22,
+      "wall_sec": 0.6337,
+      "rtf": 0.0771
+    },
+    {
+      "audio_sec": 7.8,
+      "wall_sec": 0.5089,
+      "rtf": 0.0652
+    },
+    {
+      "audio_sec": 13.68,
+      "wall_sec": 0.9331,
+      "rtf": 0.0682
+    },
+    {
+      "audio_sec": 14.28,
+      "wall_sec": 0.9537,
+      "rtf": 0.0668
+    },
+    {
+      "audio_sec": 12.9,
+      "wall_sec": 0.8011,
+      "rtf": 0.0621
+    },
+    {
+      "audio_sec": 9.0,
+      "wall_sec": 0.5441,
+      "rtf": 0.0605
+    },
+    {
+      "audio_sec": 10.26,
+      "wall_sec": 0.6802,
+      "rtf": 0.0663
+    },
+    {
+      "audio_sec": 20.88,
+      "wall_sec": 1.4249,
+      "rtf": 0.0682
+    },
+    {
+      "audio_sec": 8.88,
+      "wall_sec": 0.531,
+      "rtf": 0.0598
+    },
+    {
+      "audio_sec": 10.5,
+      "wall_sec": 0.6926,
+      "rtf": 0.066
+    },
+    {
+      "audio_sec": 17.94,
+      "wall_sec": 1.192,
+      "rtf": 0.0664
+    },
+    {
+      "audio_sec": 5.94,
+      "wall_sec": 0.3977,
+      "rtf": 0.067
+    },
+    {
+      "audio_sec": 10.44,
+      "wall_sec": 0.6459,
+      "rtf": 0.0619
+    }
+  ],
+  "model_id": "ai4bharat/indic-conformer-600m-multilingual",
+  "decoding": "ctc",
+  "language": "hi",
+  "load_seconds": 14.1,
+  "onnx_acceleration": "CPU_ONLY",
+  "providers_available": [
+    "AzureExecutionProvider",
+    "CPUExecutionProvider"
+  ],
+  "providers_active": [
+    "CPUExecutionProvider"
+  ],
+  "preprocessor_device": "cuda",
+  "environment": {
+    "python": "3.11.9",
+    "torch": "2.5.1+cu118",
+    "device": "GeForce GTX 1650 Ti",
+    "platform": "Windows-10-10.0.28120-SP0"
+  },
+  "measured_at": "2026-09-21T14:25:15.797828+00:00"
+}

@@ -26,8 +26,8 @@
     "hits": 8585
   },
   "performance": {
-    "decode_seconds": 18.7,
-    "real_time_factor": 0.0039
+    "decode_seconds": 18.3,
+    "real_time_factor": 0.0038
   },
   "environment": {
     "python": "3.11.9",
@@ -36,8 +36,8 @@
     "platform": "Windows-10-10.0.28120-SP0"
   },
   "timing": {
-    "started_utc": "2026-09-21T11:11:23.780791+00:00",
-    "finished_utc": "2026-09-21T11:15:44.089961+00:00"
+    "started_utc": "2026-09-21T11:30:19.620239+00:00",
+    "finished_utc": "2026-09-21T11:40:01.759723+00:00"
   },
   "caveat": "FLEURS is clean read speech at 16 kHz. It has no telephony codec loss, channel noise or spontaneous-speech disfluency, so this WER is a best-case floor and not a call-channel accuracy figure. Greedy CTC decoding, no language model."
 }

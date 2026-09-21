@@ -1,0 +1,54 @@
+{
+  "task": "asr_hi",
+  "model_id": "openai/whisper-large-v3-turbo",
+  "model_dir": "models/artifacts/_pretrained/whisper-large-v3-turbo",
+  "language": {
+    "code": "hi",
+    "whisper_name": "hindi"
+  },
+  "benchmark": {
+    "dataset": "google/fleurs",
+    "license": "CC-BY-4.0",
+    "config": "hi_in",
+    "split": "test",
+    "utterances_decoded": 418,
+    "utterances_skipped_empty_reference": 0,
+    "audio_seconds": 4832.2
+  },
+  "normalisation": [
+    "Unicode NFC",
+    "lowercase",
+    "strip punctuation including Devanagari danda U+0964 and double danda U+0965",
+    "collapse whitespace"
+  ],
+  "metrics": {
+    "wer": 0.3153868500048417,
+    "cer": 0.12181931367208777,
+    "substitutions": 2685,
+    "deletions": 214,
+    "insertions": 358,
+    "hits": 7428
+  },
+  "sanity": {
+    "hypothesis_expected_script_ratio": 0.9847,
+    "reference_expected_script_ratio": 0.9973,
+    "empty_hypotheses": 0,
+    "note": "Script ratio separates 'wrong language' from 'poor accuracy'. A low ratio means the model transcribed into another script, which WER alone would not reveal."
+  },
+  "performance": {
+    "decode_seconds": 3630.5,
+    "real_time_factor": 0.7513,
+    "dtype": "torch.float16"
+  },
+  "environment": {
+    "python": "3.11.9",
+    "torch": "2.5.1+cu118",
+    "device": "GeForce GTX 1650 Ti",
+    "platform": "Windows-10-10.0.28120-SP0"
+  },
+  "timing": {
+    "started_utc": "2026-09-21T13:19:46.308635+00:00",
+    "finished_utc": "2026-09-21T14:22:31.172507+00:00"
+  },
+  "caveat": "FLEURS is clean read speech at 16 kHz with no telephony codec, channel noise or spontaneous-speech disfluency, so this WER is a best-case floor and not a call-channel accuracy figure. Greedy decoding, no external language model."
+}

@@ -18,7 +18,7 @@ Date of run: 2026-09-21 · GPU: GeForce GTX 1650 Ti (4 GB) · torch 2.5.1+cu118
 | HuggingFace authentication | **Resolved.** `hf auth whoami` succeeds |
 | GPU for training | **Resolved.** Local 4 GB GPU; no cloud credits needed for the text models |
 | Gated/registration corpora (ASVspoof, VoxCeleb) | **Not obtained.** Both require human-completed agreements |
-| Gated AI4Bharat ASR repositories | **Outstanding — needs one human action** (§6) |
+| Gated AI4Bharat ASR repositories | **Resolved.** Terms already accepted; full snapshot downloads and the model runs (`BLOCKERS.md` R7) |
 
 ---
 
@@ -206,20 +206,36 @@ A blocked split is never reported as passed.
 
 ## 6. What remains blocked
 
-### O7 — Indic ASR is gated (needs one human action)
+### R7 — Indic ASR access · **RESOLVED**
 
-The token authenticates and repository metadata reads successfully, but **file
-downloads return 403** until the terms are accepted once on the model page:
+Previously recorded here as blocked. Re-verified rather than assumed: the
+repository terms had been accepted, the 1.26 GB snapshot downloads under the
+existing token, and the model loads and runs. Hindi WER is measured in §4.1.
 
-<https://huggingface.co/ai4bharat/indicwav2vec-hindi> → "Agree and access repository"
+### O8 — Tamil
 
-Approval is automatic. Until then there is **no real ASR model**, and no WER
-can be reported for any language.
+Tamil is a priority language in `CLAUDE.md` and the **text** corpus contains
+none, so Tamil intent and behaviour classification remain unsupported. Tamil
+**ASR** is addressed separately in §7.
 
-### O8 — no Tamil data
+### O9 / O10 — label coverage and label independence
 
-Tamil is a priority language in `CLAUDE.md` and the corpus contains none.
-Tamil is **not supported** and must not be described as supported.
+Measured by `scripts/training/audit_label_coverage.py`
+(`models/evaluation/label_coverage_audit.json`):
+
+- `OTP_REQUEST` has **8 test records**, below the 30-record floor. It is
+  **unmeasurable**, not merely weak; its 0.632 F1 must not be quoted.
+- `intent != NORMAL_CONVERSATION` reproduces `is_scam` for **100.0000%** of
+  85,602 records, so the intent head is a scam detector with sub-classes and
+  its macro-F1 partly measures that easier task.
+- **0** benign records carry any social-engineering behaviour, so the
+  behaviour head has never seen legitimate urgency and false positives on
+  legitimate urgent calls are expected.
+- Risk fusion combines these two as independent evidence, which the data does
+  not support. Fusion weights stay provisional (O6).
+
+Remediation plan, with a verified Apache-2.0 candidate corpus:
+`DATA_SPEC.md` §8.2.
 
 ### Coverage gaps that bound every claim
 
@@ -238,7 +254,75 @@ kind exists.
 
 ---
 
-## 7. Reproducibility
+## 7. ASR candidate comparison (measured)
+
+All three candidates decoded the **same** `google/fleurs` test splits
+(CC-BY-4.0) through the **same** normaliser (`models/training/asr_text.py`), so
+the numbers are directly comparable. Generated from the report JSONs by
+`scripts/training/compare_asr.py`; a candidate with no run for a language
+renders as "not measured" rather than being dropped.
+
+| Model | Languages | License | WER hi | WER ta | CER hi | CER ta | RTF | Runtime | VRAM / RAM | Streaming | Access |
+|---|---|---|---:|---:|---:|---:|---:|---|---|---|---|
+| IndicWav2Vec Hindi | Hindi only | Apache-2.0 | 0.1872 | not measured | 0.0699 | not measured | 0.0038 | PyTorch CUDA (fp32) | - / - | YES - 132x headroom | gated, terms accepted |
+| Whisper large-v3-turbo | 100 incl. hi + ta | MIT | 0.3154 | 0.6752 | 0.1218 | 0.1952 | 0.7513 | PyTorch CUDA (fp16) | - / - | NO - 1.5x over budget | ungated |
+| IndicConformer-600M | IN-22 incl. hi + ta | MIT | 0.1164 | 0.2833 | 0.0460 | 0.1107 | 0.1218 | ONNX Runtime CPU only (no CUDA 12) | 0.0 GB / 2.634 GB | YES - 4x headroom | gated, terms accepted |
+
+wrote C:\Users\cvumj\Downloads\SIH26104-ALL\VIVE\models\evaluation\asr_comparison.json
+
+Streaming verdict is computed, not asserted: VIVE analyses a 2.0 s window every
+1.0 s, so the per-window ASR cost is `RTF x 2.0 s` against a 1.0 s budget.
+
+### What the measurements settle
+
+**IndicConformer-600M wins on accuracy in both languages.** Hindi WER
+0.1164 beats IndicWav2Vec's 0.1872; Tamil WER
+0.2833 is less than half Whisper's 0.6752. Script ratio is
+**1.0000** for both, so the output is genuinely in the target script.
+
+**The single-multilingual-model preference was not supported by measurement.**
+Whisper is the only candidate covering both languages out of the box, but it is
+worse at *both*: 68% higher Hindi WER than IndicWav2Vec and 2.4x the Tamil WER
+of IndicConformer, at far greater cost. Testing the preference was worthwhile;
+adopting it without testing would have regressed Hindi badly.
+
+**Architecture dominates size.** IndicWav2Vec (315M, CTC) is ~198x cheaper per
+window than Whisper (809M, autoregressive). Single-pass CTC versus
+autoregressive decoding matters far more here than parameter count.
+
+### Latency detail
+
+IndicConformer runs **CPU-only** on this machine: onnxruntime exposes only
+`CPUExecutionProvider`, because `onnxruntime-gpu` requires
+CUDA 12 and the installed driver (461.72) caps at CUDA 11.2. No driver or CUDA
+change was made.
+
+Even so it fits the cadence: RTF **0.1218**, i.e.
+**0.2437 s per 2 s window** against the
+1.0 s budget, with peak VRAM 0.0 GB and RSS
+2.634 GB. The encoder is 90.6%
+of that cost.
+
+Moving the TorchScript preprocessor to GPU made it **slower**, not faster -
+RTF 0.315 versus 0.1218 - because the host-to-device transfer costs more than
+the small preprocessing saves. CPU-only is the better configuration here, which
+is the opposite of the intuitive assumption.
+
+### Caveats that bound all of the above
+
+- FLEURS is clean read speech. Every WER here is a **floor**, not call-channel
+  accuracy, and telephony codec loss and noise will degrade all three.
+- Greedy decoding throughout, no external language model.
+- IndicConformer's RTF would change in a CUDA 12 environment; the CPU figure is
+  an environment property, not a model property.
+- Tamil **text** classification remains unsupported regardless: the intent and
+  behaviour corpus has no Tamil (`BLOCKERS.md` O8). Working Tamil ASR does not
+  resolve that.
+- No selection has been made and no application code was changed.
+
+---
+
+## 8. Reproducibility
 
 Every run records base model, label set, seed (`20260921`), hyperparameters,
 dataset sizes, python/torch versions, device, platform, timestamps, wall-clock

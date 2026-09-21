@@ -25,42 +25,23 @@ import io
 import json
 import os
 import platform
-import re
 import sys
 import time
-import unicodedata
 from datetime import datetime, timezone
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 EVAL_DIR = os.path.join(ROOT, "models", "evaluation")
 
+sys.path.insert(0, os.path.join(ROOT, "models", "training"))
+
+# One shared normaliser for every ASR evaluation: Hindi and Tamil are only
+# comparable because both pass through the exact same function.
+from asr_text import NORMALISATION_STEPS, normalise  # noqa: E402
+
 DATASET = "google/fleurs"
 DATASET_LICENSE = "CC-BY-4.0"
 CONFIG = "hi_in"
 SPLIT = "test"
-
-# Punctuation stripped from BOTH sides. Includes the Devanagari danda and
-# double danda, which the CTC vocabulary does not contain at all - leaving them
-# in the reference would charge the model for tokens it cannot emit.
-PUNCT = re.compile(r"[।॥,.!?;:\"'`()\[\]{}<>\-–—_/\|@#$%^&*+=~]")
-WS = re.compile(r"\s+")
-
-
-def normalise(text: str) -> str:
-    """Applied identically to reference and hypothesis. Reported verbatim."""
-    text = unicodedata.normalize("NFC", text)
-    text = text.lower()
-    text = PUNCT.sub(" ", text)
-    return WS.sub(" ", text).strip()
-
-
-NORMALISATION_STEPS = [
-    "Unicode NFC",
-    "lowercase",
-    "strip punctuation including Devanagari danda U+0964 and double danda U+0965",
-    "collapse whitespace",
-]
-
 
 def main() -> int:
     parser = argparse.ArgumentParser()

@@ -132,17 +132,32 @@ diverge from the design references.
 - **Required external action:** choose an engine before Phase 10, so retention
   (`SECURITY_SPEC.md` §4) can actually be enforced.
 
-### O5 — Dataset licenses unverified · `OPEN`
+### O5 — Audio corpora for anti-spoofing and speaker evaluation not acquired · `OPEN`
 
-- **Blocker:** no candidate dataset in `DATA_SPEC.md` §4 has a verified license.
-- **Cause:** the architecture phase explicitly excludes downloads and training,
-  so no corpus has been fetched or inspected.
-- **Attempted fixes:** manifest schema requires `license` and `provenance` on
-  every record, so an unlicensed clip cannot enter a split unnoticed.
-- **Current status:** not blocking Phases 1–6, all of which are complete. It
-  **does** gate Phase 7, which cannot begin until at least one dataset has a
-  verified license.
-- **Required external action:** license review per dataset before Phase 7.
+> Restated 2026-09-21. The original wording — *no candidate dataset has a
+> verified license* — is no longer true and would misrepresent the state of the
+> project. Every dataset and model actually in use now has its license verified
+> against repository metadata: scamshield (MIT), FLEURS (CC-BY-4.0),
+> whisper-large-v3-turbo (MIT), indicwav2vec-hindi (Apache-2.0), ECAPA-TDNN
+> (Apache-2.0), mDistilBERT (Apache-2.0). What remains is narrower.
+
+- **Blocker:** no anti-spoofing or speaker-verification corpus has been
+  acquired, so AASIST and ECAPA-TDNN cannot be independently evaluated.
+- **Cause:** ASVspoof requires a registration/agreement and VoxCeleb a request
+  form; neither can be completed programmatically. `facebook/mms-1b-all` was
+  also rejected during the Tamil survey for a different licensing reason —
+  CC-BY-NC-4.0 forbids commercial use.
+- **Attempted fixes:** the manifest schema requires `license` and `provenance`
+  on every record, so an unlicensed clip cannot enter a split unnoticed;
+  `scripts/training/survey_tamil_asr.py` reads license and gating from
+  repository metadata and probes real file access rather than trusting a model
+  card.
+- **Current status:** AASIST and ECAPA are used as **pretrained checkpoints
+  with no measured EER or verification metric**, and none may be quoted. The
+  `generator_disjoint` and `speaker_disjoint` evaluation splits stay blocked.
+- **Required external action:** complete the ASVspoof and VoxCeleb access
+  requests, or accept that anti-spoofing and speaker performance are
+  unquantified and say so wherever they are presented.
 
 ### O6 — Fusion weights unvalidated · `OPEN`
 
@@ -167,9 +182,13 @@ diverge from the design references.
   corpus has been identified.
 - **Attempted fixes:** searched HuggingFace for scam, phishing and fraud text
   datasets; every ungated candidate is English-dominant.
-- **Current status:** the trained classifiers cover English, Hindi and
-  Hinglish. Tamil is **not supported** and must not be described as supported.
-  The Tamil evaluation split defined in `ML_SPEC` cannot be populated.
+- **Current status (narrowed 2026-09-21):** Tamil **ASR** is now solved -
+  IndicConformer-600M measures Tamil WER 0.2833 / CER 0.1107 on FLEURS `ta_in`
+  with a 1.0000 Tamil-script ratio (`PHASE7_REPORT.md` §7). What remains is
+  the **text** half: the intent and behaviour classifiers are trained on a
+  corpus with no Tamil, so Tamil intent/behaviour classification is still
+  **not supported** and the Tamil text evaluation split cannot be populated.
+  Transcribing Tamil is not the same as understanding it.
 - **Required external action:** source or commission a Tamil corpus, or accept
   that Tamil intent/behaviour classification is out of scope for now.
 
@@ -197,6 +216,42 @@ diverge from the design references.
 - **Required external action:** acquire or commission a call-transcript corpus
   covering the missing labels, or scope the product to the labels that have
   data. Until then these labels must not be described as supported.
+- **Audit (2026-09-21):** `scripts/training/audit_label_coverage.py` measured
+  per-label support per split. `OTP_REQUEST` has **8 test records**, below the
+  30-record floor, so it is **unmeasurable** rather than merely weak — its
+  0.632 F1 must not be quoted as a capability. A concrete remediation plan,
+  with a verified candidate corpus, is in `DATA_SPEC.md` §8.2.
+
+### O10 — Intent and behaviour labels are collinear with `is_scam` · `OPEN`
+
+- **Blocker:** the two heads that risk fusion treats as independent evidence
+  are, in the training data, both proxies for one underlying flag.
+- **Measured:** `intent != NORMAL_CONVERSATION` reproduces `is_scam` for
+  **85,602 / 85,602 records (100.0000%)**. A non-`NORMAL` behaviour reproduces
+  it for 85.98%. **0** of 85,602 benign records carry any behaviour flag.
+- **Cause:** the corpus is built around a binary scam/not-scam split, and both
+  label sets were derived from that same partition rather than annotated
+  independently.
+- **Consequences, both real:**
+  1. `app/risk/fusion.py` uses a noisy-OR, which assumes conditional
+     independence. Two signals that are really one, combined as if
+     independent, inflate both the fused score and its confidence.
+  2. The behaviour head has never seen legitimate urgency or authority — a
+     real delivery notice, a genuine bank fraud alert. It cannot have learned
+     that urgency alone is not fraud, so false positives on legitimate urgent
+     calls are expected. This contradicts `PROJECT_SPEC.md` §2, which requires
+     risk to follow evidence rather than a proxy.
+- **Attempted fixes:** none applicable within Phase 7 — this is a property of
+  the corpus, not of the training code. Re-weighting or thresholding would
+  hide it rather than fix it.
+- **Current status:** measured and documented. The intent macro-F1 of 0.9219
+  partly reflects the easier scam/not-scam boundary and **must not be
+  presented as intent-discrimination accuracy**. Fusion weights remain
+  provisional (O6).
+- **Required external action:** add benign records that carry
+  social-engineering behaviours, so behaviour and scam can vary independently.
+  `DATA_SPEC.md` §8.2 identifies a verified Apache-2.0 conversational corpus
+  for this. Re-calibrate fusion afterwards.
 
 ---
 

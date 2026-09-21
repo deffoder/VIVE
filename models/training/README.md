@@ -135,7 +135,74 @@ referencing a symbol outside a tensor-rebuild allowlist. Then measure WER:
 python scripts/training/eval_asr_hindi.py --model-dir models/artifacts/_pretrained/indicwav2vec-hindi --limit 0
 ```
 
+### Tamil and the multilingual path
+
+Survey the candidates before downloading anything. Licence, gating and
+reachability come from repository metadata and a real download probe, never
+from a model card's prose:
+
+```bash
+python scripts/training/survey_tamil_asr.py
+```
+
+Recorded in `models/evaluation/tamil_asr_survey.json`. Two results matter:
+`ai4bharat/indicwav2vec_v1_tamil` publishes **no weight files**, and
+`facebook/mms-1b-all` is **CC-BY-NC-4.0**, which forbids commercial use.
+
+Whisper is the multilingual path — one architecture for both priority
+languages, MIT, ungated, safetensors:
+
+```bash
+python scripts/training/eval_asr_whisper.py --lang ta --model-dir models/artifacts/_pretrained/whisper-large-v3-turbo --limit 0
+```
+
+`--lang hi` runs the same model on Hindi, which is how Whisper and
+indicwav2vec are compared rather than ranked by assumption.
+
+### Why the normaliser is shared
+
+`models/training/asr_text.py` holds the one normalisation used by every ASR
+evaluation. WER is extremely sensitive to normalisation, so two scripts that
+normalise differently produce numbers that cannot be compared. Do not inline a
+variant. The Hindi figure was re-measured after this was factored out and came
+back bit-identical, which is the standard any change here must meet.
+
+The Whisper evaluation also reports a **script ratio**: the share of letters in
+the expected script. Whisper can transcribe into the wrong language, which
+inflates WER in a way that looks like poor accuracy. A low script ratio means
+*wrong language*, not *bad model*, and the two need different fixes.
+
 ---
+
+## 4.1 Audits
+
+Run these before trusting any documented number.
+
+```bash
+python scripts/training/audit_label_coverage.py
+```
+
+Measures per-label support per split and, more importantly, whether intent and
+behaviour actually carry independent evidence. They do not in this corpus:
+`intent != NORMAL_CONVERSATION` reproduces `is_scam` for 100% of records and no
+benign record carries a behaviour flag (`BLOCKERS.md` O10). Risk fusion assumes
+independence, so this bounds what the fused score and its confidence mean.
+Writes `models/evaluation/label_coverage_audit.json`.
+
+```bash
+python scripts/training/check_docs_consistency.py
+```
+
+Compares the figures in the specs against the JSON artifacts, checks that every
+cited blocker id exists, and fails if a resolved blocker is still described as
+blocking. Exit code 1 on any inconsistency, so it can gate a commit. It caught
+a stale "accept the terms" instruction that had already been resolved.
+
+```bash
+python scripts/training/survey_tamil_asr.py
+```
+
+Licence, gating and real file reachability for ASR candidates.
 
 ## 5. Reproducibility
 

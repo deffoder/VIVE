@@ -1,0 +1,246 @@
+{
+  "audited_at": "2026-09-21",
+  "blocker": "O9",
+  "corpus": {
+    "dataset_id": "scamshield",
+    "records": 85602,
+    "splits": {
+      "train": 68412,
+      "val": 8546,
+      "test": 8644
+    }
+  },
+  "min_measurable_support": 30,
+  "intent_coverage": [
+    {
+      "label": "NORMAL_CONVERSATION",
+      "train": 43675,
+      "val": 5435,
+      "test": 5479,
+      "total": 54589,
+      "share_pct": 63.7707,
+      "status": "OK"
+    },
+    {
+      "label": "OTP_REQUEST",
+      "train": 80,
+      "val": 15,
+      "test": 8,
+      "total": 103,
+      "share_pct": 0.1203,
+      "status": "UNMEASURABLE"
+    },
+    {
+      "label": "PASSWORD_REQUEST",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "share_pct": 0.0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "CARD_DETAILS_REQUEST",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "share_pct": 0.0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "BANKING_CREDENTIAL_REQUEST",
+      "train": 1163,
+      "val": 151,
+      "test": 160,
+      "total": 1474,
+      "share_pct": 1.7219,
+      "status": "OK"
+    },
+    {
+      "label": "MONEY_TRANSFER_REQUEST",
+      "train": 1287,
+      "val": 167,
+      "test": 151,
+      "total": 1605,
+      "share_pct": 1.875,
+      "status": "OK"
+    },
+    {
+      "label": "ACCOUNT_CHANGE_REQUEST",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "share_pct": 0.0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "REMOTE_ACCESS_REQUEST",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "share_pct": 0.0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "URGENT_ACTION",
+      "train": 854,
+      "val": 121,
+      "test": 97,
+      "total": 1072,
+      "share_pct": 1.2523,
+      "status": "OK"
+    },
+    {
+      "label": "THREAT_OR_INTIMIDATION",
+      "train": 623,
+      "val": 70,
+      "test": 89,
+      "total": 782,
+      "share_pct": 0.9135,
+      "status": "OK"
+    },
+    {
+      "label": "CONFIDENTIAL_INFORMATION",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "share_pct": 0.0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "UNKNOWN",
+      "train": 20730,
+      "val": 2587,
+      "test": 2660,
+      "total": 25977,
+      "share_pct": 30.3463,
+      "status": "OK"
+    }
+  ],
+  "behavior_coverage": [
+    {
+      "label": "AUTHORITY_IMPERSONATION",
+      "train": 2651,
+      "val": 315,
+      "test": 347,
+      "total": 3313,
+      "status": "OK"
+    },
+    {
+      "label": "URGENCY",
+      "train": 5206,
+      "val": 681,
+      "test": 665,
+      "total": 6552,
+      "status": "OK"
+    },
+    {
+      "label": "THREAT",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "FEAR",
+      "train": 2618,
+      "val": 330,
+      "test": 324,
+      "total": 3272,
+      "status": "OK"
+    },
+    {
+      "label": "SECRECY",
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0,
+      "status": "NO_DATA"
+    },
+    {
+      "label": "PRESSURE",
+      "train": 4002,
+      "val": 490,
+      "test": 507,
+      "total": 4999,
+      "status": "OK"
+    },
+    {
+      "label": "REWARD_PROMISE",
+      "train": 7958,
+      "val": 1014,
+      "test": 976,
+      "total": 9948,
+      "status": "OK"
+    },
+    {
+      "label": "NORMAL",
+      "train": 53197,
+      "val": 6654,
+      "test": 6738,
+      "total": 66589,
+      "status": "OK"
+    }
+  ],
+  "summary": {
+    "intent_labels_total": 12,
+    "intent_no_data": 5,
+    "intent_unmeasurable": 1,
+    "behavior_labels_total": 8,
+    "behavior_no_data": 2,
+    "behavior_unmeasurable": 0
+  },
+  "independence": {
+    "intent_predicts_is_scam_pct": 100.0,
+    "behavior_predicts_is_scam_pct": 85.9816,
+    "benign_records_with_a_behaviour": 0,
+    "scam_records_without_a_behaviour": 12000,
+    "note": "Risk fusion combines intent and behaviour as independent evidence. These figures show how far that holds in the training data."
+  },
+  "unknown_bucket": {
+    "total": 25977,
+    "by_is_scam": {
+      "1": 25977
+    },
+    "public_label_sources": [
+      {
+        "public_label": "General Spam / Telemarketing",
+        "count": 24248
+      },
+      {
+        "public_label": "Lottery / Prize",
+        "count": 896
+      },
+      {
+        "public_label": "Loan Scam",
+        "count": 462
+      },
+      {
+        "public_label": "Telegram Job",
+        "count": 371
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "INTENT_COLLINEAR_WITH_IS_SCAM",
+      "severity": "HIGH",
+      "detail": "'intent != NORMAL_CONVERSATION' reproduces is_scam for 85,602/85,602 records (100%). The intent head is therefore a scam detector with sub-classes, not an independent intent model, and its macro-F1 partly measures that easier task."
+    },
+    {
+      "id": "NO_BENIGN_BEHAVIOUR_EXAMPLES",
+      "severity": "HIGH",
+      "detail": "No legitimate record carries any social-engineering behaviour. Real legitimate calls do use urgency and authority - a delivery notice, a genuine bank fraud alert. The behaviour head has never seen a benign instance of any behaviour, so it cannot learn that urgency alone is not fraud, and will likely fire on legitimate urgent calls."
+    },
+    {
+      "id": "UNKNOWN_MEANS_UNMAPPED_SCAM",
+      "severity": "MEDIUM",
+      "detail": "All 25,977 UNKNOWN records are scams. In the VIVE taxonomy UNKNOWN means 'intent could not be determined', which includes benign speech; here it means 'scam genre outside the taxonomy'. A production UNKNOWN prediction therefore does not mean what the taxonomy says it means."
+    }
+  ]
+}
