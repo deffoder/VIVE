@@ -20,10 +20,13 @@
       "utt_hi": 418,
       "utt_ta": null,
       "rtf": 0.0038,
-      "window_cost_sec": 0.0076,
+      "window_cost_sec": 0.0627,
+      "window_cost_source": "measured on a 2s window",
+      "execution": "PyTorch CUDA fp32",
+      "pads_input_to_fixed_length": false,
       "meets_cadence": true,
-      "vram_gb": null,
-      "ram_gb": null
+      "vram_gb": 1.31,
+      "ram_gb": 2.841
     },
     {
       "name": "Whisper large-v3-turbo",
@@ -41,10 +44,13 @@
       "utt_hi": 418,
       "utt_ta": 591,
       "rtf": 0.7513,
-      "window_cost_sec": 1.5026,
+      "window_cost_sec": 5.5478,
+      "window_cost_source": "measured on a 2s window",
+      "execution": "PyTorch CUDA fp16",
+      "pads_input_to_fixed_length": true,
       "meets_cadence": false,
-      "vram_gb": null,
-      "ram_gb": null
+      "vram_gb": 1.717,
+      "ram_gb": 2.99
     },
     {
       "name": "IndicConformer-600M",
@@ -62,10 +68,20 @@
       "utt_hi": 418,
       "utt_ta": 591,
       "rtf": 0.1218,
-      "window_cost_sec": 0.2436,
+      "window_cost_sec": 0.2549,
+      "window_cost_source": "measured on a 2s window",
+      "execution": "ONNX Runtime CPU only",
+      "pads_input_to_fixed_length": false,
       "meets_cadence": true,
       "vram_gb": 0.0,
-      "ram_gb": 2.634
+      "ram_gb": 2.755
+    }
+  ],
+  "superseded_measurements": [
+    {
+      "file": "probe_bench.json",
+      "rtf": 1.3912,
+      "reason": "measured under contention; superseded by asr_conformer_bench_hi.json (RTF 0.1218)"
     }
   ],
   "caveat": "FLEURS is clean read speech. Every WER here is a floor, not a call-channel figure. RTF was measured on a GTX 1650 Ti 4 GB with driver 461.72; onnxruntime had no CUDA provider available, so the ONNX candidate ran CPU-only and its latency would change in a CUDA 12 environment."

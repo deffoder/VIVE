@@ -1,0 +1,91 @@
+{
+  "measured_at": "2026-09-21",
+  "window_sec": 2.0,
+  "cadence_budget_sec": 1.0,
+  "method": "Fixed synthetic 2 s window, 2 warmup + 10 timed runs, median reported. Measures COST not accuracy.",
+  "caveat": "Latency only. Accuracy comes from the FLEURS evaluations. The superseded preliminary probe measured 1.3912 RTF for the conformer while another job held the machine and must not be quoted.",
+  "isolation_note": "Each model was measured in its own process. A first combined run reported an implausible 0.153 GB RSS for Whisper because Windows trimmed the working set after the previous model was freed; per-process measurement removes that artifact.",
+  "environment": {
+    "python": "3.11.9",
+    "torch": "2.5.1+cu118",
+    "device": "GeForce GTX 1650 Ti",
+    "total_vram_gb": 4.29,
+    "platform": "Windows-10-10.0.28120-SP0"
+  },
+  "results": [
+    {
+      "model": "IndicWav2Vec Hindi",
+      "window_sec": 2.0,
+      "cadence_budget_sec": 1.0,
+      "latency": {
+        "runs": 10,
+        "mean_sec": 0.0637,
+        "median_sec": 0.0627,
+        "min_sec": 0.0621,
+        "max_sec": 0.0735
+      },
+      "cost_per_window_sec": 0.0627,
+      "effective_rtf_at_2s": 0.0314,
+      "meets_cadence": true,
+      "budget_utilisation_pct": 6.3,
+      "model_id": "ai4bharat/indicwav2vec-hindi",
+      "execution": "PyTorch CUDA fp32",
+      "peak_vram_gb": 1.31,
+      "rss_gb": 2.841,
+      "rss_delta_gb": 2.307,
+      "pads_input": false,
+      "measured_in_isolated_process": true
+    },
+    {
+      "model": "Whisper large-v3-turbo",
+      "window_sec": 2.0,
+      "cadence_budget_sec": 1.0,
+      "latency": {
+        "runs": 10,
+        "mean_sec": 5.5392,
+        "median_sec": 5.5478,
+        "min_sec": 5.498,
+        "max_sec": 5.5564
+      },
+      "cost_per_window_sec": 5.5478,
+      "effective_rtf_at_2s": 2.7739,
+      "meets_cadence": false,
+      "budget_utilisation_pct": 554.8,
+      "model_id": "openai/whisper-large-v3-turbo",
+      "execution": "PyTorch CUDA fp16",
+      "peak_vram_gb": 1.717,
+      "rss_gb": 2.99,
+      "rss_delta_gb": 2.455,
+      "pads_input": true,
+      "mel_frames_for_2s_input": 3000,
+      "padding_note": "Whisper pads every input to a fixed 30 s window, so a 2 s VIVE window costs what a 30 s clip costs. This is why its per-window cost is far worse than its utterance-level RTF suggests.",
+      "measured_in_isolated_process": true
+    },
+    {
+      "model": "IndicConformer-600M CTC",
+      "window_sec": 2.0,
+      "cadence_budget_sec": 1.0,
+      "latency": {
+        "runs": 10,
+        "mean_sec": 0.2644,
+        "median_sec": 0.2549,
+        "min_sec": 0.2348,
+        "max_sec": 0.3207
+      },
+      "cost_per_window_sec": 0.2549,
+      "effective_rtf_at_2s": 0.1275,
+      "meets_cadence": true,
+      "budget_utilisation_pct": 25.5,
+      "model_id": "ai4bharat/indic-conformer-600m-multilingual",
+      "execution": "ONNX Runtime CPU only",
+      "providers_active": [
+        "CPUExecutionProvider"
+      ],
+      "peak_vram_gb": 0.0,
+      "rss_gb": 2.755,
+      "rss_delta_gb": 2.423,
+      "pads_input": false,
+      "measured_in_isolated_process": true
+    }
+  ]
+}

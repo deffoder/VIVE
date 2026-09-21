@@ -257,68 +257,67 @@ kind exists.
 ## 7. ASR candidate comparison (measured)
 
 All three candidates decoded the **same** `google/fleurs` test splits
-(CC-BY-4.0) through the **same** normaliser (`models/training/asr_text.py`), so
-the numbers are directly comparable. Generated from the report JSONs by
-`scripts/training/compare_asr.py`; a candidate with no run for a language
-renders as "not measured" rather than being dropped.
+(CC-BY-4.0) through the **same** normaliser, and were separately benchmarked on
+a fixed synthetic 2 s window in an isolated process. Generated from the report
+JSONs by `scripts/training/compare_asr.py`; a candidate with no run for a
+language renders as "not measured" rather than being dropped.
 
-| Model | Languages | License | WER hi | WER ta | CER hi | CER ta | RTF | Runtime | VRAM / RAM | Streaming | Access |
-|---|---|---|---:|---:|---:|---:|---:|---|---|---|---|
-| IndicWav2Vec Hindi | Hindi only | Apache-2.0 | 0.1872 | not measured | 0.0699 | not measured | 0.0038 | PyTorch CUDA (fp32) | - / - | YES - 132x headroom | gated, terms accepted |
-| Whisper large-v3-turbo | 100 incl. hi + ta | MIT | 0.3154 | 0.6752 | 0.1218 | 0.1952 | 0.7513 | PyTorch CUDA (fp16) | - / - | NO - 1.5x over budget | ungated |
-| IndicConformer-600M | IN-22 incl. hi + ta | MIT | 0.1164 | 0.2833 | 0.0460 | 0.1107 | 0.1218 | ONNX Runtime CPU only (no CUDA 12) | 0.0 GB / 2.634 GB | YES - 4x headroom | gated, terms accepted |
+| Model | Languages | License | WER hi | CER hi | WER ta | CER ta | RTF (utterance) | Cost / 2s window | Execution | VRAM | RAM | Streaming | Access |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|
+| IndicWav2Vec Hindi | Hindi only | Apache-2.0 | 0.1872 | 0.0699 | not measured | not measured | 0.0038 | **0.0627 s** | PyTorch CUDA fp32 | 1.31 GB | 2.841 GB | YES - 16x headroom | gated, terms accepted |
+| Whisper large-v3-turbo | 100 incl. hi + ta | MIT | 0.3154 | 0.1218 | 0.6752 | 0.1952 | 0.7513 | **5.5478 s** | PyTorch CUDA fp16 | 1.717 GB | 2.99 GB | NO - 5.5x over budget | ungated |
+| IndicConformer-600M | IN-22 incl. hi + ta | MIT | 0.1164 | 0.0460 | 0.2833 | 0.1107 | 0.1218 | **0.2549 s** | ONNX Runtime CPU only | 0.0 GB | 2.755 GB | YES - 4x headroom | gated, terms accepted |
 
 wrote C:\Users\cvumj\Downloads\SIH26104-ALL\VIVE\models\evaluation\asr_comparison.json
 
-Streaming verdict is computed, not asserted: VIVE analyses a 2.0 s window every
-1.0 s, so the per-window ASR cost is `RTF x 2.0 s` against a 1.0 s budget.
+### Per-window cost is measured, not extrapolated
+
+`RTF x 2.0` understates the autoregressive model badly. Whisper pads every
+input to a fixed 30 s window - a 2 s input yields
+3000 mel frames - so its
+measured cost is **5.5478 s**
+against 1.503 s extrapolated, **3.7x** worse. The CTC candidates scale with
+input length and their two figures agree.
+
+### Superseded measurement
+
+A preliminary conformer probe reported RTF **1.3912** under contention with a
+running evaluation. It is **superseded** by the completed benchmark
+(**0.1218**, ~11x faster) and recorded in `asr_comparison.json` under
+`superseded_measurements`. It must not be quoted.
 
 ### What the measurements settle
 
-**IndicConformer-600M wins on accuracy in both languages.** Hindi WER
-0.1164 beats IndicWav2Vec's 0.1872; Tamil WER
-0.2833 is less than half Whisper's 0.6752. Script ratio is
-**1.0000** for both, so the output is genuinely in the target script.
+**IndicConformer-600M leads on accuracy in both languages.** Hindi WER 0.1164
+beats IndicWav2Vec's 0.1872; Tamil WER 0.2833 is less than half Whisper's
+0.6752. Script ratio is **1.0000** for both, so output is genuinely in the
+target script.
 
-**The single-multilingual-model preference was not supported by measurement.**
-Whisper is the only candidate covering both languages out of the box, but it is
-worse at *both*: 68% higher Hindi WER than IndicWav2Vec and 2.4x the Tamil WER
-of IndicConformer, at far greater cost. Testing the preference was worthwhile;
-adopting it without testing would have regressed Hindi badly.
+**The single-multilingual-model preference was not supported.** Whisper is the
+only candidate covering both languages natively, but is worse at both and 5.5x
+over the per-window budget.
 
-**Architecture dominates size.** IndicWav2Vec (315M, CTC) is ~198x cheaper per
-window than Whisper (809M, autoregressive). Single-pass CTC versus
-autoregressive decoding matters far more here than parameter count.
+**Architecture dominates size.** IndicWav2Vec (315M, CTC) costs 0.063 s per
+window; Whisper (809M, autoregressive) costs 5.548 s - ~88x more for a larger
+error rate.
 
-### Latency detail
+**Memory.** The conformer runs CPU-only with effectively **0 GB VRAM**, leaving
+the GPU free for the rest of the pipeline. Measured in isolated processes: a
+first combined run reported an implausible 0.153 GB RSS for Whisper because
+Windows trimmed the working set after the previous model was freed.
 
-IndicConformer runs **CPU-only** on this machine: onnxruntime exposes only
-`CPUExecutionProvider`, because `onnxruntime-gpu` requires
-CUDA 12 and the installed driver (461.72) caps at CUDA 11.2. No driver or CUDA
-change was made.
+### Caveats
 
-Even so it fits the cadence: RTF **0.1218**, i.e.
-**0.2437 s per 2 s window** against the
-1.0 s budget, with peak VRAM 0.0 GB and RSS
-2.634 GB. The encoder is 90.6%
-of that cost.
-
-Moving the TorchScript preprocessor to GPU made it **slower**, not faster -
-RTF 0.315 versus 0.1218 - because the host-to-device transfer costs more than
-the small preprocessing saves. CPU-only is the better configuration here, which
-is the opposite of the intuitive assumption.
-
-### Caveats that bound all of the above
-
-- FLEURS is clean read speech. Every WER here is a **floor**, not call-channel
-  accuracy, and telephony codec loss and noise will degrade all three.
-- Greedy decoding throughout, no external language model.
-- IndicConformer's RTF would change in a CUDA 12 environment; the CPU figure is
-  an environment property, not a model property.
-- Tamil **text** classification remains unsupported regardless: the intent and
-  behaviour corpus has no Tamil (`BLOCKERS.md` O8). Working Tamil ASR does not
-  resolve that.
-- No selection has been made and no application code was changed.
+- FLEURS is clean read speech: every WER is a **floor**, not call-channel
+  accuracy. Greedy decoding, no language model.
+- The conformer's CPU-only execution is an environment property
+  (`onnxruntime-gpu` needs CUDA 12; driver 461.72 caps at 11.2), not a model
+  property. No driver or CUDA change was made.
+- Moving the TorchScript preprocessor to GPU made it **slower** (RTF 0.315 vs
+  0.1218): host-to-device transfer costs more than the preprocessing saves.
+- Tamil **text** classification remains unsupported regardless
+  (`BLOCKERS.md` O8). Working Tamil ASR resolves only transcription.
+- **No model was selected and no application code was changed.**
 
 ---
 

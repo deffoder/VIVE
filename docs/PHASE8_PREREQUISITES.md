@@ -41,30 +41,67 @@ exactly the fabrication `CLAUDE.md` forbids.
 
 ## 2. One multilingual model, or one model per language
 
-All three candidates have now been measured on identical FLEURS splits with
-one shared normaliser (`PHASE7_REPORT.md` §7):
+All three candidates measured on identical `google/fleurs` test splits through
+one shared normaliser (`models/training/asr_text.py`), and separately
+benchmarked on a fixed synthetic 2 s window in an isolated process
+(`scripts/training/measure_asr_window.py`).
 
-| | IndicWav2Vec | Whisper turbo | IndicConformer |
-|---|---|---|---|
-| Hindi WER | 0.1872 | 0.3154 | **0.1164** |
-| Tamil WER | no model | 0.6752 | **0.2833** |
-| RTF | **0.0038** | 0.7513 | 0.1218 (CPU) |
-| Cost / 2 s window | 0.008 s | 1.503 s | 0.2437 s |
-| Meets 1.0 s cadence | yes | **no** | yes |
-| Languages | Hindi only | 100 | IN-22 |
+| Model | Languages | License | WER hi | CER hi | WER ta | CER ta | RTF (utterance) | Cost / 2s window | Execution | VRAM | RAM | Streaming | Access |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|
+| IndicWav2Vec Hindi | Hindi only | Apache-2.0 | 0.1872 | 0.0699 | not measured | not measured | 0.0038 | **0.0627 s** | PyTorch CUDA fp32 | 1.31 GB | 2.841 GB | YES - 16x headroom | gated, terms accepted |
+| Whisper large-v3-turbo | 100 incl. hi + ta | MIT | 0.3154 | 0.1218 | 0.6752 | 0.1952 | 0.7513 | **5.5478 s** | PyTorch CUDA fp16 | 1.717 GB | 2.99 GB | NO - 5.5x over budget | ungated |
+| IndicConformer-600M | IN-22 incl. hi + ta | MIT | 0.1164 | 0.0460 | 0.2833 | 0.1107 | 0.1218 | **0.2549 s** | ONNX Runtime CPU only | 0.0 GB | 2.755 GB | YES - 4x headroom | gated, terms accepted |
 
-**Whisper is eliminated on measurement**: worse at both languages it would
-unify, and over the latency budget.
+wrote C:\Users\cvumj\Downloads\SIH26104-ALL\VIVE\models\evaluation\asr_comparison.json
 
-The remaining choice is IndicConformer (best accuracy in both languages, one
-model, CPU-only here) versus IndicWav2Vec (fastest by far, Hindi only, needs a
-second Tamil model). IndicConformer's latency is an **environment** property -
-onnxruntime has no CUDA provider under driver 461.72 - so a CUDA 12 environment
-would change it.
+### Cost per window is measured, not extrapolated
 
-**Required before choosing:** confirm the numbers on the target deployment
-hardware rather than the development machine, and decide whether the CPU-only
-ONNX path is acceptable in production.
+The earlier table derived per-window cost as `RTF x 2.0` from FLEURS utterances
+averaging ~12 s. That is unsafe, and the measurement proves it: Whisper pads
+**every** input to a fixed 30 s of mel frames - a 2 s VIVE window produces
+**3000 mel frames, a 30 s equivalent**. Its real cost
+per window is **5.5478 s**, against
+**1.503 s** predicted by extrapolation: understated **3.7x**.
+
+The CTC candidates scale with input length, so their extrapolated and measured
+figures agree closely. Only the autoregressive, fixed-window model diverges -
+which is exactly the model the naive figure would have made look viable.
+
+### Superseded measurement
+
+An early conformer probe reported **RTF 1.3912** and "does not meet cadence".
+It was taken while the Whisper evaluation still held the machine and is
+**superseded**; the completed benchmark measures **RTF 0.1218**, about 11x
+faster. It is recorded in `models/evaluation/asr_comparison.json` under
+`superseded_measurements` so it cannot be mistaken for a result. **Do not quote
+1.3912 anywhere.**
+
+### What this settles, and what it does not
+
+**Whisper is eliminated on measurement.** Worse at *both* languages it would
+unify - Hindi 0.3154 vs 0.1872, Tamil 0.6752 vs 0.2833 - and **5.5x over** the
+per-window budget. Testing the single-multilingual-model preference was
+worthwhile; adopting it untested would have regressed Hindi by 68%.
+
+**Two candidates remain viable, for different reasons:**
+
+- **IndicConformer-600M** has the best accuracy in both languages and covers
+  IN-22 with one model. It fits the cadence at **25.5% of budget while running
+  CPU-only**, leaving the GPU entirely free for AASIST, ECAPA and the
+  classifiers. Its peak VRAM is effectively **0 GB**.
+- **IndicWav2Vec** is ~4x cheaper per window (**6.3% of budget**) and the
+  fastest by a wide margin, but covers **Hindi only** and would require a
+  second model plus language routing for Tamil.
+
+**Not decided here.** No selection has been made. The trade-off is one
+multilingual model with the best accuracy versus a faster Hindi-only model
+needing a Tamil partner and routing logic (item 6).
+
+**Still required before choosing:** confirm on target deployment hardware
+rather than this development machine. The conformer's CPU-only execution is an
+environment property - `onnxruntime-gpu` needs CUDA 12 and the driver here
+(461.72) caps at 11.2 - so its latency would change, though it already fits
+without a GPU.
 
 ---
 

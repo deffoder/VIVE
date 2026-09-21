@@ -28,6 +28,19 @@ EVAL = os.path.join(ROOT, "models", "evaluation")
 WINDOW_SEC = 2.0
 CADENCE_BUDGET_SEC = 1.0
 
+# Per-window cost is MEASURED on a real 2 s window, not extrapolated as
+# RTF x 2.0. The two differ sharply for Whisper, which pads every input to a
+# fixed 30 s: its utterance-level RTF predicts 1.503 s per window, but the
+# measured cost is 5.55 s. Extrapolating would have understated it 3.7x.
+WINDOW_LATENCY = "asr_window_latency.json"
+
+# The preliminary conformer probe (RTF 1.3912) was taken while another job held
+# the machine and is SUPERSEDED. It is named here so it is never mistaken for a
+# result; the table draws only on the completed benchmark.
+SUPERSEDED_PROBE = {"file": "probe_bench.json", "rtf": 1.3912,
+                    "reason": "measured under contention; superseded by "
+                              "asr_conformer_bench_hi.json (RTF 0.1218)"}
+
 # report file per (candidate, language); None where no run exists
 CANDIDATES = [
     {
@@ -88,6 +101,12 @@ def fmt(value, digits=4):
 
 
 def collect() -> list[dict]:
+    wl = load(WINDOW_LATENCY) or {}
+    window_latency = {r["model"]: r for r in wl.get("results", [])}
+    # The table keys on display name; the latency artifact uses the same names
+    # except for the conformer, which carries its decoding path.
+    window_latency["IndicConformer-600M"] = window_latency.get(
+        "IndicConformer-600M CTC", {}) or {}
     rows = []
     for cand in CANDIDATES:
         hi = load(cand["reports"].get("hi"))
@@ -111,7 +130,21 @@ def collect() -> list[dict]:
             vram = bench.get("peak_vram_gb", vram)
             ram = bench.get("process_rss_gb", ram)
 
-        window_cost = rtf * WINDOW_SEC if isinstance(rtf, (int, float)) else None
+        # Prefer the directly measured 2 s-window cost; fall back to the
+        # extrapolation only when no measurement exists, and say which it is.
+        measured = window_latency.get(cand["name"])
+        if measured:
+            window_cost = measured["cost_per_window_sec"]
+            window_source = "measured on a 2s window"
+            vram = measured.get("peak_vram_gb", vram)
+            ram = measured.get("rss_gb", ram)
+            execution = measured.get("execution", cand["runtime"])
+            pads = measured.get("pads_input")
+        else:
+            window_cost = rtf * WINDOW_SEC if isinstance(rtf, (int, float)) else None
+            window_source = "extrapolated from RTF"
+            execution = cand["runtime"]
+            pads = None
         rows.append({
             "name": cand["name"],
             "model_id": cand["model_id"],
@@ -129,6 +162,9 @@ def collect() -> list[dict]:
             "utt_ta": (ta or {}).get("benchmark", {}).get("utterances_decoded"),
             "rtf": rtf,
             "window_cost_sec": window_cost,
+            "window_cost_source": window_source,
+            "execution": execution,
+            "pads_input_to_fixed_length": pads,
             "meets_cadence": (window_cost < CADENCE_BUDGET_SEC) if window_cost else None,
             "vram_gb": vram,
             "ram_gb": ram,
@@ -148,16 +184,18 @@ def streaming_verdict(row: dict) -> str:
 
 def render_markdown(rows: list[dict]) -> str:
     out = []
-    out.append("| Model | Languages | License | WER hi | WER ta | CER hi | CER ta | RTF | Runtime | VRAM / RAM | Streaming | Access |")
-    out.append("|---|---|---|---:|---:|---:|---:|---:|---|---|---|---|")
+    out.append("| Model | Languages | License | WER hi | CER hi | WER ta | CER ta | RTF (utterance) | Cost / 2s window | Execution | VRAM | RAM | Streaming | Access |")
+    out.append("|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---|---|")
     for r in rows:
         vram = f"{r['vram_gb']} GB" if r["vram_gb"] is not None else "-"
         ram = f"{r['ram_gb']} GB" if r["ram_gb"] is not None else "-"
+        cost = (f"**{r['window_cost_sec']:.4f} s**"
+                if r["window_cost_sec"] is not None else NOT_MEASURED)
         out.append(
             f"| {r['name']} | {r['languages']} | {r['license']} | "
-            f"{fmt(r['wer_hi'])} | {fmt(r['wer_ta'])} | "
-            f"{fmt(r['cer_hi'])} | {fmt(r['cer_ta'])} | "
-            f"{fmt(r['rtf'])} | {r['runtime']} | {vram} / {ram} | "
+            f"{fmt(r['wer_hi'])} | {fmt(r['cer_hi'])} | "
+            f"{fmt(r['wer_ta'])} | {fmt(r['cer_ta'])} | "
+            f"{fmt(r['rtf'])} | {cost} | {r['execution']} | {vram} | {ram} | "
             f"{streaming_verdict(r)} | {r['access']} |"
         )
     return "\n".join(out)
@@ -193,6 +231,7 @@ def main() -> int:
         "cadence_budget_sec": CADENCE_BUDGET_SEC,
         "benchmark": "google/fleurs test split (CC-BY-4.0), shared normaliser",
         "candidates": rows,
+        "superseded_measurements": [SUPERSEDED_PROBE],
         "caveat": (
             "FLEURS is clean read speech. Every WER here is a floor, not a "
             "call-channel figure. RTF was measured on a GTX 1650 Ti 4 GB with "
