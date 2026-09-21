@@ -137,18 +137,28 @@ def test_real_mode_without_weights_keeps_real_asr_and_reports_load_error():
     assert b.states()["asr"] == (AnalyzerStatus.LOAD_ERROR, AdapterMode.REAL)
 
 
-def test_real_mode_marks_audio_analyzers_mock_and_says_so():
-    """A partially real bundle must be honest about which half is which.
-
-    After 8A/8B the ASR and the two text heads are real; VAD, anti-spoofing
-    and speaker are still mock and must report that through `mode`.
-    """
+def test_real_mode_uses_real_adapters_for_every_analyzer():
+    """After 8C every analyzer is real; none silently falls back to mock."""
     b = build_bundle(Settings(adapter_mode="real", asr_model_dir="no/such/dir"))
     infos = b.infos()
-    for key in ("asr", "intent", "behavior"):
+    for key in ("vad", "antispoof", "speaker", "asr", "intent", "behavior"):
         assert infos[key].mode is AdapterMode.REAL, key
-    for key in ("vad", "antispoof", "speaker"):
-        assert infos[key].mode is AdapterMode.MOCK, key
+
+
+def test_real_mode_without_any_weights_reports_load_error_everywhere():
+    """Misconfiguration must be loud on every component, not just ASR.
+
+    Every path is passed explicitly so the assertion holds regardless of any
+    VIVE_*_MODEL_DIR set in the environment - otherwise this test would
+    quietly pass for the wrong reason on a machine that has the weights.
+    """
+    b = build_bundle(Settings(
+        adapter_mode="real", vad_model_dir="", antispoof_model_dir="",
+        speaker_model_dir="", asr_model_dir="", intent_model_dir="",
+        behavior_model_dir=""))
+    for key, info in b.infos().items():
+        assert info.status is AnalyzerStatus.LOAD_ERROR, key
+        assert info.mode is AdapterMode.REAL, key
 
 
 def test_every_adapter_implements_describe():

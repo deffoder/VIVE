@@ -75,6 +75,15 @@ class Settings(BaseSettings):
     served the graph, not the one requested.
     """
 
+    vad_model_dir: str = ""
+    """Directory containing `silero_vad.jit`."""
+
+    antispoof_model_dir: str = ""
+    """Directory containing `AASIST.pth`."""
+
+    speaker_model_dir: str = ""
+    """SpeechBrain ECAPA-TDNN directory (`hyperparams.yaml` + checkpoints)."""
+
     intent_model_dir: str = ""
     """Filesystem path to the fine-tuned intent checkpoint. Empty means not
     configured, which yields LOAD_ERROR in real mode rather than a guess."""

@@ -222,6 +222,45 @@ diverge from the design references.
   0.632 F1 must not be quoted as a capability. A concrete remediation plan,
   with a verified candidate corpus, is in `DATA_SPEC.md` §8.2.
 
+### O12 — AASIST is unreliable out of domain · `OPEN`
+
+- **Blocker:** the pretrained AASIST checkpoint produces scores on
+  out-of-domain audio that do not track reality, so its output must not be
+  treated as trustworthy synthetic-voice evidence.
+- **Observed (Phase 8C spot check, 2026-09-22):** decoding four
+  `google/fleurs` clips of **genuine human speech** plus a silence control
+  through the integrated adapter:
+
+  | Input | P(spoof) |
+  |---|---:|
+  | genuine human clip 1 | **0.8377** |
+  | genuine human clip 2 | **0.9994** |
+  | genuine human clip 3 | 0.0034 |
+  | digital silence | 0.0115 (i.e. scored as *bonafide*) |
+
+  Two of three genuine clips were flagged as likely synthetic, and digital
+  silence was scored as bonafide speech, which is meaningless.
+- **This is a spot check of 4 samples, not a measurement.** It is not an EER,
+  not a false-positive rate, and must never be quoted as one. It is recorded
+  because it is evidence of a real problem, not because it quantifies it.
+- **Cause:** AASIST was trained on ASVspoof2019 LA. FLEURS is a different
+  recording domain (different microphones, codecs, noise floor). Anti-spoofing
+  models are known to generalise poorly across domains, which is exactly what
+  `BLOCKERS.md` P2 warns about. No VIVE-side evaluation corpus was acquired
+  (O5), so this was never going to be caught by a metric.
+- **Attempted fixes:** verified the class-index convention against upstream
+  (`main.py` scores `batch_out[:, 1]`, which `evaluation.py` documents as the
+  bonafide/positive class), so the adapter's mapping is correct and the
+  behaviour is the model's, not a wiring error. Checked the checkpoint loads
+  with 0 missing and 0 unexpected keys.
+- **Current status:** integrated and reporting real inference. The existing
+  fusion safeguard `SYNTHETIC_ONLY_CEILING` limits how far a synthetic score
+  alone can drive risk, which bounds the damage but does not fix it. **No
+  synthetic-voice detection capability may be claimed.**
+- **Required external action:** acquire an anti-spoofing evaluation corpus
+  (O5) and measure EER in-domain and out-of-domain, then calibrate or replace
+  the model. This is Phase 9 work.
+
 ### O11 — No Tamil text for intent or behaviour · `OPEN`
 
 - **Blocker:** Tamil intent and behaviour classification cannot be trained.

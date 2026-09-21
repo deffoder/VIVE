@@ -222,6 +222,60 @@ on text evidence the model never produced.
 - Reported `confidence` is a decoder output, **not** a calibrated probability
   and never a fraud probability. Calibration is Phase 9.
 
+## 2.5 Phase 8C — real audio models integrated
+
+| Model | Licence | Version | Status |
+|---|---|---|---|
+| Silero VAD | MIT | `silero-vad-v5-jit` | **Real**, local TorchScript, no runtime download |
+| AASIST | MIT | `aasist-pretrained-v1` | **Real**, forward pass now possible (see below) |
+| ECAPA-TDNN | Apache-2.0 | `ecapa-tdnn-voxceleb-v1` | **Real**, 192-dim embedding |
+
+### AASIST: the Phase 7 limitation is resolved
+
+Phase 7 recorded "checkpoint loads, model class not vendored, so no forward
+pass". The published AASIST release ships **weights only**. The MIT-licensed
+model definition is now vendored under
+`backend/app/adapters/real/vendor/aasist_model.py` with its licence text, and
+the checkpoint loads into it with **0 missing and 0 unexpected keys**.
+
+### Verified on real speech (FLEURS `hi_in`)
+
+| Input | VAD | quality |
+|---|---|---|
+| 4 genuine speech clips | `has_speech=True` on all 4 | GOOD / DEGRADED |
+| digital silence | `has_speech=False` | `NO_SPEECH` |
+
+Speaker: identical audio scores similarity **1.0**, a different clip scores
+**0.2222**, and with no enrolled reference the adapter returns
+`NO_REFERENCE` with `similarity=None` rather than inventing a comparison.
+
+### AASIST does NOT behave correctly out of domain (`BLOCKERS.md` O12)
+
+The same spot check found the anti-spoofing model scoring **2 of 3 genuine
+human clips as likely synthetic** (P(spoof) 0.8377 and 0.9994), and scoring
+**digital silence as bonafide** (0.9885). The class-index convention was
+verified against upstream, so this is the model's behaviour and not a wiring
+error: AASIST was trained on ASVspoof2019 LA and FLEURS is a different
+recording domain.
+
+Four samples is a **spot check, not a measurement**. It is not an EER and not
+a false-positive rate, and must never be quoted as either. VIVE has measured
+**no EER of its own** because no anti-spoofing corpus was acquired (O5).
+
+**No synthetic-voice detection capability may be claimed.** The existing
+`SYNTHETIC_ONLY_CEILING` in fusion limits how far a synthetic score alone can
+drive risk, which bounds the impact; calibrating or replacing the model is
+Phase 9 work.
+
+### What the audio models are not
+
+- VAD decides speech vs silence and drives quality. `NO_SPEECH` and `POOR`
+  suppress downstream analyzers and lower confidence; they never raise risk.
+- An AASIST score is evidence of **synthesis**, not a probability of fraud.
+  Synthetic speech is not fraud and human speech is not safety (P3).
+- `NO_REFERENCE` is **not** a speaker mismatch. There is no enrolment source
+  (O3), so speaker consistency is unavailable rather than negative.
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,

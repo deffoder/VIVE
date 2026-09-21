@@ -9,9 +9,9 @@ its mock counterpart, because output that looks identical whether or not the
 model loaded is indistinguishable from a fabricated result
 (docs/ML_SPEC.md 4).
 
-Real mode is per-component. Phase 8A/8B wire ASR, intent and behaviour; VAD,
-anti-spoofing and speaker stay mock and say so through `mode`, so a partially
-real bundle is honestly represented rather than advertised as fully real.
+Real mode is per-component, and each component reports its own `mode` and
+`status`, so a bundle where some models loaded and others did not is
+represented honestly rather than advertised as uniformly real.
 """
 
 from __future__ import annotations
@@ -19,15 +19,7 @@ from __future__ import annotations
 import logging
 
 from app.adapters.interfaces import AdapterBundle
-from app.adapters.mock import (
-    MockAntiSpoofAdapter,
-    MockAsrAdapter,
-    MockBehaviorAdapter,
-    MockIntentAdapter,
-    MockSpeakerAdapter,
-    MockVadAdapter,
-    build_mock_bundle,
-)
+from app.adapters.mock import MockAsrAdapter, build_mock_bundle
 from app.core.config import Settings
 
 logger = logging.getLogger("vive.adapters")
@@ -45,6 +37,11 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
     """Real where implemented, mock elsewhere, honest about which is which."""
     # Imported here so `mock` mode never touches the real package.
     from app.adapters.real.asr_conformer import IndicConformerAsrAdapter
+    from app.adapters.real.audio_models import (
+        AasistAntiSpoofAdapter,
+        EcapaSpeakerAdapter,
+        SileroVadAdapter,
+    )
     from app.adapters.real.text_classifiers import RealBehaviorAdapter, RealIntentAdapter
 
     asr = IndicConformerAsrAdapter(
@@ -54,8 +51,11 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
     asr.set_default_language(settings.asr_default_language)
     intent = RealIntentAdapter(settings.intent_model_dir)
     behavior = RealBehaviorAdapter(settings.behavior_model_dir)
+    vad = SileroVadAdapter(settings.vad_model_dir)
+    antispoof = AasistAntiSpoofAdapter(settings.antispoof_model_dir)
+    speaker = EcapaSpeakerAdapter(settings.speaker_model_dir)
 
-    for adapter in (asr, intent, behavior):
+    for adapter in (vad, antispoof, speaker, asr, intent, behavior):
         status = adapter.load()
         info = adapter.describe()
         if status.name == "AVAILABLE":
@@ -74,12 +74,8 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
             )
 
     return AdapterBundle(
-        vad=MockVadAdapter(),
-        antispoof=MockAntiSpoofAdapter(),
-        speaker=MockSpeakerAdapter(),
-        asr=asr,
-        intent=intent,
-        behavior=behavior,
+        vad=vad, antispoof=antispoof, speaker=speaker,
+        asr=asr, intent=intent, behavior=behavior,
     )
 
 
