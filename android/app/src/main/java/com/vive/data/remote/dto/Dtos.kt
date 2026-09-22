@@ -100,6 +100,7 @@ data class IntentDto(
     val confidence: Double? = null,
     val status: String = "AVAILABLE",
     @SerialName("model_version") val modelVersion: String? = null,
+    @SerialName("inference_ms") val inferenceMs: Long? = null,
 )
 
 @Serializable
@@ -108,6 +109,7 @@ data class BehaviorDto(
     val confidence: Double? = null,
     val status: String = "AVAILABLE",
     @SerialName("model_version") val modelVersion: String? = null,
+    @SerialName("inference_ms") val inferenceMs: Long? = null,
 )
 
 @Serializable

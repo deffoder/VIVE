@@ -108,6 +108,18 @@ def main() -> int:
     asr = IndicConformerAsrAdapter(model_dir("_pretrained", "indic-conformer-ctc"))
     loaded = {key: adapter.load() for key, adapter in adapters.items()}
     loaded["asr"] = asr.load()
+
+    # Declare what actually ran. A record that names no model cannot be
+    # reproduced, and the integrity check refuses one.
+    for name, revision, licence in (
+            ("silero-vad", "snakers4/silero-vad v5 jit", "MIT"),
+            ("aasist", "clovaai/aasist AASIST.pth", "MIT"),
+            ("ecapa-tdnn", "speechbrain/spkrec-ecapa-voxceleb", "Apache-2.0"),
+            ("indic-conformer-600m", "ai4bharat CTC path", "MIT"),
+            ("intent-classifier", "phase7 mDistilBERT fine-tune", "Apache-2.0 (base)"),
+            ("behavior-classifier", "phase7 mDistilBERT fine-tune", "Apache-2.0 (base)"),
+            ("risk-fusion", "risk-fusion-demo-1", "in-repo")):
+        exp.model(name=name, revision=revision, license=licence)
     print("adapter load status:")
     for key, status in loaded.items():
         print(f"  {key:<11}{status.value}")

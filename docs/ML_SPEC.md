@@ -403,6 +403,85 @@ EER, and still scored genuine human speech as synthetic on the earlier
 native-length spot check — that finding used full 64,600-sample windows with no
 padding at all, so this fix does not explain it away.
 
+## 2.8 Phase 9 — evaluation, calibration and robustness
+
+Full report: `docs/EVALUATION.md`. Records: `models/evaluation/phase9/`.
+This section carries only what changes how a model may be described.
+
+### AASIST: no measured discrimination
+
+The early-window study asked whether anti-spoof evidence could arrive before
+~4 s. It answered a larger question instead. Against a two-class probe — 60
+SpeechT5+HiFiGAN clips (MIT) against 60 FLEURS bonafide clips — AASIST scores
+at **chance at every window length**:
+
+| Window | EER | 90% interval | AUC |
+|---|---:|---|---:|
+| 1.0 s | 0.4500 | 0.3667–0.5500 | 0.4875 |
+| 2.0 s | 0.4500 | 0.3833–0.5500 | 0.5039 |
+| 3.0 s | 0.4167 | 0.3583–0.5000 | 0.5317 |
+| 4.0 s | 0.4333 | 0.3500–0.5000 | 0.5592 |
+| 4.0375 s (native) | **0.4333** | **0.3500–0.5000** | **0.5600** |
+
+Every interval reaches or crosses 0.50. A Silero VAD control confirms the
+synthetic half is speech (20/20 clips, GOOD quality), so this is a fact about
+the model rather than about broken audio; reversing the class-index convention
+gives AUC 0.4400, also chance.
+
+Architecturally, shorter windows need no adapter change at all: AASIST pools
+over time before its classifier, so it accepts variable-length input natively.
+No padding, tiling or resampling was used anywhere in the study — the Phase 8
+rule holds.
+
+**Consequence for this spec:** the anti-spoof channel has no measured
+capability and must not be presented as synthetic-voice evidence
+(`BLOCKERS.md` O12). Fusion weights were **not** changed on the strength of
+one synthesis family; that needs a real corpus (O5).
+
+### Risk score: measured not to be a probability
+
+Expected calibration error **0.3171** over 8,022 de-leaked held-out records.
+Records scoring 0.2–0.3 are scams 96.4% of the time. `PROJECT_SPEC.md` §2.1's
+prohibition on reading `risk.score` as a fraud probability is now an empirical
+finding. The score is a well-separating **ordinal** signal, not a likelihood.
+
+### ASR: channel is cheap, the window is not
+
+Clean Hindi WER 0.1141 / Tamil 0.2936 on 40 FLEURS utterances each. Telephony
+band-limiting costs Hindi 0.1141 → 0.1340; μ-law and narrowband are nearly
+free; additive noise is the harsher axis (Tamil 0.2936 → 0.3994 at SNR 5).
+Every degradation is **simulated** — no telephone-call WER exists for VIVE.
+
+### ECAPA: measured for the first time
+
+EER **0.0000** on clean LibriSpeech (25 speakers), **0.0150** on VIVE's 2 s
+window. The window barely moves the ranking (AUC 0.9980) but moves the
+operating point sharply: a fixed threshold of 0.5 would falsely reject
+**29.33%** of genuine 2 s windows. In production the channel still contributes
+nothing, because there is no enrolment source (O3).
+
+### A fusion defect found by failure injection
+
+Intent entered the noisy-OR unconditionally, so a head that had never run
+contributed `UNKNOWN`'s 0.10 — double a benign `NORMAL_CONVERSATION`'s 0.05. A
+model outage therefore **raised** risk (26 → 28), the score stopped
+reconciling with `contributions`, confidence did not fall, and every Tamil
+packet — always `UNSUPPORTED_LANGUAGE` by design (O11) — was scored higher than
+an identical Hindi one. Fixed: intent enters the noisy-OR only when its status
+is `AVAILABLE`. Verified after the fix, `text_heads_failed` 28 → 26 with
+confidence 0.960 → 0.900, and no failure configuration raises risk.
+
+### Per-stage cost, now complete
+
+`IntentEvidence` and `BehaviorEvidence` carried no `inference_ms`, so two of
+six analyzers were invisible in every latency breakdown. Added as an additive
+optional field (`API_SPEC.md` §4.1). Measured medians: aasist 366.0 ms, asr
+265.0 ms, ecapa 74.0 ms, intent 65.5 ms, behaviour 41.5 ms — 812 ms of an
+844 ms packet, leaving ~32 ms for fusion, temporal risk, policy and transport.
+
+AASIST is ~45% of the packet budget and is the stage with no measured
+discrimination.
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,

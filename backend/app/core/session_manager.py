@@ -245,12 +245,14 @@ class SessionManager:
                 confidence=intent.confidence,
                 status=intent.status,
                 model_version=intent.model_version,
+                inference_ms=intent.inference_ms,
             ),
             behavior=BehaviorEvidence(
                 labels=behavior.labels,
                 confidence=behavior.confidence,
                 status=behavior.status,
                 model_version=behavior.model_version,
+                inference_ms=behavior.inference_ms,
             ),
             context=ContextEvidence(
                 caller_verified=ctx.caller_verified,

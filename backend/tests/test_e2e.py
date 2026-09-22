@@ -247,3 +247,29 @@ def test_s11_tamil_risk_does_not_use_absent_text_evidence(client: TestClient) ->
         "Tamil OTP wording must not drive CRITICAL when the intent head "
         "never ran - that would be a guess presented as detection"
     )
+
+
+def test_every_analyzer_reports_its_own_inference_cost(client: TestClient) -> None:
+    """All six analyzers must be timeable from a packet.
+
+    Phase 9 measured per-stage latency and could only account for four of the
+    six: the intent and behaviour adapters recorded `inference_ms` but the
+    packet schema dropped it, so the two text heads were invisible in every
+    latency breakdown. A stage that cannot be measured cannot be optimised,
+    and a per-stage table that silently omits two stages misleads about where
+    the time goes (docs/BLOCKERS.md O13).
+    """
+    session_id = client.post("/api/v1/sessions", json={"source_type": "VOIP"}).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        ws_send(ws, "Please share the OTP that was just sent to your phone.")
+        for _ in range(6):
+            if ws.receive_json()["type"] == "risk.update":
+                break
+
+    packet = client.get(f"/api/v1/sessions/{session_id}/packets").json()[-1]
+    for analyzer in ("aasist", "ecapa", "asr", "intent", "behavior"):
+        assert "inference_ms" in packet[analyzer], (
+            f"{analyzer} carries no inference_ms, so its cost cannot be "
+            f"measured from a packet"
+        )

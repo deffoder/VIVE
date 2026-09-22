@@ -1,13 +1,13 @@
 {
   "experiment_id": "9H_ood_and_failure_injection",
   "phase": 9,
-  "run_at_utc": "2026-09-22T14:16:39+00:00",
+  "run_at_utc": "2026-09-22T13:44:10+00:00",
   "question": "When the input is not speech, or a model is unavailable, does VIVE report an explicit state and leave risk alone - or does it produce a confident number?",
   "hypothesis": "Every adapter will reach an explicit state rather than emit a value, and a model failure will lower confidence without raising risk.",
   "method": "Feed degenerate audio and unsupported-language text through the real adapters. Separately construct adapters with no weights and confirm LOAD_ERROR, no value, no mock fallback, and the effect on fused risk and confidence.",
   "seed": 20260922,
   "environment": {
-    "git_commit": "c23f0cb42795a7f36ab4df92551e59484c3d6bd6",
+    "git_commit": "303c5fa4744a1c116d5b4145b7a6a5afa3d8d5ad",
     "python": "3.11.9",
     "platform": "Windows-10-10.0.28120-SP0",
     "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
@@ -31,43 +31,7 @@
     ]
   },
   "datasets": [],
-  "models": [
-    {
-      "name": "silero-vad",
-      "revision": "snakers4/silero-vad v5 jit",
-      "license": "MIT"
-    },
-    {
-      "name": "aasist",
-      "revision": "clovaai/aasist AASIST.pth",
-      "license": "MIT"
-    },
-    {
-      "name": "ecapa-tdnn",
-      "revision": "speechbrain/spkrec-ecapa-voxceleb",
-      "license": "Apache-2.0"
-    },
-    {
-      "name": "indic-conformer-600m",
-      "revision": "ai4bharat CTC path",
-      "license": "MIT"
-    },
-    {
-      "name": "intent-classifier",
-      "revision": "phase7 mDistilBERT fine-tune",
-      "license": "Apache-2.0 (base)"
-    },
-    {
-      "name": "behavior-classifier",
-      "revision": "phase7 mDistilBERT fine-tune",
-      "license": "Apache-2.0 (base)"
-    },
-    {
-      "name": "risk-fusion",
-      "revision": "risk-fusion-demo-1",
-      "license": "in-repo"
-    }
-  ],
+  "models": [],
   "results": {
     "adapter_load_status": {
       "vad": "AVAILABLE",
@@ -408,5 +372,5 @@
     "Adapters not loaded in this environment are skipped rather than assumed to pass; the load-status table records which ran."
   ],
   "conclusion": "Degradation is reported rather than hidden, and a model outage cannot by itself escalate a call. The gap this cannot cover is a model that loads and is wrong, which is what O12 describes and what only an evaluation corpus can catch.",
-  "runtime_sec": 32.1
+  "runtime_sec": 27.1
 }

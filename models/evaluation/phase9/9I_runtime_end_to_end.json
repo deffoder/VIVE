@@ -1,0 +1,325 @@
+{
+  "experiment_id": "9I_runtime_end_to_end",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T14:01:43+00:00",
+  "question": "Does a VIVE packet fit inside the 1.0 s cadence budget at steady state, including the tail, once startup and the anti-spoof warm-up are separated out?",
+  "hypothesis": "Steady-state median will sit near the budget as Phase 8D suggested, and the p95 will exceed it, because AASIST runs on every packet once the buffer has filled.",
+  "method": "Drive the real backend over HTTP and WebSocket with genuinely overlapping 2 s windows at a 1 s stride. Bucket packets by whether the anti-spoof buffer had filled. Report median and p95 separately from startup cost.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "c23f0cb42795a7f36ab4df92551e59484c3d6bd6",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "google/fleurs hi_in + ta_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 60,
+      "note": "concatenated into continuous overlapping windows"
+    }
+  ],
+  "models": [
+    {
+      "name": "silero-vad",
+      "revision": "silero-vad-v5-jit",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 119,
+      "execution_provider": "torch cpu",
+      "status": "AVAILABLE"
+    },
+    {
+      "name": "aasist",
+      "revision": "aasist-pretrained-v1",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 78,
+      "execution_provider": "torch cpu",
+      "status": "AVAILABLE"
+    },
+    {
+      "name": "ecapa-tdnn",
+      "revision": "ecapa-tdnn-voxceleb-v1",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 450,
+      "execution_provider": "torch cpu",
+      "status": "AVAILABLE"
+    },
+    {
+      "name": "indic-conformer-600m",
+      "revision": "indic-conformer-600m-ctc-v1",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 10200,
+      "execution_provider": "CPUExecutionProvider",
+      "status": "AVAILABLE"
+    },
+    {
+      "name": "intent-classifier",
+      "revision": "intent-classifier-distilbert-v1",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 5158,
+      "execution_provider": "torch cpu",
+      "status": "AVAILABLE"
+    },
+    {
+      "name": "behavior-classifier",
+      "revision": "behavior-classifier-distilbert-v1",
+      "license": "see docs/DATA_SPEC.md 8.1",
+      "load_ms": 223,
+      "execution_provider": "torch cpu",
+      "status": "AVAILABLE"
+    }
+  ],
+  "results": {
+    "startup": {
+      "bundle_load_ms": 16278.2,
+      "rss_gb_before_load": 0.535,
+      "rss_gb_after_load": 3.28,
+      "rss_gb_after_traffic": 2.877
+    },
+    "languages": [
+      {
+        "language": "hi",
+        "packets_produced": 30,
+        "packets_sent": 30,
+        "first_packet_ms": 4472.3,
+        "steady_state_buffer_filled": {
+          "packets": 27,
+          "median_ms": 844.0,
+          "mean_ms": 862.4,
+          "min_ms": 687.0,
+          "max_ms": 1124.2,
+          "p95_ms": 1005.6,
+          "p95_note": null,
+          "within_1s_budget_rate": 0.9259
+        },
+        "before_antispoof_buffer_filled": {
+          "packets": 2,
+          "median_ms": 606.5,
+          "mean_ms": 606.5,
+          "min_ms": 595.2,
+          "max_ms": 617.8,
+          "p95_ms": null,
+          "p95_note": "not computed: 2 samples is below the 20-sample floor",
+          "within_1s_budget_rate": 1.0
+        },
+        "per_stage_ms": {
+          "asr": {
+            "ran_on_packets": 30,
+            "median_ms": 265.0,
+            "p95_ms": 306.0,
+            "max_ms": 2274.0,
+            "statuses": {
+              "AVAILABLE": 29,
+              "INSUFFICIENT_AUDIO": 1
+            }
+          },
+          "intent": {
+            "ran_on_packets": 30,
+            "median_ms": 65.5,
+            "p95_ms": 86.0,
+            "max_ms": 708.0,
+            "statuses": {
+              "AVAILABLE": 29,
+              "INSUFFICIENT_AUDIO": 1
+            }
+          },
+          "behavior": {
+            "ran_on_packets": 30,
+            "median_ms": 41.5,
+            "p95_ms": 61.0,
+            "max_ms": 679.0,
+            "statuses": {
+              "AVAILABLE": 29,
+              "INSUFFICIENT_AUDIO": 1
+            }
+          },
+          "aasist": {
+            "ran_on_packets": 30,
+            "median_ms": 366.0,
+            "p95_ms": 421.0,
+            "max_ms": 535.0,
+            "statuses": {
+              "INSUFFICIENT_AUDIO": 3,
+              "AVAILABLE": 27
+            }
+          },
+          "ecapa": {
+            "ran_on_packets": 30,
+            "median_ms": 74.0,
+            "p95_ms": 101.0,
+            "max_ms": 412.0,
+            "statuses": {
+              "NO_REFERENCE": 30
+            }
+          },
+          "_sum_of_stage_medians_ms": 812.0
+        },
+        "analyzer_status_counts": {
+          "asr": {
+            "AVAILABLE": 29,
+            "INSUFFICIENT_AUDIO": 1
+          },
+          "intent": {
+            "AVAILABLE": 29,
+            "INSUFFICIENT_AUDIO": 1
+          },
+          "behavior": {
+            "AVAILABLE": 29,
+            "INSUFFICIENT_AUDIO": 1
+          },
+          "aasist": {
+            "INSUFFICIENT_AUDIO": 3,
+            "AVAILABLE": 27
+          },
+          "ecapa": {
+            "NO_REFERENCE": 30
+          }
+        },
+        "first_packet_with_antispoof_score": 4
+      },
+      {
+        "language": "ta",
+        "packets_produced": 30,
+        "packets_sent": 30,
+        "first_packet_ms": 6075.7,
+        "steady_state_buffer_filled": {
+          "packets": 27,
+          "median_ms": 778.5,
+          "mean_ms": 809.6,
+          "min_ms": 727.1,
+          "max_ms": 1122.1,
+          "p95_ms": 999.9,
+          "p95_note": null,
+          "within_1s_budget_rate": 0.963
+        },
+        "before_antispoof_buffer_filled": {
+          "packets": 2,
+          "median_ms": 524.6,
+          "mean_ms": 524.6,
+          "min_ms": 478.1,
+          "max_ms": 571.2,
+          "p95_ms": null,
+          "p95_note": "not computed: 2 samples is below the 20-sample floor",
+          "within_1s_budget_rate": 1.0
+        },
+        "per_stage_ms": {
+          "asr": {
+            "ran_on_packets": 30,
+            "median_ms": 266.0,
+            "p95_ms": 382.0,
+            "max_ms": 5239.0,
+            "statuses": {
+              "AVAILABLE": 30
+            }
+          },
+          "intent": {
+            "ran_on_packets": 30,
+            "median_ms": 0.0,
+            "p95_ms": 0.0,
+            "max_ms": 0.0,
+            "statuses": {
+              "UNSUPPORTED_LANGUAGE": 30
+            }
+          },
+          "behavior": {
+            "ran_on_packets": 30,
+            "median_ms": 0.0,
+            "p95_ms": 0.0,
+            "max_ms": 0.0,
+            "statuses": {
+              "UNSUPPORTED_LANGUAGE": 30
+            }
+          },
+          "aasist": {
+            "ran_on_packets": 30,
+            "median_ms": 373.5,
+            "p95_ms": 420.0,
+            "max_ms": 554.0,
+            "statuses": {
+              "INSUFFICIENT_AUDIO": 3,
+              "AVAILABLE": 27
+            }
+          },
+          "ecapa": {
+            "ran_on_packets": 30,
+            "median_ms": 78.5,
+            "p95_ms": 108.0,
+            "max_ms": 565.0,
+            "statuses": {
+              "NO_REFERENCE": 30
+            }
+          },
+          "_sum_of_stage_medians_ms": 718.0
+        },
+        "analyzer_status_counts": {
+          "asr": {
+            "AVAILABLE": 30
+          },
+          "intent": {
+            "UNSUPPORTED_LANGUAGE": 30
+          },
+          "behavior": {
+            "UNSUPPORTED_LANGUAGE": 30
+          },
+          "aasist": {
+            "INSUFFICIENT_AUDIO": 3,
+            "AVAILABLE": 27
+          },
+          "ecapa": {
+            "NO_REFERENCE": 30
+          }
+        },
+        "first_packet_with_antispoof_score": 4
+      }
+    ],
+    "budget_verdict": {
+      "steady_state_median_ms_range": [
+        778.5,
+        844.0
+      ],
+      "steady_state_p95_ms_range": [
+        999.9,
+        1005.6
+      ],
+      "median_within_budget": true,
+      "p95_within_budget": false
+    }
+  },
+  "interpretation": "At steady state, with the anti-spoof buffer filled, the median packet costs [778.5, 844.0] ms and the p95 [999.9, 1005.6] ms against a 1000 ms budget. Startup is a separate cost: 16278 ms to load the bundle, plus a first packet an order of magnitude above steady state.",
+  "limitations": [
+    "One machine: a 12-thread AMD CPU with onnxruntime on CPUExecutionProvider only, because the installed driver caps at CUDA 11.2 while onnxruntime-gpu needs CUDA 12. These figures do not transfer to other hardware and say nothing about a GPU deployment.",
+    "One session at a time. Concurrent calls would contend for the same cores, so no throughput or multi-session claim follows from this.",
+    "Measured through FastAPI's TestClient, which exercises the real ASGI app but not a real network. Wire latency, TLS and a production ASGI server are excluded.",
+    "FLEURS clips are concatenated to build a continuous stream, so the audio contains joins that a real call would not. That affects what the models see, not what a packet costs."
+  ],
+  "conclusion": "Quote steady-state median AND p95 together with the hardware. The budget verdict above determines whether O13 can move; a median inside the budget with a p95 outside it is not a pipeline that keeps up, because the overrun packets are the ones that accumulate.",
+  "configuration": {
+    "window_sec": 2.0,
+    "stride_sec": 1.0,
+    "cadence_budget_sec": 1.0,
+    "packets_per_language": 30,
+    "analyzers": "sequential (thread pool measured worse in Phase 8)"
+  },
+  "runtime_sec": 420.2
+}

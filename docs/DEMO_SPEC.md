@@ -130,3 +130,22 @@ real; that synthetic speech is not proof of fraud and human speech is not proof
 of safety; that cellular audio is inaccessible by platform design; and that
 detection of unknown future generators is not guaranteed. The forbidden claims
 in `PROJECT_SPEC.md` §2.1 apply to spoken commentary as much as to the UI.
+
+**Additional disclosures required after Phase 9** (`docs/EVALUATION.md`):
+
+- **Do not point at the AASIST score as evidence.** It is measured at chance
+  against the only two-class probe VIVE has - EER 0.4333, 90% interval
+  0.3500-0.5000 (`BLOCKERS.md` O12). If the number is visible on screen, say
+  that it is an integrated model output with no measured discrimination.
+- **Do not read the risk score as a percentage chance of fraud.** Expected
+  calibration error 0.3171. Say "risk score 91 of 100", never "91% likely".
+- **Do not quote an accuracy figure without its corpus.** Hindi WER 0.1141 is
+  clean read speech, not call audio.
+- **Anti-spoof evidence does not appear for the first ~4 seconds** of a call,
+  by design: the adapter reports `INSUFFICIENT_AUDIO` until it holds 64,600
+  samples of real audio rather than padding. If a demo is short, the channel
+  may never report at all - measured, the first scored packet is #4.
+- **Speaker consistency will read `NO_REFERENCE` throughout.** There is no
+  enrolment source (O3). That is the correct output, not a failure.
+- If asked about latency, quote the median **and** the p95 with the hardware:
+  751-844 ms median, 930-1069 ms p95 on a 12-thread CPU, CPU-only inference.

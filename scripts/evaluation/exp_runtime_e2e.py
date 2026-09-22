@@ -165,8 +165,14 @@ def run_language(client, lang: str, config: str, count: int) -> dict:
             status = block.get("status")
             statuses.setdefault(key, {}).setdefault(status, 0)
             statuses[key][status] += 1
+            # Count any stage that reported a time, not only AVAILABLE ones.
+            # ECAPA does its full forward pass and then returns NO_REFERENCE
+            # because there is no enrolled voice (docs/BLOCKERS.md O3), so
+            # filtering on AVAILABLE dropped a stage that genuinely costs
+            # wall-clock time and left the per-stage table unable to account
+            # for the packet median.
             ms = block.get("inference_ms")
-            if ms is not None and status == "AVAILABLE":
+            if ms is not None:
                 stages.setdefault(key, []).append(float(ms))
 
     stage_summary = {
@@ -174,8 +180,11 @@ def run_language(client, lang: str, config: str, count: int) -> dict:
               "median_ms": round(statistics.median(values), 1),
               "p95_ms": (round(percentile(values, 95), 1)
                          if percentile(values, 95) is not None else None),
-              "max_ms": round(max(values), 1)}
+              "max_ms": round(max(values), 1),
+              "statuses": statuses.get(key, {})}
         for key, values in stages.items()}
+    stage_summary["_sum_of_stage_medians_ms"] = round(
+        sum(v["median_ms"] for v in stage_summary.values()), 1)
 
     first_scored = next(
         (p["seq"] for p in packets
@@ -190,8 +199,12 @@ def run_language(client, lang: str, config: str, count: int) -> dict:
           f"{summarise(cold).get('median_ms')} ms")
     print(f"  first packet with an AASIST score: #{first_scored}")
     for key, value in sorted(stage_summary.items()):
+        if key.startswith("_"):
+            continue
         print(f"    {key:<10}median {value['median_ms']:>7.1f} ms   "
               f"p95 {value['p95_ms']}   on {value['ran_on_packets']} packets")
+    print(f"    {'SUM':<10}median {stage_summary['_sum_of_stage_medians_ms']:>7.1f} ms "
+          f"of a {warm_summary.get('median_ms')} ms packet")
 
     return {
         "language": lang,

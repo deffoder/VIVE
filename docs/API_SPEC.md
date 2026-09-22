@@ -155,8 +155,10 @@ Additive only. Clients must tolerate their absence.
   "ecapa":    { "model_version": "ecapa-tdnn-v1", "inference_ms": 41 },
   "asr":      { "status": "AVAILABLE", "model_version": "indic-conformer-600m-ctc-v1",
                 "inference_ms": 310 },
-  "intent":   { "status": "AVAILABLE", "model_version": "intent-classifier-v1" },
-  "behavior": { "status": "AVAILABLE", "model_version": "behavior-classifier-v1" },
+  "intent":   { "status": "AVAILABLE", "model_version": "intent-classifier-v1",
+                "inference_ms": 47 },
+  "behavior": { "status": "AVAILABLE", "model_version": "behavior-classifier-v1",
+                "inference_ms": 39 },
   "context":  { "session_authenticated": false, "source_type": "VOIP",
                 "requested_action": "SENSITIVE", "context_risk": 0.82 },
 

@@ -116,7 +116,24 @@ diverge from the design references.
   technical fault. The `NO_REFERENCE` status path is specified and testable
   (scenario S5).
 - **Current status:** system runs correctly in `NO_REFERENCE`; fusion re-weights
-  around the missing signal. Not blocking any phase before 8.
+  around the missing signal. Confirmed end to end in Phase 9: `NO_REFERENCE`
+  on 30/30 packets in both languages, `similarity` null throughout.
+- **Phase 9 measurement (2026-09-22).** The model itself was evaluated for the
+  first time, on LibriSpeech test-clean (CC-BY-4.0, real `speaker_id`), 25
+  speakers, 75 genuine and 300 impostor pairs
+  (`models/evaluation/phase9/9D_ecapa_speaker.json`): EER **0.0000** on clean
+  full utterances, **0.0150** on VIVE's 2 s window, 0.0033 band-limited,
+  0.0000 through G.711. The channel is inert for a product reason, not a model
+  one.
+- **What that changes for enrolment:** the 2 s window barely moves the
+  *ranking* (AUC 0.9980) but moves the *operating point* sharply - the genuine
+  median falls 0.813 -> 0.555 and the EER threshold 0.554 -> 0.292. **A fixed
+  threshold of 0.5 would falsely reject 29.33% of genuine 2 s windows.** Any
+  threshold adopted alongside an enrolment source must come from a measurement
+  like this, not be chosen by eye.
+- **Scope:** LibriSpeech is clean English audiobook read speech - the easy
+  case. Not comparable to published VoxCeleb ECAPA numbers, and VoxCeleb
+  itself is still unavailable (O5).
 - **Required external action:** decision on enrolment source, with its consent
   and retention obligations (`SECURITY_SPEC.md` §4).
 
@@ -152,12 +169,27 @@ diverge from the design references.
   `scripts/training/survey_tamil_asr.py` reads license and gating from
   repository metadata and probes real file access rather than trusting a model
   card.
-- **Current status:** AASIST and ECAPA are used as **pretrained checkpoints
-  with no measured EER or verification metric**, and none may be quoted. The
-  `generator_disjoint` and `speaker_disjoint` evaluation splits stay blocked.
+- **Current status (updated 2026-09-22, Phase 9):** both models have now been
+  measured against *substitutes*, which narrows this blocker without closing
+  it.
+  - **Speaker:** LibriSpeech test-clean (CC-BY-4.0, ungated, carries a real
+    `speaker_id`) supports a genuine verification EER - see O3. Clean English
+    read speech, so the easy case, and not VoxCeleb.
+  - **Anti-spoofing:** a two-class probe was built from openly-licensed parts
+    (SpeechT5 + HiFiGAN + CMU Arctic x-vectors, all MIT) against FLEURS
+    bonafide, because ASVspoof cannot be obtained programmatically. It is ONE
+    synthesis family in one language and is **not** a substitute for ASVspoof.
+    Its result is in O12 and it is not an ASVspoof-comparable EER.
+  - `facebook/mms-tts-{hin,tam}` was rejected for the probe: CC-BY-NC-4.0
+    forbids commercial use, the same rule that rejected `facebook/mms-1b-all`
+    in Phase 7. `ai4bharat/indic-parler-tts` is Apache-2.0 but `gated: auto`,
+    so it needs the account holder to accept terms and **was not downloaded**.
+  - The `generator_disjoint` and `speaker_disjoint` evaluation splits stay
+    blocked.
 - **Required external action:** complete the ASVspoof and VoxCeleb access
   requests, or accept that anti-spoofing and speaker performance are
-  unquantified and say so wherever they are presented.
+  unquantified against their proper benchmarks and say so wherever they are
+  presented.
 
 ### O6 — Fusion weights unvalidated · `OPEN`
 
@@ -168,10 +200,30 @@ diverge from the design references.
   recalibration is a config change. The combination rule was additionally
   changed from a weighted average to noisy-OR after the average was found to
   let low anti-spoof evidence suppress high semantic evidence.
-- **Current status:** acceptable for mock-driven demos provided the provisional
-  status is stated (`DEMO_SPEC.md` §6).
-- **Required external action:** recalibrate against real outputs in Phase 9;
-  never present provisional weights as measured accuracy.
+- **Phase 9 measurement (2026-09-22,
+  `models/evaluation/phase9/9F_fusion_ablation_calibration.json`).** Real head
+  outputs over 8,022 de-leaked held-out records, thresholds chosen on
+  validation and reported on test:
+  - **The score is not a probability.** Expected calibration error **0.3171**;
+    Brier 0.1798 against a base-rate baseline of 0.2330. Records scoring
+    0.2-0.3 are scams 96.4% of the time. `PROJECT_SPEC.md` 2.1's prohibition
+    on reading `risk.score` as a fraud probability is now an empirical
+    finding, not only a rule.
+  - **Channel contribution.** Intent carries essentially all the *ranking*
+    power (AUC 0.9829 alone vs 0.9825 for the full text pipeline), but AUC is
+    rank-based and the policy uses absolute thresholds. In the score domain
+    behaviour matters: it lifts the scam median 19 -> 36 while leaving benign
+    at 16-18. Behaviour earns its place without adding discriminative
+    information - a conclusion neither metric reaches alone.
+  - **`SYNTHETIC_ONLY_CEILING` binds**, measured: anti-spoof evidence alone
+    tops out at 55 on benign text, below HIGH. Given O12 that guard is doing
+    real work.
+- **Current status:** weights remain expert-set and unfitted, but no longer
+  unexamined. Calibration is measured and negative; the honest reading is that
+  the score is a well-separating *ordinal* signal, not a probability.
+- **Required external action:** recalibrate against labelled *call* data,
+  which does not exist (O15). Never present provisional weights as measured
+  accuracy, and never present the score as a likelihood.
 
 ### O8 — No Tamil training or evaluation data · `OPEN`
 
@@ -221,6 +273,12 @@ diverge from the design references.
   30-record floor, so it is **unmeasurable** rather than merely weak — its
   0.632 F1 must not be quoted as a capability. A concrete remediation plan,
   with a verified candidate corpus, is in `DATA_SPEC.md` §8.2.
+- **Phase 9 confirmation (2026-09-22).** Re-measured through the real adapters
+  on the de-leaked split: 5 of 12 intents and 2 of 8 behaviours still have
+  **zero** test records and render as "NO TEST DATA - cannot be scored";
+  `OTP_REQUEST` renders as "UNMEASURABLE" at its 8 records. Intent macro-F1
+  0.9213 is over **7 of 12** classes, and the denominator is stated wherever
+  the figure appears (`EVALUATION.md` 8).
 
 ### O13 — Packet latency sits at the real-time budget, not inside it · `OPEN`
 
@@ -245,21 +303,90 @@ diverge from the design references.
   ECAPA 81 -> 732 ms). torch and onnxruntime each already use every core, so
   concurrent analyzers oversubscribe the CPU and contend rather than overlap.
   The change was reverted and the measurement recorded in the code.
+- **Phase 9 restatement (2026-09-22):** the Phase 8D range straddled the
+  budget because six packets cannot resolve it. Measured properly - 30 packets
+  per language, genuinely overlapping windows, startup and anti-spoof warm-up
+  separated out
+  (`models/evaluation/phase9/9I_runtime_end_to_end.json`):
+
+  | | Hindi | Tamil |
+  |---|---:|---:|
+  | steady-state median | 844.0 ms | 778.5 ms |
+  | steady-state p95 | 1005.6 ms | 999.9 ms |
+  | packets inside the 1.0 s budget | 88.9% | 96.3% |
+  | first packet | 5,353 ms | 6,076 ms |
+
+  Across three runs: median **751-844 ms**, p95 **930-1069 ms**.
+
+  **The median fits; the p95 does not.** 3.7-11.1% of packets overrun, and
+  overruns accumulate because the cadence is fixed.
+- **Per-stage medians, now complete.** Phase 9 found the packet schema carried
+  no `inference_ms` for the intent and behaviour heads, so earlier per-stage
+  tables silently omitted two of six analyzers; ECAPA was additionally dropped
+  by an AVAILABLE-only filter despite doing full work on the `NO_REFERENCE`
+  path. With both fixed: aasist 366.0 ms, asr 265.0 ms, ecapa 74.0 ms, intent
+  65.5 ms, behaviour 41.5 ms - summing to 812 ms of an 844 ms packet, so the
+  remaining ~32 ms is fusion, temporal risk, policy and transport. There is no
+  unexplained cost.
 - **Current status:** the pipeline runs end to end and produces correct
-  packets, but **near-real-time operation must not be claimed as demonstrated
-  on this hardware**. The first packet of a session additionally costs
-  ~10-32 s, dominated by per-session setup.
-- **Required external action:** either a GPU execution path (AASIST and the
-  text heads are CPU-bound here; `onnxruntime-gpu` needs CUDA 12 while the
-  development driver caps at 11.2), a faster anti-spoofing model, or a
-  decision to run some analyzers on a slower secondary cadence than ASR.
-  Choosing between those is Phase 9/10 work and needs target hardware.
+  packets, but **near-real-time operation must not be claimed without naming
+  the hardware and quoting the p95 alongside the median**. Startup is a
+  separate cost: 16.4 s to load the bundle, then a first packet of ~5-6 s.
+- **Required external action:** either a GPU execution path (`onnxruntime-gpu`
+  needs CUDA 12 while the development driver caps at 11.2), a faster
+  anti-spoofing model, a decision to run some analyzers on a slower secondary
+  cadence than ASR, or **dropping the anti-spoof channel**, which at ~45% of
+  the budget would move the p95 comfortably inside it. O12 now shows that
+  channel has no measured discrimination, so the cost is currently bought with
+  no evidence. Choosing between these is Phase 10 work and needs target
+  hardware.
 
-### O12 — AASIST is unreliable out of domain · `OPEN`
+### O12 — AASIST shows no measured discrimination · `OPEN`
 
-- **Blocker:** the pretrained AASIST checkpoint produces scores on
-  out-of-domain audio that do not track reality, so its output must not be
-  treated as trustworthy synthetic-voice evidence.
+> **Escalated 2026-09-22 (Phase 9).** The original wording — *unreliable out of
+> domain* — understated it. A 120-clip two-class measurement now shows the
+> checkpoint separating synthetic from genuine speech **at chance**. The
+> heading and the required action both changed; the earlier spot-check
+> evidence is retained below because it is what prompted the measurement.
+
+- **Phase 9 measurement (`models/evaluation/phase9/9B_aasist_early_window.json`):**
+  60 synthetic clips (SpeechT5 + HiFiGAN, MIT) against 60 bonafide FLEURS
+  clips, scored at five window lengths, no padding or resampling anywhere.
+
+  | Window | EER | 90% interval | ROC AUC |
+  |---|---:|---|---:|
+  | 1.0 s | 0.4500 | 0.3667-0.5500 | 0.4875 |
+  | 2.0 s | 0.4500 | 0.3833-0.5500 | 0.5039 |
+  | 3.0 s | 0.4167 | 0.3583-0.5000 | 0.5317 |
+  | 4.0 s | 0.4333 | 0.3500-0.5000 | 0.5592 |
+  | 4.0375 s (native) | **0.4333** | **0.3500-0.5000** | **0.5600** |
+
+  Every interval reaches or crosses 0.50. **No window length discriminates.**
+- **Two checks that stop this being an artefact:** (1) a Silero VAD control
+  confirms the synthetic half is speech - detected in 20/20 clips at GOOD
+  quality - so this is a result about AASIST, not about broken audio; (2)
+  reversing the class-index convention gives AUC 0.4400, also chance, so the
+  finding does not depend on the mapping.
+- **The probe's confound cuts the reassuring way.** Its classes differ in
+  language and channel (English vocoder output vs Hindi/Tamil recorded
+  speech), which should make separation EASIER than real spoofing. A
+  near-chance result under a favourable confound is conservative.
+- **Scope, and it is narrow.** One synthesis family, one language, 120 clips.
+  This does **not** establish that AASIST fails in general and is **not** an
+  ASVspoof-comparable EER. It establishes that VIVE has no evidence the model
+  works on audio like this, which is the operative fact for the product.
+- **Not acted on in fusion.** Re-weighting the anti-spoof channel from a
+  single-family probe would be fitting to the probe. The existing
+  `SYNTHETIC_ONLY_CEILING` guard was measured to bind (anti-spoof evidence
+  alone tops out at 55 on benign text), which bounds the damage. Changing the
+  weight needs a real corpus (O5) and is a Phase 10 decision.
+- **Cost of keeping it:** AASIST is the single largest latency contributor at
+  ~366-374 ms, roughly 45% of the packet budget (O13). The most expensive
+  stage is the one with no measured discrimination.
+
+- **Original blocker (retained):** the pretrained AASIST checkpoint produces
+  scores on out-of-domain audio that do not track reality, so its output must
+  not be treated as trustworthy synthetic-voice evidence.
 - **Observed (Phase 8C spot check, 2026-09-22):** decoding four
   `google/fleurs` clips of **genuine human speech** plus a silence control
   through the integrated adapter:
@@ -294,13 +421,15 @@ diverge from the design references.
   bonafide/positive class), so the adapter's mapping is correct and the
   behaviour is the model's, not a wiring error. Checked the checkpoint loads
   with 0 missing and 0 unexpected keys.
-- **Current status:** integrated and reporting real inference. The existing
-  fusion safeguard `SYNTHETIC_ONLY_CEILING` limits how far a synthetic score
-  alone can drive risk, which bounds the damage but does not fix it. **No
-  synthetic-voice detection capability may be claimed.**
-- **Required external action:** acquire an anti-spoofing evaluation corpus
-  (O5) and measure EER in-domain and out-of-domain, then calibrate or replace
-  the model. This is Phase 9 work.
+- **Current status:** integrated and reporting real inference, now with a
+  measurement showing that inference carries no usable signal on this kind of
+  audio. **No synthetic-voice detection capability may be claimed, and the
+  anti-spoof score must not be presented to a user as evidence.**
+- **Required external action:** acquire a real anti-spoofing corpus (O5) and
+  measure EER in-domain and out-of-domain. Then one of: calibrate, replace the
+  model, or drop the channel. Dropping it would also resolve most of O13,
+  since it is ~45% of the packet budget. That decision is Phase 10 and needs
+  the corpus first.
 
 ### O11 — No Tamil text for intent or behaviour · `OPEN`
 
@@ -358,6 +487,18 @@ diverge from the design references.
 - **Attempted fixes:** none applicable within Phase 7 — this is a property of
   the corpus, not of the training code. Re-weighting or thresholding would
   hide it rather than fix it.
+- **Phase 9 measurement on the MODEL OUTPUTS (2026-09-22).** The Phase 7
+  figure was about *labels*; fusion never sees a label. Measured on the risk
+  contributions fusion actually consumes
+  (`models/evaluation/phase9/9E_text_heads.json`): Pearson **0.5281**,
+  Spearman 0.6247, mutual information 0.1202 bits, **normalised mutual
+  information 0.3287**. Predicted non-NORMAL intent matches `is_scam` for
+  98.3688% of records; the behaviour head fires on **1.00%** of benign records
+  and 59.21% of scam records.
+- **Reading:** the heads are **moderately dependent, not redundant** - they
+  share about a third of the smaller entropy. Materially better than the 100%
+  label collinearity implied, so the noisy-OR is not simply double-counting
+  one signal, but the independence it assumes is still not satisfied.
 - **Current status:** measured and documented. The intent macro-F1 of 0.9219
   partly reflects the easier scam/not-scam boundary and **must not be
   presented as intent-discrimination accuracy**. Fusion weights remain
@@ -366,6 +507,68 @@ diverge from the design references.
   social-engineering behaviours, so behaviour and scam can vary independently.
   `DATA_SPEC.md` §8.2 identifies a verified Apache-2.0 conversational corpus
   for this. Re-calibrate fusion afterwards.
+
+### O14 — Intermittent risk never escalates · `OPEN`
+
+- **Blocker:** the temporal layer damps periodic evidence as hard as it damps
+  a spurious spike, so a scam that is risky only intermittently never raises
+  an alert.
+- **Measured (Phase 9, `models/evaluation/phase9/9G_temporal_risk.json`):** a
+  synthetic sequence scoring ~80 every third packet - the shape social
+  engineering actually takes, since the incriminating sentence is one window
+  in several - peaks at 82 per packet and **never leaves MEDIUM**. It never
+  reaches HIGH, so `policy.py` never raises an alert.
+- **Cause:** `EMA_ALPHA = 0.4` plus hysteresis. This is the same mechanism
+  that produces the layer's best property - a single 95-scoring packet reaches
+  only MEDIUM, and two adjacent 95/93 packets also never reach HIGH, which is
+  exactly the false positive O12 makes likely. The damping cannot tell the two
+  cases apart.
+- **Attempted fixes:** none. `EMA_ALPHA` was deliberately **not** tuned:
+  trading spike resistance for intermittent sensitivity needs labelled call
+  sequences to choose the operating point, and none exist (O15). Tuning it
+  against synthetic sequences would be fitting to sequences this author wrote.
+- **Current status:** measured and documented. A detection gap, not a tuning
+  preference. Time-to-warning figures (`first_warning_sec` and friends) are
+  historical markers recording when a raw score first crossed a threshold and
+  must be presented as "first reached", never as the current level.
+- **Required external action:** labelled call sequences, then re-tune the
+  smoothing against a measured operating point.
+
+### O15 — No labelled call data, so no end-to-end accuracy exists · `OPEN`
+
+- **Blocker:** every accuracy figure VIVE has is measured on a proxy. There is
+  no corpus of real calls with risk labels, so **VIVE has no measured
+  end-to-end accuracy as a product** and cannot state a false-positive rate
+  for a call.
+- **What is measured on a proxy instead:**
+  - intent and behaviour on **SMS text** (`is_scam`), scored from
+    ground-truth text rather than ASR output;
+  - ASR on **clean read speech** plus simulated channel degradation;
+  - speaker verification on **clean audiobook speech**;
+  - anti-spoofing on a **single-synthesis-family probe**;
+  - temporal behaviour on **synthetic score sequences**.
+- **Why it matters beyond the missing number.** The policy alert threshold was
+  measured to be badly placed for the evidence it actually receives: at the
+  alert threshold of 65, recall against `is_scam` is **0.1184** at precision
+  0.9972 - 88% of scam text raises no alert - while the validation-selected
+  threshold of 20 gives precision 0.9688 and recall 0.9619 on test
+  (`models/evaluation/phase9/9F_fusion_ablation_calibration.json`). That
+  measurement is on text-only evidence, which is also the state of every call
+  for its first ~4 seconds. **The threshold was not changed**, because moving
+  a production alert threshold to fit an SMS proxy would be exactly the error
+  this blocker describes.
+- **Cause:** collecting real call audio with fraud outcomes needs consent, a
+  lawful basis and an operator or bank partner (`SECURITY_SPEC.md` §4,
+  deferral D1).
+- **Attempted fixes:** none possible in-repo. Phase 9 instead measured every
+  component against the best legally-available substitute and recorded the
+  substitution each time.
+- **Current status:** all published metrics carry their corpus and conditions.
+  No call-level accuracy, false-positive rate or alert-threshold claim may be
+  made.
+- **Required external action:** a consented, lawfully-obtained corpus of
+  labelled calls. Until it exists, thresholds and fusion weights stay
+  provisional (O6) and are presented as such.
 
 ---
 

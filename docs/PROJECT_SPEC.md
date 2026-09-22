@@ -35,9 +35,19 @@ The system must never:
 | "87% AI voice" | The AASIST score is a spoof-likelihood signal, not a probability of fraud. |
 | "100% accuracy" / "detects all future generators" | Unfalsifiable and false. |
 | "Captures both sides of any cellular call" | Prohibited by the Android/telecom platform. See §5. |
+| "Risk score 91 means a 91% chance of fraud" | **Measured false.** Expected calibration error 0.3171; records scoring 0.2-0.3 are scams 96.4% of the time (`EVALUATION.md` §9). The score is ordinal, not a probability. |
+| Any synthetic-voice detection capability | **Measured at chance.** Best EER 0.4333, 90% interval 0.3500-0.5000, which contains 0.50 (`EVALUATION.md` §5, `BLOCKERS.md` O12). |
+| Any telephone-call accuracy figure | No call-channel corpus exists. All ASR figures are clean read speech with simulated degradation (`BLOCKERS.md` O15). |
+| `OTP_REQUEST` performance | 8 test records, below the 30-record floor - unmeasurable (`BLOCKERS.md` O9). |
+| Tamil intent or behaviour classification | No Tamil text exists in any corpus; the heads return `UNSUPPORTED_LANGUAGE` (`BLOCKERS.md` O11). |
+| Throughput or concurrent-call capacity | Never measured; all runtime figures are single-session (`BLOCKERS.md` O13). |
 
 Correct phrasing is evidence-shaped: *"High voice-integrity risk"*,
 *"Elevated synthetic-voice indicators"*, *"Caller not independently verified"*.
+
+Phase 9 moved several of these rows from *policy* to *measured fact*. Where a
+row cites a measurement, `docs/EVALUATION.md` carries the sample size and the
+conditions; quote them together or not at all.
 
 ## 3. Risk vs confidence
 

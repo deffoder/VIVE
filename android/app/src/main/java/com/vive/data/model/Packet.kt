@@ -72,6 +72,7 @@ data class IntentEvidence(
     val confidence: Double? = null,
     val status: AnalyzerStatus = AnalyzerStatus.AVAILABLE,
     val modelVersion: String? = null,
+    val inferenceMs: Long? = null,
 )
 
 /** Multi-label; may be empty. */
@@ -80,6 +81,7 @@ data class BehaviorEvidence(
     val confidence: Double? = null,
     val status: AnalyzerStatus = AnalyzerStatus.AVAILABLE,
     val modelVersion: String? = null,
+    val inferenceMs: Long? = null,
 )
 
 data class ContextEvidence(

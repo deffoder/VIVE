@@ -63,6 +63,23 @@ SUPERSEDED_FIGURES = [
     ("0.632", "the OTP_REQUEST F1, which is below the support floor"),
 ]
 
+# Words that mark a figure as retired, disputed or bounded. Matched over the
+# line plus its neighbours, because prose wraps: "scores 0.632 on 8 test
+# records - weak, and statistically" puts the qualifier on the NEXT line, and
+# a table row is qualified by the caption above it.
+RETIREMENT_MARKERS = (
+    "supersed", "invalid", "must not", "never", "unmeasurable", "below the",
+    "contend", "contention", "not be quoted", "discarded", "fragile",
+    "weakest", "no data", "cannot be predicted", "held the machine",
+    "real value", "indicates weakness", "preliminary", "retired",
+)
+CONTEXT_LINES = 2
+
+# A sentence that DENIES having a metric needs no scope - "no anti-spoofing
+# EER" is the correct statement, not an unscoped claim.
+ABSENCE_MARKERS = ("no anti-spoofing eer", "no speaker verification eer",
+                   "no eer", "without an eer", "has no measured")
+
 
 def load_records() -> dict[str, dict]:
     records = {}
@@ -120,9 +137,18 @@ def main() -> int:
         if experiment not in records:
             continue
         for name, body in docs.items():
-            if label.lower() not in body.lower():
+            lowered_body = body.lower()
+            if label.lower() not in lowered_body:
                 continue
-            if not any(p.lower() in body.lower() for p in phrases):
+            # A document that only states the metric does NOT exist is fine.
+            cites_a_value = any(
+                label.lower() in line.lower()
+                and not any(a in line.lower() for a in ABSENCE_MARKERS)
+                for line in body.splitlines())
+            if not cites_a_value:
+                notes.append(f"{name}: mentions {label} only as absent")
+                continue
+            if not any(p.lower() in lowered_body for p in phrases):
                 failures.append(f"{name}: cites {label} without scope - {message}")
             else:
                 notes.append(f"{name}: {label} cited with its scope")
@@ -130,13 +156,14 @@ def main() -> int:
     # --- 5: superseded figures must not be quoted as current --------------
     for figure, description in SUPERSEDED_FIGURES:
         for name, body in docs.items():
-            for line in body.splitlines():
+            lines = body.splitlines()
+            for index, line in enumerate(lines):
                 if figure not in line:
                     continue
-                lowered = line.lower()
-                if any(word in lowered for word in
-                       ("supersed", "invalid", "must not", "never", "unmeasurable",
-                        "below the", "contended", "not be quoted", "discarded")):
+                window = " ".join(
+                    lines[max(0, index - CONTEXT_LINES):
+                          index + CONTEXT_LINES + 1]).lower()
+                if any(word in window for word in RETIREMENT_MARKERS):
                     continue
                 failures.append(
                     f"{name}: quotes {figure} ({description}) without marking it: "

@@ -170,6 +170,7 @@ class IntentEvidence(BaseModel):
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     status: AnalyzerStatus = AnalyzerStatus.AVAILABLE
     model_version: str | None = None
+    inference_ms: int | None = Field(default=None, ge=0)
 
 
 class BehaviorEvidence(BaseModel):
@@ -178,6 +179,7 @@ class BehaviorEvidence(BaseModel):
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     status: AnalyzerStatus = AnalyzerStatus.AVAILABLE
     model_version: str | None = None
+    inference_ms: int | None = Field(default=None, ge=0)
 
 
 class ContextEvidence(BaseModel):

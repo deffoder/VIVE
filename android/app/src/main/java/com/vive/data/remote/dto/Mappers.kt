@@ -95,6 +95,7 @@ fun PacketDto.toDomain() = Packet(
         confidence = intent.confidence,
         status = intent.status.toEnumOr(AnalyzerStatus.AVAILABLE),
         modelVersion = intent.modelVersion,
+        inferenceMs = intent.inferenceMs,
     ),
     behavior = BehaviorEvidence(
         labels = behavior.labels.mapNotNull { raw ->
@@ -103,6 +104,7 @@ fun PacketDto.toDomain() = Packet(
         confidence = behavior.confidence,
         status = behavior.status.toEnumOr(AnalyzerStatus.AVAILABLE),
         modelVersion = behavior.modelVersion,
+        inferenceMs = behavior.inferenceMs,
     ),
     context = ContextEvidence(
         callerVerified = context.callerVerified,
