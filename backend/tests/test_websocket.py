@@ -168,3 +168,52 @@ def test_risk_update_frame_carries_separate_score_and_confidence(
     assert update["current_risk"]["confidence"] is not None
     assert update["current_risk"]["score"] != update["current_risk"]["confidence"]
     assert update["packets_processed"] == 1
+
+
+def test_binary_audio_frames_produce_packets(client: TestClient) -> None:
+    """The Android client sends RAW BINARY PCM, not JSON.
+
+    `OkHttpEventStream.sendAudio` sends a binary WebSocket frame; only the
+    scripted demo path wraps audio in JSON as `audio_b64`. Every existing test
+    exercised the JSON path, so the transport the live microphone actually
+    uses had no coverage at all - it could have been broken from the day it
+    was written and nothing would have failed until a phone was in hand.
+
+    16 kHz mono pcm_s16le, one 2.0 s analysis window (docs/ML_SPEC.md 5).
+    """
+    import struct
+
+    session_id = client.post(
+        "/api/v1/sessions", json={"source_type": "IN_APP"},
+    ).json()["session_id"]
+
+    samples = 16_000 * 2
+    pcm = struct.pack(f"<{samples}h",
+                      *[(6000 if i % 160 < 80 else -6000) for i in range(samples)])
+
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        ws.send_bytes(pcm)
+        frames = [ws.receive_json()["type"] for _ in range(6)]
+
+    assert "packet.new" in frames, (
+        f"binary audio produced no packet; frames were {frames}"
+    )
+
+    packets = client.get(f"/api/v1/sessions/{session_id}/packets").json()
+    assert packets, "binary audio must reach the analysis pipeline"
+    assert packets[-1]["duration_sec"] == 2
+
+
+def test_an_oversized_binary_frame_is_rejected_not_crashed(client: TestClient) -> None:
+    """A malformed or hostile client must not be able to exhaust memory."""
+    session_id = client.post(
+        "/api/v1/sessions", json={"source_type": "IN_APP"},
+    ).json()["session_id"]
+
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        ws.send_bytes(b"\x00" * (2 * 1024 * 1024))
+        reply = ws.receive_json()
+
+    assert reply["type"] != "packet.new", "an oversized frame must not be analysed"

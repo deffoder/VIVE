@@ -1,0 +1,87 @@
+{
+  "transport": "raw binary WebSocket frames, as the Android client sends",
+  "language": "hi",
+  "adapter_mode": "real",
+  "session_id": "VS-001",
+  "windows_sent": 6,
+  "packets": 6,
+  "non_empty_transcripts": 6,
+  "all_packets_real": true,
+  "sample": {
+    "packet_id": "P006",
+    "timestamp": "00:07",
+    "duration_sec": 2,
+    "language": "hi",
+    "quality": "GOOD",
+    "aasist": {
+      "score": 0.9991,
+      "status": "AVAILABLE",
+      "model_version": "aasist-pretrained-v1",
+      "inference_ms": 466
+    },
+    "ecapa": {
+      "status": "NO_REFERENCE",
+      "similarity": null,
+      "model_version": "ecapa-tdnn-voxceleb-v1",
+      "inference_ms": 78
+    },
+    "asr": {
+      "transcript": "थोड़े या बिना किसी झटके से टूटने",
+      "confidence": 0.9108,
+      "status": "AVAILABLE",
+      "model_version": "indic-conformer-600m-ctc-v1",
+      "inference_ms": 231
+    },
+    "intent": {
+      "label": "NORMAL_CONVERSATION",
+      "confidence": 0.9992,
+      "status": "AVAILABLE",
+      "model_version": "intent-classifier-distilbert-v1",
+      "inference_ms": 74
+    },
+    "behavior": {
+      "labels": [
+        "NORMAL"
+      ],
+      "confidence": 0.9956,
+      "status": "AVAILABLE",
+      "model_version": "behavior-classifier-distilbert-v1",
+      "inference_ms": 46
+    },
+    "context": {
+      "caller_verified": false,
+      "session_authenticated": false,
+      "source_type": "IN_APP",
+      "requested_action": null,
+      "context_risk": 0.8
+    },
+    "risk": {
+      "score": 57,
+      "level": "MEDIUM",
+      "confidence": 0.9122,
+      "contributions": {
+        "context": 0.8,
+        "synthetic": 0.9991,
+        "intent": 0.05,
+        "behavior": 0.05
+      },
+      "reasons": [
+        "Caller not independently verified",
+        "Elevated synthetic-voice indicators"
+      ]
+    },
+    "session_id": "VS-001",
+    "seq": 6,
+    "window": {
+      "start_sec": 5.0,
+      "end_sec": 7.0
+    },
+    "language_confidence": null,
+    "created_at": "2026-09-22T21:05:45Z",
+    "ood": {
+      "state": "KNOWN_SYNTHETIC_LIKELY",
+      "uncertainty": 0.0878
+    },
+    "adapter_mode": "real"
+  }
+}

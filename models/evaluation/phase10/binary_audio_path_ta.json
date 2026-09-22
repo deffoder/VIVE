@@ -1,0 +1,83 @@
+{
+  "transport": "raw binary WebSocket frames, as the Android client sends",
+  "language": "ta",
+  "adapter_mode": "real",
+  "session_id": "VS-002",
+  "windows_sent": 5,
+  "packets": 5,
+  "non_empty_transcripts": 5,
+  "all_packets_real": true,
+  "sample": {
+    "packet_id": "P005",
+    "timestamp": "00:06",
+    "duration_sec": 2,
+    "language": "ta",
+    "quality": "GOOD",
+    "aasist": {
+      "score": 0.9989,
+      "status": "AVAILABLE",
+      "model_version": "aasist-pretrained-v1",
+      "inference_ms": 532
+    },
+    "ecapa": {
+      "status": "NO_REFERENCE",
+      "similarity": null,
+      "model_version": "ecapa-tdnn-voxceleb-v1",
+      "inference_ms": 127
+    },
+    "asr": {
+      "transcript": "பூ முட்டைக்கோ சாற்றைப் பயன்படுத்தி ஒரு",
+      "confidence": 0.8321,
+      "status": "AVAILABLE",
+      "model_version": "indic-conformer-600m-ctc-v1",
+      "inference_ms": 320
+    },
+    "intent": {
+      "label": "UNKNOWN",
+      "confidence": null,
+      "status": "UNSUPPORTED_LANGUAGE",
+      "model_version": "intent-classifier-distilbert-v1",
+      "inference_ms": 0
+    },
+    "behavior": {
+      "labels": [],
+      "confidence": null,
+      "status": "UNSUPPORTED_LANGUAGE",
+      "model_version": "behavior-classifier-distilbert-v1",
+      "inference_ms": 0
+    },
+    "context": {
+      "caller_verified": false,
+      "session_authenticated": false,
+      "source_type": "IN_APP",
+      "requested_action": null,
+      "context_risk": 0.8
+    },
+    "risk": {
+      "score": 55,
+      "level": "MEDIUM",
+      "confidence": 0.7764,
+      "contributions": {
+        "context": 0.8,
+        "synthetic": 0.9989
+      },
+      "reasons": [
+        "Caller not independently verified",
+        "Elevated synthetic-voice indicators"
+      ]
+    },
+    "session_id": "VS-002",
+    "seq": 5,
+    "window": {
+      "start_sec": 4.0,
+      "end_sec": 6.0
+    },
+    "language_confidence": null,
+    "created_at": "2026-09-22T21:07:22Z",
+    "ood": {
+      "state": "KNOWN_SYNTHETIC_LIKELY",
+      "uncertainty": 0.2236
+    },
+    "adapter_mode": "real"
+  }
+}
