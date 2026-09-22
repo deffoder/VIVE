@@ -162,6 +162,43 @@ screening decision cannot accidentally be treated as an analysed call.
 `ScreeningVerdict` deliberately has no REJECT member: VIVE flags or silences,
 and the user decides.
 
+### 7.1 The live microphone path, as built
+
+```text
+Home "Start live analysis"
+  -> SessionListViewModel.startLiveSession()   POST /api/v1/sessions IN_APP
+  -> ActiveCallScreen                          runtime RECORD_AUDIO request
+  -> SessionDetailViewModel.startCapture()
+  -> CaptureController
+       MicrophoneAudioSource   AudioRecord, VOICE_COMMUNICATION,
+                               16 kHz mono PCM16 - the canonical analysis
+                               format recorded directly, never resampled
+       Packetizer              2.0 s windows, 1.0 s stride
+       EnergyGateVad           silent windows dropped before upload
+  -> ServiceLocator.sendAudio()
+  -> OkHttpEventStream.sendAudio()             RAW BINARY WebSocket frame
+  -> backend  app/ws/stream.py                 message["bytes"] -> _process()
+  -> the full real pipeline
+  -> packet.new / risk.update / transcript.append
+  -> SessionDetailViewModel -> ActiveCallScreen
+```
+
+Two details are load-bearing and easy to get wrong.
+
+**The frame is binary, not JSON.** `sendAudio` sends a `ByteString`; only the
+scripted demo path wraps audio as `audio_b64`. The backend handles both, but
+they are different code paths and only one of them is what a phone uses.
+
+**Windows are derived from a running byte total**, not from a "bytes since the
+last window" counter. That counter reached a full window before the first
+emit, so it satisfied the stride condition twice and produced a duplicate
+first packet labelled one stride ahead of its own audio. Nothing downstream
+could have detected it: the backend trusts the client's window bounds.
+
+Verified against real models by `scripts/verify_binary_audio_path.py` - Hindi
+6/6 and Tamil 5/5 packets, all `adapter_mode=real`, with AASIST correctly
+reporting `INSUFFICIENT_AUDIO` until roughly the fourth packet.
+
 ## 8. Performance constraints
 
 - Packets stream in at ~1/second per session; the UI appends incrementally and
