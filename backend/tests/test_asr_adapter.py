@@ -234,12 +234,22 @@ def test_odd_byte_count_is_an_inference_error_not_a_crash(loaded):
 
 
 @requires_model
-def test_unsupported_language_is_an_error_not_a_wrong_language_guess(loaded):
+def test_unsupported_language_is_declined_not_guessed(loaded):
+    """An unsupported language must not be decoded as a different one.
+
+    That property is the point of this test and is unchanged. What changed in
+    Phase 10 is the status it reports: this returned INFERENCE_ERROR, which
+    claims the model broke, and the Android UI renders that as "Analysis
+    failed". Nothing broke - the model simply has no vocabulary mask for the
+    requested language. UNSUPPORTED_LANGUAGE says that, and it matters because
+    IndicConformer is IN-22: English, a language VIVE names as a priority,
+    takes this path on every packet.
+    """
     loaded.set_default_language("zz")
     try:
         r = loaded.analyze(window())
-        assert r.status is AnalyzerStatus.INFERENCE_ERROR
-        assert r.transcript is None
+        assert r.status is AnalyzerStatus.UNSUPPORTED_LANGUAGE
+        assert r.transcript is None, "declining must not emit a guess"
     finally:
         loaded.set_default_language("hi")
 
@@ -287,3 +297,34 @@ def test_tamil_window_decodes_as_tamil_not_the_default(loaded):
                     pcm=pcm(2.0), sample_rate=SAMPLE_RATE, language="ta")
     r = loaded.analyze(w)
     assert r.language == "ta", "window language must override the adapter default"
+
+
+def test_an_unsupported_language_is_not_reported_as_a_model_failure() -> None:
+    """IndicConformer is IN-22. English is not in it, and that is not a bug.
+
+    The adapter returned INFERENCE_ERROR when no vocabulary mask matched, which
+    claims the model broke. The Android UI renders that as "Analysis failed",
+    so an English session looked like a crashed ASR rather than an unsupported
+    language - and English is a language VIVE names as a priority, so this was
+    the normal case for it.
+
+    Found in Phase 10 by driving a real-mode session declared `language=en`.
+    """
+    from app.adapters.interfaces import AudioWindow
+    from app.adapters.real.asr_conformer import IndicConformerAsrAdapter
+    from app.schemas.models import AnalyzerStatus
+
+    adapter = IndicConformerAsrAdapter(MODEL_DIR or "no/such/dir")
+    if adapter.load() is not AnalyzerStatus.AVAILABLE:
+        pytest.skip("real ASR checkpoint not configured")
+
+    window = AudioWindow(
+        session_id="lang", seq=1, start_sec=0.0, end_sec=2.0,
+        pcm=b"\x11\x11" * 32_000, sample_rate=16_000, language="en",
+    )
+    result = adapter.analyze(window)
+
+    assert result.status is AnalyzerStatus.UNSUPPORTED_LANGUAGE, (
+        "a language the model does not cover must not read as a model failure"
+    )
+    assert result.transcript is None

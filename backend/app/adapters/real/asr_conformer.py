@@ -237,8 +237,17 @@ class IndicConformerAsrAdapter:
 
         lang = self._resolve_language(window)
         if lang is None:
-            return self._empty(AnalyzerStatus.INFERENCE_ERROR,
-                               detail="no supported language selected")
+            # A language this model does not cover is NOT a model failure.
+            # IndicConformer is IN-22, so English - a language VIVE names as a
+            # priority - resolves to no mask at all. Reporting that as
+            # INFERENCE_ERROR said the model broke, and the Android UI renders
+            # that as "Analysis failed", sending an operator hunting a bug
+            # that does not exist. UNSUPPORTED_LANGUAGE exists for precisely
+            # this and reads as "this language is not supported".
+            return self._empty(
+                AnalyzerStatus.UNSUPPORTED_LANGUAGE,
+                detail=f"no vocabulary mask for "
+                       f"{getattr(window, 'language', None) or self._default_language}")
 
         began = time.perf_counter()
         try:
