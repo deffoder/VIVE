@@ -167,21 +167,43 @@ private fun PacketDetailContent(packet: Packet) {
         InfoRow("Duration", "${packet.durationSec}s")
         InfoRow("Language", packet.language.uppercase())
         InfoRow("Audio quality", packet.quality.name.replace('_', ' '))
-        InfoRow("Intent", packet.intent.label.name.replace('_', ' '))
+        // Each analyzer row reports its STATUS when it produced no value, so a
+        // model that declined to run can never be mistaken for one that ran
+        // and found nothing (docs/UI_SPEC.md, model status).
         InfoRow(
-            "Behaviour",
-            packet.behavior.labels.takeIf { it.isNotEmpty() }
-                ?.joinToString(", ") { it.name.replace('_', ' ') },
+            "Intent",
+            if (packet.intent.status.producedAValue) {
+                packet.intent.label.name.replace('_', ' ')
+            } else {
+                packet.intent.status.absenceLabel()
+            },
         )
         InfoRow(
-            "Synthetic voice evidence",
-            packet.aasist.score?.let { describeSynthetic(it) },
+            "Behaviour",
+            if (!packet.behavior.status.producedAValue) {
+                packet.behavior.status.absenceLabel()
+            } else {
+                packet.behavior.labels.takeIf { it.isNotEmpty() }
+                    ?.joinToString(", ") { it.name.replace('_', ' ') }
+            },
+        )
+        // The raw anti-spoof number is shown rather than hidden, but it is
+        // never graded: Phase 9 measured this model at chance on the only
+        // two-class probe available (docs/EVALUATION.md 5).
+        InfoRow(
+            "Anti-spoofing signal",
+            if (packet.aasist.status.producedAValue) {
+                packet.aasist.score?.let { describeSynthetic(it) }
+            } else {
+                packet.aasist.status.absenceLabel()
+            },
         )
         InfoRow(
             "Speaker consistency",
-            when (packet.ecapa.status) {
-                AnalyzerStatus.NO_REFERENCE -> "No enrolled reference"
-                else -> packet.ecapa.similarity?.let { "${(it * 100).toInt()}%" }
+            if (packet.ecapa.status.producedAValue) {
+                packet.ecapa.similarity?.let { "${(it * 100).toInt()}%" }
+            } else {
+                packet.ecapa.status.absenceLabel()
             },
         )
         InfoRow(

@@ -33,11 +33,32 @@ import com.vive.data.model.TranscriptLine
  * Unknown enum values degrade to a documented fallback rather than throwing, so
  * a newer backend that adds a label cannot crash an older client. That is the
  * reason the domain enums each carry an UNKNOWN-style member.
+ *
+ * The fallback must always be the SAFE direction. For most enums that is a
+ * neutral value; for analyzer status it is specifically NOT `AVAILABLE`, see
+ * `toAnalyzerStatus`.
  */
 
 private inline fun <reified T : Enum<T>> String?.toEnumOr(fallback: T): T =
     this?.let { raw -> enumValues<T>().firstOrNull { it.name.equals(raw, ignoreCase = true) } }
         ?: fallback
+
+/**
+ * Analyzer status, failing safe.
+ *
+ * Every other enum can fall back to a neutral member. This one cannot: the
+ * neutral-looking member, `AVAILABLE`, is a positive claim that the model ran
+ * and produced a value. Falling back to it turns any status this client does
+ * not recognise into a fabricated success.
+ *
+ * That was not hypothetical. The backend emits `UNSUPPORTED_LANGUAGE` for both
+ * text heads on every Tamil packet; this client did not have that member, so
+ * `toEnumOr(AVAILABLE)` reported an analyzer that deliberately declined to run
+ * as one that had succeeded. An unknown status now reads `UNAVAILABLE`, which
+ * claims nothing.
+ */
+private fun String?.toAnalyzerStatus(): AnalyzerStatus =
+    toEnumOr(AnalyzerStatus.UNAVAILABLE)
 
 fun RiskSummaryDto.toDomain() = RiskSummary(
     score = score,
@@ -73,12 +94,12 @@ fun PacketDto.toDomain() = Packet(
     quality = quality.toEnumOr(AudioQuality.GOOD),
     aasist = AasistEvidence(
         score = aasist.score,
-        status = aasist.status.toEnumOr(AnalyzerStatus.AVAILABLE),
+        status = aasist.status.toAnalyzerStatus(),
         modelVersion = aasist.modelVersion,
         inferenceMs = aasist.inferenceMs,
     ),
     ecapa = EcapaEvidence(
-        status = ecapa.status.toEnumOr(AnalyzerStatus.UNAVAILABLE),
+        status = ecapa.status.toAnalyzerStatus(),
         similarity = ecapa.similarity,
         modelVersion = ecapa.modelVersion,
         inferenceMs = ecapa.inferenceMs,
@@ -86,14 +107,14 @@ fun PacketDto.toDomain() = Packet(
     asr = AsrEvidence(
         transcript = asr.transcript,
         confidence = asr.confidence,
-        status = asr.status.toEnumOr(AnalyzerStatus.AVAILABLE),
+        status = asr.status.toAnalyzerStatus(),
         modelVersion = asr.modelVersion,
         inferenceMs = asr.inferenceMs,
     ),
     intent = IntentEvidence(
         label = intent.label.toEnumOr(Intent.UNKNOWN),
         confidence = intent.confidence,
-        status = intent.status.toEnumOr(AnalyzerStatus.AVAILABLE),
+        status = intent.status.toAnalyzerStatus(),
         modelVersion = intent.modelVersion,
         inferenceMs = intent.inferenceMs,
     ),
@@ -102,7 +123,7 @@ fun PacketDto.toDomain() = Packet(
             Behavior.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
         },
         confidence = behavior.confidence,
-        status = behavior.status.toEnumOr(AnalyzerStatus.AVAILABLE),
+        status = behavior.status.toAnalyzerStatus(),
         modelVersion = behavior.modelVersion,
         inferenceMs = behavior.inferenceMs,
     ),
@@ -159,7 +180,7 @@ fun ModelInfoDto.toDomain() = ModelInfo(
     purpose = purpose,
     version = version,
     mode = if (mode.equals("real", ignoreCase = true)) AdapterMode.REAL else AdapterMode.MOCK,
-    status = status.toEnumOr(AnalyzerStatus.UNAVAILABLE),
+    status = status.toAnalyzerStatus(),
     lastUpdated = lastUpdated,
 )
 

@@ -9,6 +9,7 @@ import com.vive.data.remote.dto.SessionDto
 import com.vive.data.remote.dto.isDemo
 import com.vive.data.remote.dto.toDomain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -129,5 +130,100 @@ class SerializationTest {
         assertEquals(8, session.timings.firstWarningSec)
         assertNull("null means not reached", session.timings.firstCriticalSec)
         assertEquals(RiskLevel.HIGH, session.currentRisk!!.level)
+    }
+}
+
+/**
+ * Analyzer status must never fail open.
+ *
+ * `AVAILABLE` is a positive claim that a model ran and produced a value.
+ * These pin the two ways that claim could be fabricated: a status this client
+ * does not recognise, and a status the backend genuinely emits that the client
+ * was never taught.
+ */
+class AnalyzerStatusContractTest {
+
+    private val json = NetworkModule.json
+
+    private fun packetWithIntentStatus(status: String): String = """
+    {
+      "packet_id": "P001",
+      "timestamp": "00:02",
+      "duration_sec": 2,
+      "language": "ta",
+      "quality": "GOOD",
+      "aasist": {"status": "INSUFFICIENT_AUDIO", "score": null},
+      "ecapa": {"status": "NO_REFERENCE", "similarity": null},
+      "asr": {"transcript": "vanakkam", "confidence": 0.9, "status": "AVAILABLE"},
+      "intent": {"label": "UNKNOWN", "status": "$status"},
+      "behavior": {"labels": [], "status": "$status"},
+      "context": {"caller_verified": false},
+      "risk": {"score": 12, "level": "LOW", "confidence": 0.5,
+               "contributions": {}, "reasons": []}
+    }
+    """.trimIndent()
+
+    @Test
+    fun `unsupported language is preserved, not reported as available`() {
+        val packet = json.decodeFromString<PacketDto>(
+            packetWithIntentStatus("UNSUPPORTED_LANGUAGE"),
+        ).toDomain()
+
+        assertEquals(AnalyzerStatus.UNSUPPORTED_LANGUAGE, packet.intent.status)
+        assertEquals(AnalyzerStatus.UNSUPPORTED_LANGUAGE, packet.behavior.status)
+        assertFalse(
+            "an analyzer that declined to run must not claim a value",
+            packet.intent.status.producedAValue,
+        )
+    }
+
+    @Test
+    fun `an unrecognised status degrades to unavailable, never available`() {
+        val packet = json.decodeFromString<PacketDto>(
+            packetWithIntentStatus("SOME_FUTURE_STATUS"),
+        ).toDomain()
+
+        assertEquals(AnalyzerStatus.UNAVAILABLE, packet.intent.status)
+        assertFalse(packet.intent.status.producedAValue)
+    }
+
+    @Test
+    fun `only AVAILABLE claims a value was produced`() {
+        AnalyzerStatus.entries.forEach { status ->
+            assertEquals(
+                "$status must not claim a value unless it is AVAILABLE",
+                status == AnalyzerStatus.AVAILABLE,
+                status.producedAValue,
+            )
+        }
+    }
+
+    @Test
+    fun `every status the backend can emit is known to this client`() {
+        // Mirrors backend/app/schemas/models.py::AnalyzerStatus. If the
+        // backend gains a member, add it here AND to the Kotlin enum - the
+        // mapper's fallback is safe but it collapses meaning, and a whole
+        // language once rendered as a successful analysis that way.
+        val backendEmits = listOf(
+            "AVAILABLE", "UNAVAILABLE", "NO_REFERENCE", "INSUFFICIENT_AUDIO",
+            "LOAD_ERROR", "INFERENCE_ERROR", "UNSUPPORTED_LANGUAGE", "ERROR",
+        )
+        val known = AnalyzerStatus.entries.map { it.name }.toSet()
+        backendEmits.forEach {
+            assertTrue("client cannot represent backend status $it", it in known)
+        }
+    }
+
+    @Test
+    fun `every non-available status explains itself`() {
+        AnalyzerStatus.entries
+            .filterNot { it.producedAValue }
+            .forEach { status ->
+                assertTrue("$status has no label", status.absenceLabel().isNotBlank())
+                assertTrue(
+                    "$status has no explanation",
+                    status.absenceExplanation().isNotBlank(),
+                )
+            }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vive.core.UiState
+import com.vive.data.model.AnalyzerStatus
 import com.vive.data.model.Packet
 import com.vive.data.model.RiskLevel
 import com.vive.data.model.Session
@@ -222,7 +223,15 @@ fun LiveTranscriptScreen(
 ) {
     val transcriptState by viewModel.transcript.collectAsStateWithLifecycle()
     val sessionState by viewModel.session.collectAsStateWithLifecycle()
+    val packetsState by viewModel.packets.collectAsStateWithLifecycle()
     val language = (sessionState as? UiState.Success)?.data?.language?.uppercase()
+
+    // Whether text understanding ran is read from the PACKETS, not from a
+    // hard-coded language list. The backend decides what it supports, and
+    // deriving the notice from its actual reported status keeps this correct
+    // if that ever changes (docs/BLOCKERS.md O11).
+    val textUnderstandingUnsupported = (packetsState as? UiState.Success)?.data
+        ?.any { it.intent.status == AnalyzerStatus.UNSUPPORTED_LANGUAGE } == true
 
     ViveScreenScaffold(title = "Live transcript", onBack = onBack, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
@@ -232,6 +241,26 @@ fun LiveTranscriptScreen(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (textUnderstandingUnsupported) {
+                // Transcription and understanding are different capabilities,
+                // and VIVE has only the first one here. Saying so plainly is
+                // the whole point: silence would let a reader assume the
+                // absence of a scam warning meant no scam was found.
+                ViveCard {
+                    Text(
+                        text = "Transcription only",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "Speech in this language is transcribed, but " +
+                            "intent and behaviour analysis is not supported " +
+                            "for it. No scam assessment is being made from " +
+                            "this transcript.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             StateHost(
                 state = transcriptState,

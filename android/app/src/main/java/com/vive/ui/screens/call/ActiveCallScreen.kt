@@ -179,41 +179,78 @@ private fun EvidenceSignals(packet: Packet?, onOpenRiskDetails: () -> Unit) {
         return
     }
 
+    // Anti-spoofing. Phase 9 measured this model at chance on the only
+    // two-class probe VIVE has (EER 0.4333, 90% interval 0.3500-0.5000, which
+    // contains 0.50 - docs/EVALUATION.md 5). So the row reports that the model
+    // RAN, never what it "found": a graded scale would imply the number
+    // discriminates, and no severity is attached because a colour is a claim.
     EvidenceRow(
         icon = Icons.Filled.GraphicEq,
-        title = "Synthetic voice indicators",
-        subtitle = packet.aasist.score?.let { describeSynthetic(it) } ?: "No analysis available",
-        severity = packet.aasist.score?.let { severityFor(it) },
-        severityText = if (packet.aasist.score == null) "Unavailable" else null,
+        title = "Anti-spoofing signal",
+        subtitle = if (packet.aasist.status.producedAValue) {
+            "Inconclusive - this model is not validated on call audio"
+        } else {
+            packet.aasist.status.absenceExplanation()
+        },
+        severity = null,
+        severityText = if (packet.aasist.status.producedAValue) "Inconclusive"
+        else packet.aasist.status.absenceLabel(),
         onClick = onOpenRiskDetails,
     )
     EvidenceRow(
         icon = Icons.Filled.Person,
         title = "Speaker consistency",
-        subtitle = packet.ecapa.similarity?.let { "Similarity to the reference voice" }
-            ?: "No enrolled reference voice",
-        severity = packet.ecapa.similarity?.let { severityFor(1.0 - it) },
-        severityText = if (packet.ecapa.similarity == null) "No reference" else null,
+        subtitle = if (packet.ecapa.status.producedAValue) {
+            "Similarity to the enrolled reference voice"
+        } else {
+            packet.ecapa.status.absenceExplanation()
+        },
+        severity = packet.ecapa.similarity
+            ?.takeIf { packet.ecapa.status.producedAValue }
+            ?.let { severityFor(1.0 - it) },
+        severityText = if (packet.ecapa.status.producedAValue) null
+        else packet.ecapa.status.absenceLabel(),
         onClick = onOpenRiskDetails,
     )
+    // Intent and behaviour: an analyzer that declined to run must never render
+    // as one that ran and found nothing. Tamil reports UNSUPPORTED_LANGUAGE on
+    // every packet by design (docs/BLOCKERS.md O11).
     EvidenceRow(
         icon = Icons.Filled.Lock,
-        title = "Intent risk",
-        subtitle = packet.intent.label.name.replace('_', ' ').lowercase()
-            .replaceFirstChar { it.uppercase() },
-        severity = intentSeverity(packet.intent.label),
-        severityText = if (packet.intent.confidence == null) "Unavailable" else null,
+        title = "Intent",
+        subtitle = if (packet.intent.status.producedAValue) {
+            packet.intent.label.name.replace('_', ' ').lowercase()
+                .replaceFirstChar { it.uppercase() }
+        } else {
+            packet.intent.status.absenceExplanation()
+        },
+        severity = if (packet.intent.status.producedAValue) {
+            intentSeverity(packet.intent.label)
+        } else {
+            null
+        },
+        severityText = if (packet.intent.status.producedAValue) null
+        else packet.intent.status.absenceLabel(),
         onClick = onOpenRiskDetails,
     )
     EvidenceRow(
         icon = Icons.Filled.Group,
-        title = "Behaviour risk",
-        subtitle = packet.behavior.labels.takeIf { it.isNotEmpty() }
-            ?.joinToString(", ") { it.name.replace('_', ' ').lowercase() }
-            ?.replaceFirstChar { it.uppercase() }
-            ?: "No persuasion behaviour detected",
-        severity = behaviorSeverity(packet.behavior.labels),
-        severityText = if (packet.behavior.confidence == null) "Unavailable" else null,
+        title = "Behaviour",
+        subtitle = if (!packet.behavior.status.producedAValue) {
+            packet.behavior.status.absenceExplanation()
+        } else {
+            packet.behavior.labels.takeIf { it.isNotEmpty() }
+                ?.joinToString(", ") { it.name.replace('_', ' ').lowercase() }
+                ?.replaceFirstChar { it.uppercase() }
+                ?: "No persuasion behaviour detected"
+        },
+        severity = if (packet.behavior.status.producedAValue) {
+            behaviorSeverity(packet.behavior.labels)
+        } else {
+            null
+        },
+        severityText = if (packet.behavior.status.producedAValue) null
+        else packet.behavior.status.absenceLabel(),
         onClick = onOpenRiskDetails,
     )
     EvidenceRow(
@@ -228,15 +265,25 @@ private fun EvidenceSignals(packet: Packet?, onOpenRiskDetails: () -> Unit) {
 }
 
 /**
- * Evidence-shaped phrasing. CLAUDE.md forbids "87% AI voice" because the
- * AASIST score is spoof likelihood, not a probability that the call is fraud.
+ * How a raw anti-spoof score may be described, which is: barely at all.
+ *
+ * This used to return a graded scale - "Strong" / "Elevated" / "Some" / "Few"
+ * synthetic-voice indicators. CLAUDE.md already forbade "87% AI voice", and
+ * the wording obeyed that, but the GRADE was still a claim: it told the user
+ * the number tracked reality closely enough to be binned.
+ *
+ * Phase 9 measured that it does not. Against the only two-class probe VIVE
+ * has, AASIST separates synthetic from genuine speech at chance - EER 0.4333
+ * with a 90% interval of 0.3500-0.5000, which contains 0.50, at every window
+ * length tested (docs/EVALUATION.md 5, docs/BLOCKERS.md O12). A scale built on
+ * a signal measured at chance reads as evidence and is not.
+ *
+ * The score is still shown in the packet detail view, as a raw model output
+ * with its limitation stated, because hiding it would be its own kind of
+ * dishonesty. It is simply never graded or coloured.
  */
-internal fun describeSynthetic(score: Double): String = when {
-    score >= 0.75 -> "Strong synthetic-voice indicators"
-    score >= 0.5 -> "Elevated synthetic-voice indicators"
-    score >= 0.25 -> "Some synthetic-voice indicators"
-    else -> "Few synthetic-voice indicators"
-}
+internal fun describeSynthetic(score: Double): String =
+    "Raw model output %.2f - not validated for this audio".format(score)
 
 /**
  * Intent severity comes from WHAT was asked for, not from how confident the
