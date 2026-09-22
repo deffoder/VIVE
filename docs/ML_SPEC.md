@@ -53,7 +53,7 @@ Selected 2026-09-21 on measured evidence (`PHASE7_REPORT.md` §7).
 | Preprocessor | `assets/preprocessor.ts` (TorchScript), run on CPU |
 | `BLANK_ID` | 256 |
 | Vocabulary | 257 tokens per language; 5,633 mask ids |
-| Languages | 22 (IN-22), including `hi` and `ta` |
+| Languages | 22 (IN-22), including `hi` and `ta`. **No English** - see `BLOCKERS.md` O16 |
 | On-disk size | 2.50 GB, git-ignored under `models/artifacts/` |
 
 ### Why this and not the alternatives

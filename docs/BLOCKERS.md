@@ -599,6 +599,56 @@ diverge from the design references.
   labelled calls. Until it exists, thresholds and fusion weights stay
   provisional (O6) and are presented as such.
 
+### O16 — End-to-end language coverage is Hindi only · `OPEN`
+
+- **Blocker:** the ASR and the text heads support almost disjoint language
+  sets, so the only language VIVE can both transcribe AND understand is Hindi.
+- **Measured (2026-09-23)** by enumerating the loaded model's vocabulary
+  masks and the adapters' declared languages:
+
+  | Stage | Languages |
+  |---|---|
+  | ASR (`indic-conformer-600m`) | 22 Indic: `as bn brx doi gu hi kn kok ks mai ml mni mr ne or pa sa sat sd ta te ur` |
+  | Intent / behaviour | `en`, `hi`, `hi-en` |
+  | **Both** | **`hi` only** |
+
+- **What that means per language:**
+  - **Hindi** - transcribed and understood. The full pipeline works.
+  - **Tamil** - transcribed, not understood (O11). Known and documented.
+  - **English** - **understood, but cannot be transcribed.** IndicConformer
+    is IN-22 and has no English mask, so an English session produces no
+    transcript at all, and the text heads then have nothing to read.
+
+- **Why it went unnoticed:** every ASR evaluation used FLEURS `hi_in` and
+  `ta_in`, and every text evaluation used a corpus that is 89% English *text*.
+  Each half was measured against the languages it was good at, and no
+  measurement crossed the two. `PROJECT_SPEC.md` §6 names Hindi, Tamil and
+  English as priority languages; the Phase 7 ASR selection then compared
+  candidates on "both priority languages", meaning Hindi and Tamil, and
+  English quietly left the comparison without ever being ruled out in
+  writing.
+- **Consequence, and it is a demo-facing one:** someone speaking **English**
+  into the phone gets no transcript, no intent, no behaviour, and a risk score
+  that stays at its floor. Before this was diagnosed the ASR reported the
+  condition as `INFERENCE_ERROR`, so it looked like a crash rather than an
+  unsupported language - fixed, and it now reports `UNSUPPORTED_LANGUAGE`.
+- **Attempted fixes:** none yet; this is a model-coverage gap, not a defect.
+  Options, none of them free:
+  1. **Add an English ASR.** `whisper-large-v3-turbo` is already acquired
+     (MIT) and covers English, but Phase 7 measured it as worse on Hindi and
+     Tamil and **5.5x over the per-window budget** (`ML_SPEC.md` §2.1), so it
+     would have to run as a second, language-routed model rather than a
+     replacement - and there is no language-ID model to route with
+     (`PHASE8_PREREQUISITES.md` §6).
+  2. **Train Indic-language text heads** so the text side matches the ASR's
+     22 languages. Blocked by the same data problem as O11.
+  3. **Scope the product to Hindi** and say so everywhere.
+- **Current status:** measured and documented. **VIVE must not be described as
+  supporting English end to end.** The honest claim is Hindi end to end, Tamil
+  transcription only.
+- **Required external action:** a product decision between the three options
+  above. Option 1 additionally needs a language-ID model.
+
 ---
 
 ## Deferred
