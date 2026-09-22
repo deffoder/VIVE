@@ -10,6 +10,7 @@ against" as "this is a different speaker" would manufacture evidence.
 
 from __future__ import annotations
 
+import io
 import os
 import struct
 
@@ -148,18 +149,45 @@ def test_vad_quality_never_encodes_suspicion(vad):
         AudioQuality.GOOD}
 
 
+def fill(spoof, session_id: str, pcm_fn=tone):
+    """Feeds overlapping windows until the adapter holds a full real window."""
+    last = None
+    for seq in range(1, 9):
+        start = (seq - 1) * 1.0          # 2.0 s wide, 1.0 s stride
+        last = spoof.analyze(AudioWindow(
+            session_id=session_id, seq=seq, start_sec=start,
+            end_sec=start + 2.0, pcm=pcm_fn(2.0), sample_rate=SAMPLE_RATE))
+        if last.status is AnalyzerStatus.AVAILABLE:
+            return last
+    return last
+
+
 @requires_spoof
 def test_antispoof_produces_a_bounded_score(spoof):
-    r = spoof.analyze(window(tone()))
+    """A score appears only once enough REAL audio has accumulated.
+
+    One 2 s window is not enough: the model needs 64,600 samples and the
+    adapter no longer manufactures the difference.
+    """
+    spoof.release("bounded")
+    r = fill(spoof, "bounded")
     assert r.status is AnalyzerStatus.AVAILABLE
     assert r.score is not None and 0.0 <= r.score <= 1.0
 
 
 @requires_spoof
 def test_antispoof_is_deterministic(spoof):
-    """Same audio, same score: a demo must be reproducible."""
-    pcm = tone()
-    assert spoof.analyze(window(pcm)).score == spoof.analyze(window(pcm)).score
+    """Same audio, same score: a demo must be reproducible.
+
+    Both sessions are filled identically, so a real score is compared rather
+    than two INSUFFICIENT_AUDIO results trivially matching as None.
+    """
+    spoof.release("det-a")
+    spoof.release("det-b")
+    a = fill(spoof, "det-a")
+    b = fill(spoof, "det-b")
+    assert a.score is not None and b.score is not None
+    assert a.score == b.score
 
 
 @requires_spoof
@@ -199,3 +227,90 @@ def test_speaker_similarity_is_bounded(speaker):
     r = speaker.analyze(window(tone()), silence())
     if r.status is AnalyzerStatus.AVAILABLE:
         assert -1.0 <= r.similarity <= 1.0
+
+
+# --------------------------------------------------------------------------
+# AASIST windowing - regression guard for the padding defect
+# --------------------------------------------------------------------------
+
+def test_aasist_never_pads_a_short_window():
+    """The adapter must not invent audio to reach the model's input length.
+
+    Regression guard. The adapter used to tile a 2 s window up to 64,600
+    samples, so HALF of every input was filler it had created. A controlled
+    experiment showed the resulting score was decided by the padding strategy
+    rather than the speech: holding audio fixed and varying only the padding
+    moved the score by a median of 0.43 and up to 0.89, with one clip going
+    from 0.0317 to 0.8056.
+    """
+    src = io.open(
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     "app", "adapters", "real", "audio_models.py"),
+        encoding="utf-8").read()
+    analyze = src.split("class AasistAntiSpoofAdapter")[1]
+    assert "np.tile" not in analyze, "tiling re-introduced"
+    assert "_accumulate" in analyze, "rolling real-audio buffer missing"
+
+
+@requires_spoof
+def test_first_short_window_is_insufficient_not_scored(spoof):
+    """One 2 s window is not enough real audio; say so rather than padding."""
+    spoof.release("buf-1")
+    w = AudioWindow(session_id="buf-1", seq=1, start_sec=0.0, end_sec=2.0,
+                    pcm=tone(2.0), sample_rate=SAMPLE_RATE)
+    r = spoof.analyze(w)
+    assert r.status is AnalyzerStatus.INSUFFICIENT_AUDIO
+    assert r.score is None
+
+
+@requires_spoof
+def test_score_appears_once_enough_real_audio_accumulates(spoof):
+    """Successive overlapping windows must fill the buffer with real audio."""
+    spoof.release("buf-2")
+    scored = None
+    for seq in range(1, 8):
+        start = (seq - 1) * 1.0          # 2.0 s wide, 1.0 s stride
+        r = spoof.analyze(AudioWindow(
+            session_id="buf-2", seq=seq, start_sec=start, end_sec=start + 2.0,
+            pcm=tone(2.0), sample_rate=SAMPLE_RATE))
+        if r.status is AnalyzerStatus.AVAILABLE:
+            scored = r
+            break
+    assert scored is not None, "a score must appear once 64,600 samples exist"
+    assert scored.score is not None and 0.0 <= scored.score <= 1.0
+
+
+@requires_spoof
+def test_sessions_do_not_share_a_buffer(spoof):
+    """One caller's audio must never contribute to another caller's score."""
+    for sid in ("iso-a", "iso-b"):
+        spoof.release(sid)
+    for seq in range(1, 6):
+        start = (seq - 1) * 1.0
+        spoof.analyze(AudioWindow(session_id="iso-a", seq=seq, start_sec=start,
+                                  end_sec=start + 2.0, pcm=tone(2.0),
+                                  sample_rate=SAMPLE_RATE))
+    # A fresh session starts empty despite the other session being full.
+    r = spoof.analyze(AudioWindow(session_id="iso-b", seq=1, start_sec=0.0,
+                                  end_sec=2.0, pcm=tone(2.0),
+                                  sample_rate=SAMPLE_RATE))
+    assert r.status is AnalyzerStatus.INSUFFICIENT_AUDIO
+
+
+@requires_spoof
+def test_release_frees_the_buffer(spoof):
+    for seq in range(1, 8):
+        start = (seq - 1) * 1.0
+        spoof.analyze(AudioWindow(session_id="rel-1", seq=seq, start_sec=start,
+                                  end_sec=start + 2.0, pcm=tone(2.0),
+                                  sample_rate=SAMPLE_RATE))
+    spoof.release("rel-1")
+    r = spoof.analyze(AudioWindow(session_id="rel-1", seq=1, start_sec=0.0,
+                                  end_sec=2.0, pcm=tone(2.0),
+                                  sample_rate=SAMPLE_RATE))
+    assert r.status is AnalyzerStatus.INSUFFICIENT_AUDIO
+
+
+def test_buffer_count_is_bounded():
+    from app.adapters.real.audio_models import AASIST_MAX_SESSIONS
+    assert 0 < AASIST_MAX_SESSIONS <= 1024

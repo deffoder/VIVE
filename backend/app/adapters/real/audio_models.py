@@ -28,6 +28,8 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections import OrderedDict
+from threading import Lock
 from typing import Any
 
 from app.adapters.interfaces import (
@@ -54,10 +56,30 @@ MIN_SPEECH_RATIO = 0.10
 speech-bearing. Guards against a single spurious frame marking silence as
 speech."""
 
-# AASIST expects a fixed-length waveform; the official config uses 64,600
-# samples (~4.04 s at 16 kHz). Shorter input is tiled, longer input truncated,
-# exactly as the reference implementation does.
+# AASIST expects a fixed-length waveform: 64,600 samples (~4.04 s at 16 kHz).
+#
+# VIVE's analysis window is 2.0 s (32,000 samples), barely half of that. The
+# adapter originally padded each window up to length - tiling it - so HALF of
+# every input was filler the adapter invented.
+#
+# A controlled experiment (scripts/experiment_aasist_tiling.py,
+# models/evaluation/aasist_tiling_experiment.json) measured what that costs.
+# Holding the audio fixed and varying only the padding strategy moved the
+# spoof score by a median of 0.43 and up to 0.89 on a 0-1 scale; one clip went
+# from 0.0317 to 0.8056. The score was being decided by the padding, not by
+# the speech.
+#
+# Tiling was not uniquely bad - it scored LOWER than reflect- and edge-padding
+# and highest on only 3 of 12 clips - so the fix is not a better padding
+# choice. There isn't one. The fix is to stop padding: the adapter keeps a
+# rolling buffer of recent REAL audio per session and runs the model only once
+# it holds a full genuine window.
 AASIST_SAMPLES = 64_600
+
+AASIST_MAX_SESSIONS = 64
+"""Cap on buffered sessions, so a long-running process cannot grow unbounded.
+The oldest buffer is evicted first; an evicted session simply refills."""
+
 AASIST_CONFIG = {
     "architecture": "AASIST",
     "nb_samp": AASIST_SAMPLES,
@@ -211,6 +233,44 @@ class AasistAntiSpoofAdapter(_RealAudioAdapter):
     architecture = "AASIST graph-attention anti-spoofing"
     revision = "clovaai/aasist"
 
+    def __init__(self, path: str) -> None:
+        super().__init__(path)
+        # session_id -> (float32 samples, last end_sec seen)
+        self._buffers: OrderedDict[str, tuple[Any, float]] = OrderedDict()
+        self._lock = Lock()
+
+    def _accumulate(self, window: AudioWindow, samples) -> Any | None:
+        """Appends this window's NEW audio and returns a full genuine window.
+
+        Consecutive windows overlap (2.0 s wide, 1.0 s stride), so only the
+        portion after the previous window's end is new. Returns None until
+        64,600 samples of real audio have accumulated.
+        """
+        import numpy as np
+
+        with self._lock:
+            buffered, last_end = self._buffers.pop(
+                window.session_id, (np.zeros(0, dtype=np.float32), None))
+
+            if last_end is None or window.start_sec >= last_end:
+                fresh = samples                      # first window, or a gap
+            else:
+                overlap = min(int(round((last_end - window.start_sec) * SAMPLE_RATE)),
+                              samples.size)
+                fresh = samples[overlap:] if overlap > 0 else samples
+
+            buffered = np.concatenate([buffered, fresh])[-AASIST_SAMPLES:]
+            self._buffers[window.session_id] = (buffered, window.end_sec)
+            while len(self._buffers) > AASIST_MAX_SESSIONS:
+                self._buffers.popitem(last=False)
+
+            return buffered.copy() if buffered.size >= AASIST_SAMPLES else None
+
+    def release(self, session_id: str) -> None:
+        """Drops a finished session's buffer."""
+        with self._lock:
+            self._buffers.pop(session_id, None)
+
     def load(self) -> AnalyzerStatus:
         if self._model is not None:
             return self._status
@@ -258,11 +318,15 @@ class AasistAntiSpoofAdapter(_RealAudioAdapter):
                 return AntiSpoofResult(status=AnalyzerStatus.INSUFFICIENT_AUDIO,
                                        model_version=self.version,
                                        mode=self.mode, score=None)
-            # Tile short input and truncate long input, as upstream does.
-            if samples.size < AASIST_SAMPLES:
-                reps = int(np.ceil(AASIST_SAMPLES / samples.size))
-                samples = np.tile(samples, reps)
-            samples = samples[:AASIST_SAMPLES]
+
+            # Never pad. Accumulate real audio until a full window exists.
+            full = self._accumulate(window, samples)
+            if full is None:
+                # Honest "not yet" rather than a score decided by filler.
+                return AntiSpoofResult(status=AnalyzerStatus.INSUFFICIENT_AUDIO,
+                                       model_version=self.version,
+                                       mode=self.mode, score=None)
+            samples = full
 
             with torch.no_grad():
                 _emb, logits = self._model(torch.from_numpy(samples).unsqueeze(0))

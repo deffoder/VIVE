@@ -11,6 +11,7 @@ a future real bundle are interchangeable.
 from __future__ import annotations
 
 import itertools
+import logging
 import threading
 from datetime import UTC, datetime
 
@@ -39,6 +40,8 @@ from app.schemas.models import (
     TranscriptLine,
 )
 from app.store.memory import InMemoryEventStore, SessionRecord
+
+logger = logging.getLogger("vive.sessions")
 
 WINDOW_SECONDS = 2.0
 STRIDE_SECONDS = 1.0
@@ -101,6 +104,7 @@ class SessionManager:
             raise session_already_ended(session_id)
         record.session.status = SessionStatus.ENDED
         record.session.ended_at = _now_iso()
+        self._release_adapter_state(session_id)
         return record.session
 
     def set_context(self, session_id: str, context: SessionContext) -> Session:
@@ -111,7 +115,26 @@ class SessionManager:
         return record.session
 
     def delete(self, session_id: str) -> bool:
+        self._release_adapter_state(session_id)
         return self._store.delete(session_id)
+
+    def _release_adapter_state(self, session_id: str) -> None:
+        """Drops any per-session audio an adapter is holding.
+
+        The anti-spoofing adapter buffers recent real audio because its model
+        needs a longer window than VIVE's packet (see audio_models). That
+        buffer holds caller speech, so it is released as soon as the session
+        ends rather than waiting for eviction - privacy first, memory second
+        (docs/SECURITY_SPEC.md 4).
+        """
+        for adapter in (self._adapters.vad, self._adapters.antispoof,
+                        self._adapters.speaker, self._adapters.asr):
+            release = getattr(adapter, "release", None)
+            if callable(release):
+                try:
+                    release(session_id)
+                except Exception:  # noqa: BLE001 - cleanup must never fail a request
+                    logger.debug("adapter release failed for %s", session_id)
 
     # ------------------------------------------------------------ analysis
 

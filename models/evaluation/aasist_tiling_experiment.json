@@ -1,0 +1,256 @@
+{
+  "experiment": "aasist_window_extension",
+  "run_at": "2026-09-22",
+  "question": "Does the adapter's tiling of a 2 s window to 64,600 samples inflate AASIST spoof scores?",
+  "design": "Identical 2 s content extended four ways; any difference is caused by the extension strategy alone. The native 4.04 s score uses different content and is context only.",
+  "model": {
+    "checkpoint": "AASIST.pth",
+    "required_samples": 64600,
+    "sample_rate": 16000,
+    "resampling_performed": false
+  },
+  "vive_window_samples": 32000,
+  "clips": 12,
+  "median_scores": {
+    "tile": 0.5675,
+    "zero_pad": 0.2738,
+    "reflect_pad": 0.8563,
+    "edge_pad": 0.8519
+  },
+  "median_native_4s_score": 0.793,
+  "per_clip_spread": {
+    "median": 0.4298,
+    "max": 0.8872
+  },
+  "tile_minus_reflect": {
+    "median": -0.0221,
+    "max": 0.4551,
+    "min": -0.7739
+  },
+  "clips_where_tile_scored_highest": 3,
+  "median_splice_discontinuity": {
+    "tile": 0.0077,
+    "zero_pad": 0.0077,
+    "reflect_pad": 0.0043,
+    "edge_pad": 0.0029
+  },
+  "rows": [
+    {
+      "clip": 1,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.8838,
+        "zero_pad": 0.3785,
+        "reflect_pad": 0.9584,
+        "edge_pad": 0.52
+      },
+      "native_4s_score": 0.8377,
+      "splice_discontinuity": {
+        "tile": 0.0074,
+        "zero_pad": 0.0074,
+        "reflect_pad": 0.0025,
+        "edge_pad": 0.0025
+      }
+    },
+    {
+      "clip": 2,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.9999,
+        "zero_pad": 0.9994,
+        "reflect_pad": 0.9999,
+        "edge_pad": 0.9999
+      },
+      "native_4s_score": 0.9994,
+      "splice_discontinuity": {
+        "tile": 0.0075,
+        "zero_pad": 0.0075,
+        "reflect_pad": 0.0051,
+        "edge_pad": 0.0043
+      }
+    },
+    {
+      "clip": 3,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.7094,
+        "zero_pad": 0.4072,
+        "reflect_pad": 0.2543,
+        "edge_pad": 0.9973
+      },
+      "native_4s_score": 0.0034,
+      "splice_discontinuity": {
+        "tile": 0.0869,
+        "zero_pad": 0.0869,
+        "reflect_pad": 0.0345,
+        "edge_pad": 0.0345
+      }
+    },
+    {
+      "clip": 4,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.4257,
+        "zero_pad": 0.0894,
+        "reflect_pad": 0.7168,
+        "edge_pad": 0.0672
+      },
+      "native_4s_score": 0.208,
+      "splice_discontinuity": {
+        "tile": 0.0066,
+        "zero_pad": 0.0066,
+        "reflect_pad": 0.0297,
+        "edge_pad": 0.0066
+      }
+    },
+    {
+      "clip": 5,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.2597,
+        "zero_pad": 0.1691,
+        "reflect_pad": 0.3826,
+        "edge_pad": 0.7083
+      },
+      "native_4s_score": 0.0077,
+      "splice_discontinuity": {
+        "tile": 0.0896,
+        "zero_pad": 0.0896,
+        "reflect_pad": 0.0735,
+        "edge_pad": 0.0534
+      }
+    },
+    {
+      "clip": 6,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.9935,
+        "zero_pad": 0.9994,
+        "reflect_pad": 0.9946,
+        "edge_pad": 0.9991
+      },
+      "native_4s_score": 0.9967,
+      "splice_discontinuity": {
+        "tile": 0.2335,
+        "zero_pad": 0.2335,
+        "reflect_pad": 0.0315,
+        "edge_pad": 0.0019
+      }
+    },
+    {
+      "clip": 7,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.0242,
+        "zero_pad": 0.0149,
+        "reflect_pad": 0.0674,
+        "edge_pad": 0.3354
+      },
+      "native_4s_score": 0.0109,
+      "splice_discontinuity": {
+        "tile": 0.0401,
+        "zero_pad": 0.0401,
+        "reflect_pad": 0.0035,
+        "edge_pad": 0.0033
+      }
+    },
+    {
+      "clip": 8,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.0317,
+        "zero_pad": 0.0117,
+        "reflect_pad": 0.8056,
+        "edge_pad": 0.0103
+      },
+      "native_4s_score": 0.8109,
+      "splice_discontinuity": {
+        "tile": 0.001,
+        "zero_pad": 0.001,
+        "reflect_pad": 0.0004,
+        "edge_pad": 0.0004
+      }
+    },
+    {
+      "clip": 9,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.9999,
+        "zero_pad": 0.9975,
+        "reflect_pad": 0.9999,
+        "edge_pad": 0.9973
+      },
+      "native_4s_score": 0.9999,
+      "splice_discontinuity": {
+        "tile": 0.0025,
+        "zero_pad": 0.0025,
+        "reflect_pad": 0.0023,
+        "edge_pad": 0.0023
+      }
+    },
+    {
+      "clip": 10,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 1.0,
+        "zero_pad": 0.9999,
+        "reflect_pad": 1.0,
+        "edge_pad": 1.0
+      },
+      "native_4s_score": 0.9999,
+      "splice_discontinuity": {
+        "tile": 0.008,
+        "zero_pad": 0.008,
+        "reflect_pad": 0.0076,
+        "edge_pad": 0.0076
+      }
+    },
+    {
+      "clip": 11,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.4237,
+        "zero_pad": 0.1084,
+        "reflect_pad": 0.9071,
+        "edge_pad": 0.9956
+      },
+      "native_4s_score": 0.775,
+      "splice_discontinuity": {
+        "tile": 0.0511,
+        "zero_pad": 0.0511,
+        "reflect_pad": 0.0014,
+        "edge_pad": 0.0014
+      }
+    },
+    {
+      "clip": 12,
+      "window_samples": 32000,
+      "native_samples": 64600,
+      "scores": {
+        "tile": 0.0109,
+        "zero_pad": 0.0111,
+        "reflect_pad": 0.011,
+        "edge_pad": 0.0112
+      },
+      "native_4s_score": 0.0107,
+      "splice_discontinuity": {
+        "tile": 0.0002,
+        "zero_pad": 0.0002,
+        "reflect_pad": 0.0,
+        "edge_pad": 0.0
+      }
+    }
+  ],
+  "caveat": "12 clips of one corpus. This measures sensitivity to input extension, NOT detection accuracy. It is not an EER and not a false-positive rate."
+}

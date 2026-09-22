@@ -335,6 +335,74 @@ provisional (O6), intent and behaviour remain collinear in the training data
 (O10), and **no calibrated fraud probability is claimed**. Phase 9 owns
 calibration.
 
+## 2.7 AASIST windowing — investigated, defect found and fixed
+
+**Question:** was the adapter's tiling of a 2.0 s window up to AASIST's
+64,600-sample input inflating spoof scores?
+
+**Answer: no — but the investigation found a worse problem.**
+
+### Design
+
+Comparing a tiled 2 s window against a native 4.04 s window changes both the
+preprocessing *and* the audio, so it proves nothing. The experiment instead
+holds content fixed: the **same** 2 s segment extended to 64,600 samples four
+ways, so any difference is caused by the extension alone.
+`scripts/experiment_aasist_tiling.py`, 12 FLEURS clips.
+
+| Extension | Median spoof score |
+|---|---:|
+| `zero_pad` | 0.2738 |
+| **`tile` (what the adapter did)** | **0.5675** |
+| `edge_pad` | 0.8519 |
+| `reflect_pad` | 0.8563 |
+
+### Tiling was not the problem
+
+Tiling scored **lower** than two of the three alternatives (median
+tile − reflect_pad = -0.0221) and produced the highest score on only
+**3 of 12** clips. Splice
+discontinuity at the repeat boundary was ~0.008, far too small to be the
+mechanism. No resampling is performed anywhere: the audio is already 16 kHz.
+
+### The actual defect
+
+**Per-clip spread across extension methods: median 0.4298, max
+0.8872** on a 0–1 scale. One clip moved from 0.0317 to 0.8056 on
+*identical* audio.
+
+The cause is structural. AASIST scores the whole 64,600-sample window, and a
+2 s VIVE window fills barely half of it, so **half of every input was filler
+the adapter invented**. The adapter was not asking "is this speech synthetic";
+it was asking "is this speech plus 2 s of my own padding synthetic". No choice
+of padding fixes that — which is why the tiling-versus-alternatives comparison
+came out roughly even.
+
+### Fix
+
+The adapter no longer pads. It keeps a **rolling buffer of recent real audio
+per session**, appends only the new portion of each overlapping window, and
+runs the model only once it holds a full genuine 64,600-sample window. Until
+then it reports `INSUFFICIENT_AUDIO` — an honest "not yet" instead of a score
+decided by filler.
+
+Buffers are bounded (`AASIST_MAX_SESSIONS`), isolated per session, and
+released when a session ends or is deleted, because they hold caller speech
+(`SECURITY_SPEC.md` §4).
+
+**Consequence:** anti-spoofing now begins ~4 s into a call rather than at the
+first packet. That is the correct trade: a late honest score beats an
+immediate meaningless one.
+
+### What this does and does not establish
+
+It measures **sensitivity to input preparation**, on 12 clips of one
+corpus. It is **not** an EER, not a false-positive rate, and says nothing about
+detection accuracy. O12 stands unchanged: AASIST still has no VIVE-measured
+EER, and still scored genuine human speech as synthetic on the earlier
+native-length spot check — that finding used full 64,600-sample windows with no
+padding at all, so this fix does not explain it away.
+
 ## 3. Interfaces (`models/interfaces/`)
 
 One Python protocol per stage. Each returns a typed result carrying `status`,

@@ -281,6 +281,14 @@ diverge from the design references.
   models are known to generalise poorly across domains, which is exactly what
   `BLOCKERS.md` P2 warns about. No VIVE-side evaluation corpus was acquired
   (O5), so this was never going to be caught by a metric.
+- **Windowing investigated separately (2026-09-22):** the adapter used to pad
+  a 2 s window up to the model's 64,600-sample input, so half of every input
+  was invented filler; a controlled experiment measured the score moving by a
+  median of 0.43 with padding strategy alone. **Fixed** — the adapter now
+  buffers real audio and reports `INSUFFICIENT_AUDIO` until it holds a full
+  genuine window (`ML_SPEC.md` §2.7). **This does not explain O12:** the
+  genuine-speech spot check above used native 64,600-sample windows with no
+  padding, so the out-of-domain behaviour is unaffected by the fix.
 - **Attempted fixes:** verified the class-index convention against upstream
   (`main.py` scores `batch_out[:, 1]`, which `evaluation.py` documents as the
   bonafide/positive class), so the adapter's mapping is correct and the
