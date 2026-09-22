@@ -1,0 +1,135 @@
+{
+  "matrix": "phase10_e2e",
+  "run_at_utc": "2026-09-22T14:50:35+00:00",
+  "adapter_mode": "mock",
+  "cases": 15,
+  "passed": 15,
+  "failed": 0,
+  "rows": [
+    {
+      "case": "1. benign conversation stays LOW",
+      "expected": "risk level LOW, no alert",
+      "actual": "level=LOW score=28",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "2. social engineering escalates on semantic evidence",
+      "expected": "risk level HIGH or CRITICAL",
+      "actual": "level=HIGH score=81",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "3. supported language produces an intent",
+      "expected": "intent status AVAILABLE",
+      "actual": "status=AVAILABLE label=OTP_REQUEST",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "4. unsupported language declines rather than guessing",
+      "expected": "intent+behaviour UNSUPPORTED_LANGUAGE, label UNKNOWN, not CRITICAL",
+      "actual": "intent=UNSUPPORTED_LANGUAGE behaviour=UNSUPPORTED_LANGUAGE label=UNKNOWN level=LOW",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": "An unsupported language is missing evidence, not incriminating evidence (BLOCKERS O11)."
+    },
+    {
+      "case": "5. an analyzer that did not run carries no value",
+      "expected": "every non-AVAILABLE analyzer has a null value",
+      "actual": "clean",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "6. no enrolment reports NO_REFERENCE, not a mismatch",
+      "expected": "ecapa status NO_REFERENCE with null similarity",
+      "actual": "status=NO_REFERENCE similarity=None",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "7. every packet is fully traceable",
+      "expected": "all 16 fields present on every packet",
+      "actual": "complete",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "8. all five analyzers expose their inference cost",
+      "expected": "inference_ms present on asr, intent, behavior, aasist, ecapa",
+      "actual": "present on ['asr', 'intent', 'behavior', 'aasist', 'ecapa']",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": "Phase 9 found the two text heads had no inference_ms, so per-stage latency could only account for four of six."
+    },
+    {
+      "case": "9. real vs mock is declared, never implicit",
+      "expected": "every packet and every adapter declares its mode",
+      "actual": "packet modes={'mock'} adapter modes={'mock'}",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "10. risk score and confidence are distinct quantities",
+      "expected": "score is an int 0-100, confidence a separate float",
+      "actual": "distinct",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "11. session reports escalation timings",
+      "expected": "session carries escalation timing fields",
+      "actual": "present",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "12. malformed frames are rejected, not silently accepted",
+      "expected": "an error frame or no packet",
+      "actual": "reply type=error",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "13. unknown session returns a clean 404",
+      "expected": "HTTP 404",
+      "actual": "HTTP 404",
+      "result": "PASS",
+      "source": "live mock-mode run",
+      "detail": ""
+    },
+    {
+      "case": "14. real mode: Tamil text heads decline on every packet",
+      "expected": "intent and behaviour UNSUPPORTED_LANGUAGE on all 30 packets",
+      "actual": "intent={'UNSUPPORTED_LANGUAGE': 30} behaviour={'UNSUPPORTED_LANGUAGE': 30}",
+      "result": "PASS",
+      "source": "models/evaluation/phase9/9I_runtime_end_to_end.json",
+      "detail": ""
+    },
+    {
+      "case": "15. real mode: anti-spoofing waits for genuine audio",
+      "expected": "no AASIST score until ~4 s of real audio has accumulated",
+      "actual": "first scored packet = #4",
+      "result": "PASS",
+      "source": "models/evaluation/phase9/9I_runtime_end_to_end.json",
+      "detail": "The adapter reports INSUFFICIENT_AUDIO rather than padding the window (ML_SPEC 2.7)."
+    }
+  ],
+  "notes": [
+    "Mock mode exercises the real orchestration with scripted model outputs, so results are deterministic and reproducible without multi-GB weights.",
+    "Real-mode rows are asserted against the Phase 9 runtime record rather than re-measured; re-running a real-model benchmark would re-derive the same statuses at high cost.",
+    "No case is skipped. A case that cannot run is recorded as a failure with its reason."
+  ]
+}

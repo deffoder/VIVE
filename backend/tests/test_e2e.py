@@ -273,3 +273,131 @@ def test_every_analyzer_reports_its_own_inference_cost(client: TestClient) -> No
             f"{analyzer} carries no inference_ms, so its cost cannot be "
             f"measured from a packet"
         )
+
+
+def test_s12_antispoof_waits_for_real_audio_rather_than_padding(client: TestClient) -> None:
+    """S12: `INSUFFICIENT_AUDIO` is a real state, not a failure.
+
+    AASIST needs 64,600 samples (~4.04 s) and the adapter refuses to pad,
+    tile or fabricate the difference - Phase 8 measured that padding let the
+    padding STRATEGY rather than the speech decide the score (ML_SPEC 2.7).
+
+    What this pins is the contract the UI depends on: while waiting, the
+    analyzer reports INSUFFICIENT_AUDIO and carries NO score. A null score
+    paired with a status of AVAILABLE, or a substituted 0.0, would both let
+    the app render "no synthetic indicators" for a window that was never
+    analysed.
+    """
+    session_id = client.post("/api/v1/sessions", json={"source_type": "VOIP"}).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        ws_send(ws, "Hello, I am calling about your account.")
+        for _ in range(6):
+            if ws.receive_json()["type"] == "risk.update":
+                break
+
+    packet = client.get(f"/api/v1/sessions/{session_id}/packets").json()[-1]
+    aasist = packet["aasist"]
+    if aasist["status"] == "INSUFFICIENT_AUDIO":
+        assert aasist["score"] is None, (
+            "a window that was not analysed must carry no score"
+        )
+    else:
+        # Mock mode scripts a score; the invariant still holds in reverse.
+        assert aasist["status"] == "AVAILABLE" and aasist["score"] is not None
+
+
+def test_s10_a_failed_analyzer_never_carries_a_value(client: TestClient) -> None:
+    """S10: every analyzer either produced a value or says why it did not.
+
+    This is the invariant the Android status mapping relies on. Phase 10 found
+    the client could turn an unrecognised status into AVAILABLE; this pins the
+    server side of the same contract, so the pair cannot drift back.
+    """
+    session_id = client.post("/api/v1/sessions", json={"source_type": "VOIP"}).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        ws_send(ws, "Please confirm the OTP now, it is urgent.")
+        for _ in range(6):
+            if ws.receive_json()["type"] == "risk.update":
+                break
+
+    for packet in client.get(f"/api/v1/sessions/{session_id}/packets").json():
+        for analyzer, value_field in (("aasist", "score"), ("ecapa", "similarity")):
+            block = packet[analyzer]
+            if block["status"] != "AVAILABLE":
+                assert block[value_field] is None, (
+                    f"{analyzer} reported {block['status']} but still carried a "
+                    f"{value_field}; absent evidence must be null"
+                )
+        if packet["intent"]["status"] != "AVAILABLE":
+            assert packet["intent"]["label"] == "UNKNOWN", (
+                "an intent head that did not run must report the designated "
+                "null label, never a specific intent"
+            )
+
+
+S11_TAMIL_SCRIPT = [
+    "\u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0b93\u0b9f\u0bbf\u0baa\u0bbf "
+    "\u0b8e\u0ba9\u0bcd\u0ba9 \u0b8e\u0ba9\u0bcd\u0bb1\u0bc1 "
+    "\u0b9a\u0bc6\u0bbe\u0bb2\u0bcd\u0bb2\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd",
+]
+
+
+def test_tamil_in_tamil_script_is_also_declined(client: TestClient) -> None:
+    """The O11 protection must not depend on HOW Tamil was written.
+
+    S11 was written in romanised Tamil, so it passed while a real defect sat
+    underneath: the mock language guess recognised only romanised keywords and
+    reported Tamil SCRIPT as "en". Both text heads then analysed it as English
+    and returned NORMAL_CONVERSATION with status AVAILABLE - a confident
+    prediction for a language VIVE cannot read.
+
+    Found by the Phase 10 end-to-end matrix, which used real Tamil script.
+    """
+    session_id = client.post(
+        "/api/v1/sessions",
+        json={"source_type": "VOIP", "language": "ta"},
+    ).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        for line in S11_TAMIL_SCRIPT:
+            ws_send(ws, line)
+            for _ in range(6):
+                if ws.receive_json()["type"] == "risk.update":
+                    break
+
+    packet = client.get(f"/api/v1/sessions/{session_id}/packets").json()[-1]
+    assert packet["intent"]["status"] == "UNSUPPORTED_LANGUAGE", (
+        "Tamil script must be declined exactly as romanised Tamil is"
+    )
+    assert packet["behavior"]["status"] == "UNSUPPORTED_LANGUAGE"
+    assert packet["intent"]["label"] == "UNKNOWN"
+
+
+def test_a_declared_session_language_outranks_a_detected_one(client: TestClient) -> None:
+    """A caller's declared language is authoritative; detection is a fallback.
+
+    The text-head gate used `asr.language` unconditionally, so a heuristic
+    guess could override an explicit declaration and let the heads run on a
+    language the session said they should not.
+    """
+    session_id = client.post(
+        "/api/v1/sessions",
+        json={"source_type": "VOIP", "language": "ta"},
+    ).json()["session_id"]
+    with client.websocket_connect(f"/api/v1/sessions/{session_id}/stream") as ws:
+        ws.receive_json()
+        # Deliberately English words in a session declared as Tamil.
+        ws_send(ws, "Please share the OTP sent to your phone right now.")
+        for _ in range(6):
+            if ws.receive_json()["type"] == "risk.update":
+                break
+
+    packet = client.get(f"/api/v1/sessions/{session_id}/packets").json()[-1]
+    assert packet["intent"]["status"] == "UNSUPPORTED_LANGUAGE", (
+        "the declared session language must gate the text heads"
+    )
+    assert packet["risk"]["level"] != "CRITICAL", (
+        "text evidence that was never produced must not drive CRITICAL"
+    )

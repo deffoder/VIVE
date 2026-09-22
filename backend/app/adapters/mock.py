@@ -286,7 +286,19 @@ class MockAsrAdapter(_MockInfo):
 
 
 def _guess_language(text: str) -> str:
-    """Crude script/keyword check. A stand-in for language ID, not a model."""
+    """Crude script/keyword check. A stand-in for language ID, not a model.
+
+    Script is checked FIRST and is decisive. The keyword lists only ever
+    recognised ROMANISED Tamil and Hindi, so text in the actual scripts fell
+    through to "en" - a session carrying real Tamil was reported as English,
+    and the text heads then analysed it instead of declining an unsupported
+    language (docs/BLOCKERS.md O11). Romanised detection is kept as a second
+    pass because Tanglish and Hinglish are written in Latin script.
+    """
+    if any(0x0B80 <= ord(ch) <= 0x0BFF for ch in text):
+        return "ta"                      # Tamil
+    if any(0x0900 <= ord(ch) <= 0x097F for ch in text):
+        return "hi"                      # Devanagari
     lowered = text.lower()
     if any(word in lowered for word in ("sollunga", "pannunga", "vanakkam", "irukku", "aagidum")):
         return "ta"

@@ -38,18 +38,37 @@ pressure. Intent `OTP_REQUEST`, behaviour `URGENCY` (often with
 alone, proving that low anti-spoof evidence does not cap risk
 (`ML_SPEC.md` §6). This is the most important scenario in the set.
 
-### S3 — Synthetic scam
+### S3 — Elevated anti-spoof signal alongside semantic evidence
 Elevated anti-spoof evidence plus `OTP_REQUEST` plus `URGENCY` plus unverified
 caller. **Expect:** escalation through `MEDIUM` → `HIGH` → `CRITICAL` with
 `SECONDARY_VERIFICATION` recommended, and an alert raised by policy — not by a
 hard-coded trigger.
 
+**What this scenario does and does not demonstrate.** It demonstrates how
+VIVE *combines* an elevated anti-spoof signal with semantic evidence, and
+specifically that the signal alone is not treated as proof: the
+`SYNTHETIC_ONLY_CEILING` guard caps anti-spoof-only evidence at 55, below
+`HIGH` (measured, `EVALUATION.md` §9). CRITICAL is reached because the intent
+and behaviour evidence is also present — remove it and the same anti-spoof
+score does not escalate.
+
+It does **not** demonstrate synthetic-voice detection, and must not be
+presented as doing so. In **mock mode** the elevated score is scripted by the
+deterministic mock adapter. In **real mode** the score comes from AASIST,
+which Phase 9 measured at chance on the only two-class probe available — EER
+0.4333, 90% interval 0.3500–0.5000 (`EVALUATION.md` §5, `BLOCKERS.md` O12).
+Say so when running it.
+
 > **Changed in Phase 8B.** S3 was written in romanised Tamil, which meant the
 > scenario demonstrated Tamil scam detection VIVE cannot perform: the intent
 > and behaviour heads were trained on a corpus with zero Tamil records
-> (`BLOCKERS.md` O11). It now runs in **Hindi**, preserving what the scenario
-> actually tests — synthetic-voice escalation — while S11 covers Tamil
+> (`BLOCKERS.md` O11). It now runs in **Hindi**, and S11 covers Tamil
 > honestly.
+>
+> **Renamed in Phase 10.** It was called "Synthetic scam" and its stated
+> purpose was "synthetic-voice escalation". Phase 9 made that framing a claim
+> VIVE cannot support, so the scenario now demonstrates the fusion guard
+> rather than a detection capability. The packets it produces are unchanged.
 
 ### S4 — Poor audio
 Noisy, clipped or near-silent input. Quality `POOR` / `NO_SPEECH`. **Expect:**
@@ -92,8 +111,24 @@ no crash.
 
 ### S10 — Adapter unavailable
 An adapter fails to load. **Expect:** `/ready` reports it, packets carry
-`UNAVAILABLE` for that analyzer, the UI shows Unavailable, and the session still
-produces a risk assessment.
+`LOAD_ERROR` for that analyzer, the UI shows "Model unavailable", and the
+session still produces a risk assessment. Risk must **not** rise because a
+model is missing, and confidence must fall — both measured in `EVALUATION.md`
+§12.
+
+### S12 — Anti-spoofing warm-up (real mode)
+The first seconds of any real-mode call. AASIST needs 64,600 samples (~4.04 s)
+of genuine audio and the adapter refuses to pad, tile or fabricate the
+difference. **Expect:** `aasist.status = INSUFFICIENT_AUDIO` with `score:
+null` on the early packets, the UI reading "Not enough audio yet" rather than
+"Unavailable" or `0%`, and a real score appearing from roughly the fourth
+packet — measured as packet #4 in both languages (`EVALUATION.md` §10).
+
+This scenario exists because the honest behaviour looks like a bug. A
+demonstrator who sees an empty anti-spoof row for four seconds should be able
+to say why it is empty, and that waiting is the correct answer: Phase 8
+measured that padding a short window let the padding strategy, rather than the
+speech, decide the score (`ML_SPEC.md` §2.7).
 
 ## 4. Walkthrough
 

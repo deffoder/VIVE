@@ -190,11 +190,26 @@ class SessionManager:
         antispoof = a.antispoof.analyze(window)
         speaker_result = a.speaker.analyze(window, record.reference_audio)
         asr = a.asr.analyze(window)
-        # The language comes from ASR, so the text heads can decline a
-        # language they were never trained on rather than guessing
-        # (docs/BLOCKERS.md O11).
-        intent = a.intent.analyze(asr.transcript, asr.language)
-        behavior = a.behavior.analyze(asr.transcript, asr.language)
+        # Which language the text heads are asked about decides whether they
+        # run at all, so it has to be the most reliable value available - not
+        # simply the most recent one.
+        #
+        # A DECLARED session language wins. The caller told us, and in real
+        # mode the ASR was decoded in that language, so its output is that
+        # language by construction. `asr.language` is the fallback for a
+        # session that declared nothing ("auto").
+        #
+        # Taking ASR's value unconditionally was wrong in exactly one
+        # direction, and it was the dangerous one: the mock language guess is
+        # keyword-based and does not recognise Tamil SCRIPT, so a session
+        # explicitly declared `ta` carrying real Tamil text was reported as
+        # `en` and both heads analysed it as English - returning
+        # NORMAL_CONVERSATION with status AVAILABLE for a language VIVE cannot
+        # read. That is precisely the O11 protection this line exists to
+        # provide, defeated by trusting a guess over a declaration.
+        text_language = record.session.language or asr.language
+        intent = a.intent.analyze(asr.transcript, text_language)
+        behavior = a.behavior.analyze(asr.transcript, text_language)
 
         ctx = record.session.context
         fused = fuse(
