@@ -166,7 +166,20 @@ def fuse(data: FusionInput) -> FusionOutput:
         contributions["speaker_consistency"] = round(data.speaker.similarity, 4)
 
     # --- noisy-OR over AVAILABLE evidence only ---------------------------
-    parts: dict[str, float] = {"context": context_risk, "intent": intent_risk}
+    #
+    # Intent is included only when the head actually ran. It used to be added
+    # unconditionally, which broke the rule above that missing evidence lowers
+    # confidence rather than risk: a failed or UNSUPPORTED_LANGUAGE head still
+    # carried UNKNOWN's 0.10, which is DOUBLE a benign NORMAL_CONVERSATION's
+    # 0.05. A model outage raised the score (measured: 26 -> 28), the score
+    # stopped reconciling with `contributions` - which correctly omitted
+    # intent - and confidence did not fall, because signal_count counts these
+    # parts. It also penalised Tamil specifically, since every Tamil packet
+    # reports UNSUPPORTED_LANGUAGE by design (docs/BLOCKERS.md O11), so an
+    # identical call scored higher in Tamil than in Hindi.
+    parts: dict[str, float] = {"context": context_risk}
+    if data.intent.status == AnalyzerStatus.AVAILABLE:
+        parts["intent"] = intent_risk
     if synthetic is not None:
         parts["synthetic"] = synthetic
     if behavior_risk:
@@ -181,7 +194,9 @@ def fuse(data: FusionInput) -> FusionOutput:
     score = int(round(raw * 100))
 
     # --- guard rails -----------------------------------------------------
-    semantic_pressure = max(intent_risk, behavior_risk)
+    # Read from `parts` so an unavailable intent head cannot contribute
+    # semantic pressure it never measured.
+    semantic_pressure = max(parts.get("intent", 0.0), behavior_risk)
     if semantic_pressure < 0.4 and score > SYNTHETIC_ONLY_CEILING:
         # Synthetic evidence alone cannot reach CRITICAL.
         score = SYNTHETIC_ONLY_CEILING

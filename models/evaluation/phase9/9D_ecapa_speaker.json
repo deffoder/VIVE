@@ -1,0 +1,185 @@
+{
+  "experiment_id": "9D_ecapa_speaker",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T10:40:06+00:00",
+  "question": "What is ECAPA-TDNN's speaker-verification error rate through the VIVE adapter, and how much of it survives a call-like channel and VIVE's 2-second window?",
+  "hypothesis": "Verification on clean read speech will be strong, and the 2 s window will cost more than the channel simulations because a short window carries less speaker information.",
+  "method": "Build genuine pairs from different utterances of the same LibriSpeech speaker and impostor pairs across speaker_ids. Score cosine similarity through the real adapter under four conditions. Report EER, AUC, FAR/FRR and distributions.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "303c5fa4744a1c116d5b4145b7a6a5afa3d8d5ad",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "openslr/librispeech_asr (clean/test)",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test.clean",
+      "samples": 75,
+      "speakers": 25,
+      "language": "en",
+      "note": "clean read audiobook speech; not telephone audio"
+    }
+  ],
+  "models": [
+    {
+      "name": "ecapa-tdnn",
+      "revision": "speechbrain/spkrec-ecapa-voxceleb",
+      "license": "Apache-2.0",
+      "trained_on": "VoxCeleb (not evaluated here)"
+    }
+  ],
+  "results": {
+    "no_reference_contract": {
+      "no_reference_status": "NO_REFERENCE",
+      "no_reference_similarity": null,
+      "empty_reference_status": "NO_REFERENCE",
+      "empty_reference_similarity": null,
+      "declines_without_enrolment": true
+    },
+    "per_condition": {
+      "clean_full": {
+        "genuine_pairs": 75,
+        "impostor_pairs": 300,
+        "genuine_similarity": {
+          "median": 0.8133,
+          "min": 0.5536,
+          "max": 0.951
+        },
+        "impostor_similarity": {
+          "median": 0.0741,
+          "min": -0.1997,
+          "max": 0.409
+        },
+        "eer": 0.0,
+        "eer_threshold": 0.5536,
+        "roc_auc": 1.0,
+        "at_threshold_0.5": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.0
+        },
+        "at_threshold_0.25": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.0233
+        }
+      },
+      "vive_window_2s": {
+        "genuine_pairs": 75,
+        "impostor_pairs": 300,
+        "genuine_similarity": {
+          "median": 0.555,
+          "min": 0.1737,
+          "max": 0.7043
+        },
+        "impostor_similarity": {
+          "median": 0.0576,
+          "min": -0.2023,
+          "max": 0.4585
+        },
+        "eer": 0.015,
+        "eer_threshold": 0.2923,
+        "roc_auc": 0.998,
+        "at_threshold_0.5": {
+          "false_reject_rate": 0.2933,
+          "false_accept_rate": 0.0
+        },
+        "at_threshold_0.25": {
+          "false_reject_rate": 0.0133,
+          "false_accept_rate": 0.03
+        }
+      },
+      "telephony_band": {
+        "genuine_pairs": 75,
+        "impostor_pairs": 300,
+        "genuine_similarity": {
+          "median": 0.7869,
+          "min": 0.533,
+          "max": 0.9369
+        },
+        "impostor_similarity": {
+          "median": 0.2565,
+          "min": -0.0175,
+          "max": 0.6048
+        },
+        "eer": 0.0033,
+        "eer_threshold": 0.533,
+        "roc_auc": 0.9995,
+        "at_threshold_0.5": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.0133
+        },
+        "at_threshold_0.25": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.52
+        }
+      },
+      "g711_ulaw": {
+        "genuine_pairs": 75,
+        "impostor_pairs": 300,
+        "genuine_similarity": {
+          "median": 0.8128,
+          "min": 0.5655,
+          "max": 0.9528
+        },
+        "impostor_similarity": {
+          "median": 0.0909,
+          "min": -0.1834,
+          "max": 0.4289
+        },
+        "eer": 0.0,
+        "eer_threshold": 0.5655,
+        "roc_auc": 1.0,
+        "at_threshold_0.5": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.0
+        },
+        "at_threshold_0.25": {
+          "false_reject_rate": 0.0,
+          "false_accept_rate": 0.0567
+        }
+      }
+    }
+  },
+  "interpretation": "On clean full utterances the adapter separates speakers with an EER of 0.0 (AUC 1.0). VIVE's own 2 s window costs a move to EER 0.015, and the channel simulations move it further. The default fusion threshold matters: at a similarity of 0.5 the clean false-reject rate is 0.0, which is the rate at which a genuine caller would look inconsistent.",
+  "limitations": [
+    "LibriSpeech is clean English audiobook read speech from close microphones. It is the EASY case for speaker verification. These numbers are an upper bound and are NOT comparable to published VoxCeleb ECAPA results.",
+    "VoxCeleb1, the checkpoint's own evaluation set, remains unavailable (docs/BLOCKERS.md O5). No in-domain verification figure exists.",
+    "`telephony_band` and `g711_ulaw` are simulated. A real call adds handset response, automatic gain control, packet loss and echo cancellation, none of which are modelled.",
+    "25 speakers. An EER from this many speakers has wide uncertainty and should be read as an order of magnitude.",
+    "Speaker VERIFICATION is not speaker IDENTIFICATION. Nothing here supports recognising who a caller is; it supports comparing a caller against one enrolled reference - and VIVE has no enrolment source (docs/BLOCKERS.md O3), so in production this channel reports NO_REFERENCE."
+  ],
+  "conclusion": "ECAPA discriminates speakers well enough to be worth keeping, on clean speech. It stays unusable in production for a different reason: there is no enrolment source, so the adapter correctly reports NO_REFERENCE and contributes nothing. Any similarity threshold VIVE adopts later must be set from a measurement like this one, not chosen by eye.",
+  "configuration": {
+    "conditions": [
+      "clean_full",
+      "g711_ulaw",
+      "telephony_band",
+      "vive_window_2s"
+    ],
+    "min_utterance_sec": 3.0,
+    "utterances_per_speaker": 3,
+    "vive_window_sec": 2.0
+  },
+  "runtime_sec": 5683.3
+}

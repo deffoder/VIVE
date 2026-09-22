@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from app.adapters.interfaces import AudioWindow
 from app.adapters.mock import build_mock_bundle
-from app.risk.fusion import FusionInput, fuse
+from app.risk.fusion import WEIGHTS, FusionInput, fuse
 from app.risk.temporal import TemporalState
 from app.schemas.models import AnalyzerStatus, AudioQuality, Behavior, Intent, RiskLevel
 
@@ -107,6 +107,82 @@ def test_contributions_are_evidence_strengths_in_range() -> None:
     assert out.risk.contributions
     for value in out.risk.contributions.values():
         assert 0.0 <= value <= 1.0
+
+
+# ------------------------------------- an unavailable intent head (Phase 9)
+#
+# Regression guards. Intent used to enter the noisy-OR unconditionally, so a
+# head that had not run still contributed UNKNOWN's 0.10 - double a benign
+# NORMAL_CONVERSATION's 0.05. Three separate promises broke at once.
+
+
+def _fuse_with_intent(status: AnalyzerStatus, label: Intent):
+    from app.adapters.interfaces import (AntiSpoofResult, AsrResult,
+                                         BehaviorResult, IntentResult,
+                                         SpeakerResult, VadResult)
+    from app.schemas.models import AdapterMode
+
+    return fuse(FusionInput(
+        vad=VadResult(status=AnalyzerStatus.AVAILABLE, model_version="v",
+                      mode=AdapterMode.REAL, has_speech=True,
+                      quality=AudioQuality.GOOD),
+        antispoof=AntiSpoofResult(status=AnalyzerStatus.AVAILABLE,
+                                  model_version="v", mode=AdapterMode.REAL,
+                                  score=0.2),
+        speaker=SpeakerResult(status=AnalyzerStatus.NO_REFERENCE,
+                              model_version="v", mode=AdapterMode.REAL,
+                              similarity=None),
+        asr=AsrResult(status=AnalyzerStatus.AVAILABLE, model_version="v",
+                      mode=AdapterMode.REAL, transcript="hello", confidence=0.9),
+        intent=IntentResult(status=status, model_version="v",
+                            mode=AdapterMode.REAL, label=label, confidence=0.9),
+        behavior=BehaviorResult(status=AnalyzerStatus.AVAILABLE,
+                                model_version="v", mode=AdapterMode.REAL,
+                                labels=[Behavior.NORMAL], confidence=0.9),
+        caller_verified=False, session_authenticated=True))
+
+
+def test_failed_intent_head_does_not_raise_risk() -> None:
+    """A model outage must lower confidence, never raise the score."""
+    healthy = _fuse_with_intent(AnalyzerStatus.AVAILABLE,
+                                Intent.NORMAL_CONVERSATION)
+    failed = _fuse_with_intent(AnalyzerStatus.LOAD_ERROR, Intent.UNKNOWN)
+    assert failed.risk.score <= healthy.risk.score, (
+        "a broken intent head raised risk; missing evidence is not evidence"
+    )
+    assert failed.risk.confidence < healthy.risk.confidence, (
+        "losing a signal must cost confidence"
+    )
+
+
+def test_unsupported_language_does_not_penalise_the_caller() -> None:
+    """Tamil reports UNSUPPORTED_LANGUAGE on every packet (BLOCKERS O11).
+
+    If that raised the score, an identical call would be riskier in Tamil
+    than in Hindi purely because VIVE cannot read Tamil.
+    """
+    supported = _fuse_with_intent(AnalyzerStatus.AVAILABLE,
+                                  Intent.NORMAL_CONVERSATION)
+    unsupported = _fuse_with_intent(AnalyzerStatus.UNSUPPORTED_LANGUAGE,
+                                    Intent.UNKNOWN)
+    assert unsupported.risk.score <= supported.risk.score
+
+
+def test_score_reconciles_with_reported_contributions() -> None:
+    """Explainability: the score must not include evidence the UI cannot see.
+
+    `contributions` drives the packet-detail breakdown. A score containing a
+    term absent from that map is unexplainable by construction.
+    """
+    out = _fuse_with_intent(AnalyzerStatus.LOAD_ERROR, Intent.UNKNOWN)
+    assert "intent" not in out.risk.contributions
+
+    survival = 1.0
+    for key, value in out.risk.contributions.items():
+        if key == "speaker_consistency":
+            value = 1.0 - value      # stored as similarity, used as risk
+        survival *= 1.0 - WEIGHTS[key] * value
+    assert abs(int(round((1.0 - survival) * 100)) - out.risk.score) <= 1
 
 
 # ------------------------------------------------------------------ adapters

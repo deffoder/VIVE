@@ -1,0 +1,372 @@
+{
+  "experiment_id": "9H_ood_and_failure_injection",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T12:15:11+00:00",
+  "question": "When the input is not speech, or a model is unavailable, does VIVE report an explicit state and leave risk alone - or does it produce a confident number?",
+  "hypothesis": "Every adapter will reach an explicit state rather than emit a value, and a model failure will lower confidence without raising risk.",
+  "method": "Feed degenerate audio and unsupported-language text through the real adapters. Separately construct adapters with no weights and confirm LOAD_ERROR, no value, no mock fallback, and the effect on fused risk and confidence.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "303c5fa4744a1c116d5b4145b7a6a5afa3d8d5ad",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.14.0+cpu",
+      "onnxruntime": "1.30.0",
+      "transformers": "5.17.0",
+      "datasets": "not installed",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "not installed",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": null,
+    "torch_cuda_available": false,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [],
+  "models": [],
+  "results": {
+    "adapter_load_status": {
+      "vad": "AVAILABLE",
+      "antispoof": "AVAILABLE",
+      "speaker": "AVAILABLE",
+      "asr": "AVAILABLE"
+    },
+    "ood_audio": {
+      "digital_silence": {
+        "pcm_bytes": 64000,
+        "vad": {
+          "status": "AVAILABLE",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "NO_REFERENCE",
+          "similarity": null
+        },
+        "asr": {
+          "status": "AVAILABLE",
+          "transcript_len": 1,
+          "confidence": 0.0815
+        }
+      },
+      "dc_offset": {
+        "pcm_bytes": 64000,
+        "vad": {
+          "status": "AVAILABLE",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "NO_REFERENCE",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "pure_tone_440hz": {
+        "pcm_bytes": 64000,
+        "vad": {
+          "status": "AVAILABLE",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "NO_REFERENCE",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "white_noise": {
+        "pcm_bytes": 64000,
+        "vad": {
+          "status": "AVAILABLE",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "NO_REFERENCE",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "full_scale_square": {
+        "pcm_bytes": 64000,
+        "vad": {
+          "status": "AVAILABLE",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "NO_REFERENCE",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "ten_millisecond_fragment": {
+        "pcm_bytes": 320,
+        "vad": {
+          "status": "INSUFFICIENT_AUDIO",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "INSUFFICIENT_AUDIO",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "single_sample": {
+        "pcm_bytes": 2,
+        "vad": {
+          "status": "INSUFFICIENT_AUDIO",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "INSUFFICIENT_AUDIO",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "empty_buffer": {
+        "pcm_bytes": 0,
+        "vad": {
+          "status": "INSUFFICIENT_AUDIO",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INSUFFICIENT_AUDIO",
+          "score": null
+        },
+        "speaker": {
+          "status": "INSUFFICIENT_AUDIO",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      },
+      "odd_byte_count": {
+        "pcm_bytes": 2001,
+        "vad": {
+          "status": "INFERENCE_ERROR",
+          "has_speech": false,
+          "quality": "NO_SPEECH"
+        },
+        "antispoof": {
+          "status": "INFERENCE_ERROR",
+          "score": null
+        },
+        "speaker": {
+          "status": "INFERENCE_ERROR",
+          "similarity": null
+        },
+        "asr": {
+          "status": "INSUFFICIENT_AUDIO",
+          "transcript_len": 0,
+          "confidence": null
+        }
+      }
+    },
+    "language_handling": {
+      "tamil_script": {
+        "language": "ta",
+        "intent_status": "UNSUPPORTED_LANGUAGE",
+        "intent_label": null,
+        "behavior_status": "UNSUPPORTED_LANGUAGE",
+        "behavior_labels": null
+      },
+      "hindi_script": {
+        "language": "hi",
+        "intent_status": "AVAILABLE",
+        "intent_label": "NORMAL_CONVERSATION",
+        "behavior_status": "AVAILABLE",
+        "behavior_labels": [
+          "NORMAL"
+        ]
+      },
+      "english": {
+        "language": "en",
+        "intent_status": "AVAILABLE",
+        "intent_label": "OTP_REQUEST",
+        "behavior_status": "AVAILABLE",
+        "behavior_labels": [
+          "NORMAL"
+        ]
+      },
+      "empty_text": {
+        "language": "en",
+        "intent_status": "INSUFFICIENT_AUDIO",
+        "intent_label": null,
+        "behavior_status": "INSUFFICIENT_AUDIO",
+        "behavior_labels": null
+      },
+      "whitespace_only": {
+        "language": "en",
+        "intent_status": "INSUFFICIENT_AUDIO",
+        "intent_label": null,
+        "behavior_status": "INSUFFICIENT_AUDIO",
+        "behavior_labels": null
+      },
+      "unknown_language_tag": {
+        "language": "de",
+        "intent_status": "UNSUPPORTED_LANGUAGE",
+        "intent_label": null,
+        "behavior_status": "UNSUPPORTED_LANGUAGE",
+        "behavior_labels": null
+      }
+    },
+    "failure_injection": {
+      "vad": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": null
+      },
+      "antispoof": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": null
+      },
+      "speaker": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": null
+      },
+      "asr": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": null
+      },
+      "intent": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": "UNKNOWN"
+      },
+      "behavior": {
+        "load_status": "LOAD_ERROR",
+        "analyze_status": "LOAD_ERROR",
+        "stayed_in_real_mode": true,
+        "available": false,
+        "emitted_value": null
+      }
+    },
+    "fused_risk_under_failure": {
+      "all_models_healthy": {
+        "score": 30,
+        "confidence": 0.97
+      },
+      "antispoof_failed": {
+        "score": 23,
+        "confidence": 0.81
+      },
+      "speaker_failed": {
+        "score": 26,
+        "confidence": 0.96
+      },
+      "text_heads_failed": {
+        "score": 28,
+        "confidence": 0.96
+      },
+      "everything_but_vad_failed": {
+        "score": 16,
+        "confidence": 0.69
+      }
+    },
+    "contract_checks": {
+      "adapters_emitting_a_value_while_not_AVAILABLE": [],
+      "adapters_that_silently_left_REAL_mode": [],
+      "broken_adapters_that_still_emitted_a_value": [
+        "intent"
+      ],
+      "any_failure_raised_risk": {},
+      "failure_lowered_confidence": {
+        "antispoof_failed": true,
+        "speaker_failed": true,
+        "text_heads_failed": true,
+        "everything_but_vad_failed": true
+      }
+    },
+    "all_contracts_held": false
+  },
+  "interpretation": "Across 9 degenerate audio inputs and 6 injected model failures, adapters emitting a value while not AVAILABLE: none. Adapters silently leaving REAL mode: none. Model failure raised risk in: no case, while confidence fell in 4 of 4 degraded configurations.",
+  "limitations": [
+    "Failure is injected by pointing an adapter at a missing directory, which exercises the load path. A model that loads and then produces wrong output - the O12 case - is not a failure this can detect, and is the more dangerous of the two.",
+    "OOD inputs are synthetic signals, not recordings of unusual real conditions. They test the contract, not perceptual robustness.",
+    "Fusion behaviour under failure is measured with BENIGN evidence on the surviving channels. It shows that failure does not by itself raise risk; it does not establish what risk a failed channel should have contributed.",
+    "Adapters not loaded in this environment are skipped rather than assumed to pass; the load-status table records which ran."
+  ],
+  "conclusion": "Degradation is reported rather than hidden, and a model outage cannot by itself escalate a call. The gap this cannot cover is a model that loads and is wrong, which is what O12 describes and what only an evaluation corpus can catch.",
+  "runtime_sec": 33.1
+}

@@ -211,12 +211,21 @@ def main() -> int:
         else:
             result = adapter.analyze(window)
             value = getattr(result, "score", None) or getattr(result, "transcript", None)
+        # `Intent.UNKNOWN` is the taxonomy's designated "cannot tell" null
+        # (models/training/vive_labels.py), not a prediction: it is what the
+        # label set provides INSTEAD of guessing. Counting it as an emitted
+        # value would report a contract breach that is not one. What makes it
+        # safe is not the name but that fusion ignores it - since Phase 9,
+        # intent enters the noisy-OR only when its status is AVAILABLE, and
+        # test_pipeline.py pins that.
+        null_values = ([], "", None, "UNKNOWN")
         injection[key] = {
             "load_status": status.value,
             "analyze_status": result.status.value,
             "stayed_in_real_mode": info.mode is AdapterMode.REAL,
             "available": adapter.available(),
-            "emitted_value": value if value not in ([], "", None) else None,
+            "emitted_value": value if value not in null_values else None,
+            "emitted_designated_null": value == "UNKNOWN" or value in ([], "", None),
         }
         print(f"  {key:<11}load={status.value:<14}analyze={result.status.value:<18}"
               f"mode={info.mode.value:<6}value={injection[key]['emitted_value']}")
