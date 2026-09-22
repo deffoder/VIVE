@@ -208,6 +208,39 @@ When an analyzer cannot run, its block carries a status and omits its value:
 Low confidence with low risk is the correct output for unusable audio. Poor
 audio must never inflate `risk.score`.
 
+#### `AnalyzerStatus` — the complete set
+
+Every analyzer block carries exactly one of these. **Only `AVAILABLE` means a
+value was produced**; every other status means the value is `null` and the
+client must say which kind of nothing it is.
+
+| Status | Meaning | Value |
+|---|---|---|
+| `AVAILABLE` | The model ran and produced a value | present |
+| `UNAVAILABLE` | Not configured or not running in this deployment | `null` |
+| `NO_REFERENCE` | Speaker only: nothing enrolled to compare against. **Not a mismatch** | `null` |
+| `INSUFFICIENT_AUDIO` | Not enough audio yet. Anti-spoofing needs ~4.04 s of genuine audio and does not pad | `null` |
+| `LOAD_ERROR` | The model could not be loaded — missing weights or runtime | `null` |
+| `INFERENCE_ERROR` | The model loaded but failed on this window | `null` |
+| `UNSUPPORTED_LANGUAGE` | The model does not support this language and declined to guess | `null` |
+| `ERROR` | Generic failure, retained for backward compatibility | `null` |
+
+A client **must not** treat an unrecognised status as `AVAILABLE`. `AVAILABLE`
+is a positive claim that a model ran, so resolving an unknown value to it
+fabricates a success. Clients degrade to `UNAVAILABLE`, which claims nothing.
+
+This table is normative, and it exists because its absence caused a real
+defect. The backend gained `LOAD_ERROR`, `INFERENCE_ERROR` and
+`UNSUPPORTED_LANGUAGE` in Phase 8; the Android enum was never extended and its
+mapper fell back to `AVAILABLE`. Since every Tamil packet reports
+`UNSUPPORTED_LANGUAGE` on both text heads by design (`BLOCKERS.md` O11), the
+app presented an entire language's declined analysis as successful. A client
+adding a status must also add it to
+`android/.../data/model/Taxonomies.kt`, where a parity test pins the set.
+
+An intent block that did not run reports `label: "UNKNOWN"` — the taxonomy's
+designated "cannot tell" value — never a specific intent.
+
 ## 5. Alerts, integrations, models
 
 | Method | Path | Purpose |

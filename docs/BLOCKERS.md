@@ -457,8 +457,26 @@ diverge from the design references.
 - **Enforced in code (Phase 8B):** the intent and behaviour adapters return
   `UNSUPPORTED_LANGUAGE` for Tamil rather than a prediction, the mock adapters
   do the same so demos cannot overstate the product, and demo scenario S11
-  asserts the behaviour end to end. The gap is now impossible to present
-  accidentally as a capability.
+  asserts the behaviour end to end.
+- **That enforcement was incomplete, and Phase 10 found it.** The protection
+  held only for *romanised* Tamil, which is what S11 was written in. Three
+  layers had to be fixed before it held for Tamil script:
+  1. the mock language guess matched only romanised keywords and had no
+     script check, so real Tamil text was reported as `en`;
+  2. `session_manager` passed the ASR's *detected* language to the text heads
+     unconditionally, letting that guess override a session explicitly
+     declared `ta`;
+  3. the Android `AnalyzerStatus` enum had no `UNSUPPORTED_LANGUAGE` member,
+     and its mapper resolved unknown values to `AVAILABLE`, so even a correct
+     backend status arrived in the app as a successful analysis.
+
+  Each alone was enough to defeat O11. Together they meant a Tamil call could
+  display `NORMAL_CONVERSATION` at status AVAILABLE. All three are fixed and
+  pinned by tests, including one that drives a session in Tamil script and one
+  that pins Kotlin/backend enum parity.
+- **Current status is unchanged by that fix.** Tamil intent and behaviour
+  remain **unsupported**; what changed is that the unsupported state is now
+  reported correctly everywhere instead of only for one spelling of Tamil.
 - **Required external action:** commission human-authored Tamil scam text
   against the VIVE taxonomy. `DATA_SPEC.md` §8.3 sets out the plan, including
   the ~300 human records per label needed to make a single label reportable,
@@ -531,6 +549,11 @@ diverge from the design references.
   preference. Time-to-warning figures (`first_warning_sec` and friends) are
   historical markers recording when a raw score first crossed a threshold and
   must be presented as "first reached", never as the current level.
+- **Phase 10 review:** deliberately **not** acted on. Changing `EMA_ALPHA`
+  would improve a demo sequence and invalidate the Phase 9 measurement in the
+  same edit, with no labelled data to say which direction is correct. Stays
+  OPEN with the consequence stated: a scam whose incriminating evidence
+  appears only intermittently may never raise an alert.
 - **Required external action:** labelled call sequences, then re-tune the
   smoothing against a measured operating point.
 
@@ -566,6 +589,12 @@ diverge from the design references.
 - **Current status:** all published metrics carry their corpus and conditions.
   No call-level accuracy, false-positive rate or alert-threshold claim may be
   made.
+- **Phase 10 review:** the alert threshold was **not** moved. Tuning it to the
+  SMS proxy would convert a measured limitation into an apparent capability,
+  which is the specific failure this blocker exists to prevent. The threshold
+  stays where policy put it, and the measured recall against the proxy is
+  published next to it (`EVALUATION.md` §9) so the gap is visible rather than
+  hidden.
 - **Required external action:** a consented, lawfully-obtained corpus of
   labelled calls. Until it exists, thresholds and fusion weights stay
   provisional (O6) and are presented as such.

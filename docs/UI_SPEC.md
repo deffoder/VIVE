@@ -190,11 +190,27 @@ The most important screen. Visible without scrolling, in order:
   `NO_SPEECH`; Unavailable per-signal when an analyzer reports a status.
 - **Backend** — `WS /api/v1/sessions/{id}/stream` frames `session.state`,
   `packet.new`, `risk.update`, `alert.raised`; REST backfill on reconnect.
-- **Rules** — the five evidence rows are synthetic-voice indicators, speaker
-  consistency, intent risk, behaviour risk, context risk. Phrasing is
-  evidence-shaped: *"High voice-integrity risk"*, never *"87% AI voice"*.
-  Score and confidence are never merged. Appends are incremental — no full
-  rebuild per packet (`ARCHITECTURE.md` §8).
+- **Rules** — the five evidence rows are anti-spoofing signal, speaker
+  consistency, intent, behaviour and context. Phrasing is evidence-shaped:
+  *"High voice-integrity risk"*, never *"87% AI voice"*. Score and confidence
+  are never merged. Appends are incremental — no full rebuild per packet
+  (`ARCHITECTURE.md` §8).
+- **Every row renders from `status`, never from a null value.** The two are
+  not equivalent: a null similarity because nobody is enrolled, a null score
+  because only 2 s of audio has arrived, and a null label because the model
+  does not read this language are three different facts, and the row must say
+  which. `AnalyzerStatus` (`API_SPEC.md` §4.2) is the source, and each status
+  carries its own short label and one-line explanation.
+- **The anti-spoofing row never grades its score.** It reports that the model
+  ran — *"Inconclusive — this model is not validated on call audio"* — and
+  carries **no severity colour**, because a colour is a claim. Phase 9
+  measured AASIST at chance on the only two-class probe available: EER 0.4333,
+  90% interval 0.3500–0.5000, which contains 0.50 (`EVALUATION.md` §5). The
+  row previously used a graded scale (*Strong / Elevated / Some / Few*), which
+  obeyed the ban on "87% AI voice" in wording while still asserting that the
+  number tracks reality closely enough to be binned. The raw score remains
+  visible in Packet Detail, labelled as an unvalidated model output — hiding
+  it would be its own dishonesty.
 
 ### 4.8 Live transcript
 - **Purpose** — running transcript with language and risk markers.
@@ -384,7 +400,10 @@ The most important screen. Visible without scrolling, in order:
 | Risk level changes | Gauge animates over ≤300ms; level label updates with it |
 | Alert raised | In-app banner + notification; tap deep-links to Packet Detail |
 | WebSocket drops | Offline state; backoff reconnect; `since_seq` backfill |
-| Analyzer unavailable | That row shows "Unavailable" — never `0%` or a guess |
+| Analyzer unavailable | That row shows its status label — never `0%` or a guess |
+| Anti-spoof still buffering | "Not enough audio yet", not "Unavailable" — ~4 s |
+| Language unsupported | "Language not supported"; transcript shows a Transcription-only notice |
+| Model failed to load | "Model unavailable"; risk must not rise, confidence falls |
 | Poor audio | Insufficient-data state; risk must not rise |
 | Back from drill-down | Returns along the entry path |
 | Session ends | Active Call → Call Summary automatically |
