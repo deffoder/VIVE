@@ -34,6 +34,12 @@ data class Packet(
     val window: AnalysisWindow? = null,
     val languageConfidence: Double? = null,
     val ood: OodEvidence? = null,
+    /**
+     * Whether REAL model adapters or the deterministic mocks produced this
+     * packet. Carried per packet rather than read once at start-up, so the
+     * "Demo data" badge follows the evidence on screen.
+     */
+    val adapterMode: AdapterMode? = null,
 )
 
 /** Absolute window bounds in seconds from call start. */

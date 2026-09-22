@@ -75,6 +75,17 @@ class RemoteSessionRepository(
     fun sendTranscript(sessionId: String, text: String, speaker: String = "Caller") =
         stream.sendTranscript(sessionId, text, speaker)
 
+    /**
+     * Sends one captured analysis window upstream.
+     *
+     * Canonical 16 kHz mono pcm_s16le (docs/ML_SPEC.md 5). This is the live
+     * path: real microphone audio, analysed by the backend's real adapters.
+     * Nothing about the packet is decided here - the client captures and
+     * transports, the backend analyses (docs/ARCHITECTURE.md 1, decision 8).
+     */
+    suspend fun sendAudio(sessionId: String, pcm: ByteArray) =
+        stream.sendAudio(sessionId, pcm)
+
     suspend fun closeStream(sessionId: String) = stream.close(sessionId)
 }
 

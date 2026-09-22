@@ -1,55 +1,55 @@
 {
-  "verified_at": "2026-09-22",
+  "verified_at": "2026-09-23",
   "phase": "8D",
   "what_this_proves": "Real audio flows through the real backend - session, WebSocket, all six real adapters, fusion, temporal risk and policy - and produces packets with full traceability. It measures COST, not accuracy.",
-  "bundle_load_ms": 77883,
+  "bundle_load_ms": 30218,
   "adapters": {
     "vad": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "silero-vad-v5-jit",
-      "load_ms": 6417,
+      "load_ms": 3782,
       "execution_provider": "torch cpu"
     },
     "antispoof": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "aasist-pretrained-v1",
-      "load_ms": 118,
+      "load_ms": 93,
       "execution_provider": "torch cpu"
     },
     "speaker": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "ecapa-tdnn-voxceleb-v1",
-      "load_ms": 8247,
+      "load_ms": 2942,
       "execution_provider": "torch cpu"
     },
     "asr": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "indic-conformer-600m-ctc-v1",
-      "load_ms": 36350,
+      "load_ms": 12572,
       "execution_provider": "CPUExecutionProvider"
     },
     "intent": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "intent-classifier-distilbert-v1",
-      "load_ms": 26515,
+      "load_ms": 9237,
       "execution_provider": "torch cpu"
     },
     "behavior": {
       "mode": "real",
       "status": "AVAILABLE",
       "model_version": "behavior-classifier-distilbert-v1",
-      "load_ms": 195,
+      "load_ms": 1539,
       "execution_provider": "torch cpu"
     }
   },
   "window_sec": 2.0,
   "cadence_budget_sec": 1.0,
-  "process_rss_gb": 4.04,
+  "process_rss_gb": null,
   "languages": [
     {
       "language": "hi",
@@ -60,19 +60,19 @@
         "transcript.append"
       ],
       "end_to_end_ms": {
-        "median": 1008,
-        "min": 753,
-        "max": 1538,
-        "first_packet": 6547,
+        "median": 1037,
+        "min": 1021,
+        "max": 2342,
+        "first_packet": 12676,
         "excludes_first_packet": true
       },
       "meets_cadence": false,
       "stage_inference_ms_last_packet": {
-        "asr": 288,
-        "intent": null,
-        "behavior": null,
-        "aasist": 407,
-        "ecapa": 88
+        "asr": 310,
+        "intent": 67,
+        "behavior": 42,
+        "aasist": 462,
+        "ecapa": 92
       },
       "missing_packet_fields": [],
       "adapter_mode": "real",
@@ -93,19 +93,19 @@
         "transcript.append"
       ],
       "end_to_end_ms": {
-        "median": 874,
-        "min": 400,
-        "max": 1012,
-        "first_packet": 7921,
+        "median": 1973,
+        "min": 891,
+        "max": 21443,
+        "first_packet": 5198,
         "excludes_first_packet": true
       },
-      "meets_cadence": true,
+      "meets_cadence": false,
       "stage_inference_ms_last_packet": {
-        "asr": 244,
-        "intent": null,
-        "behavior": null,
-        "aasist": 390,
-        "ecapa": 80
+        "asr": 20121,
+        "intent": 0,
+        "behavior": 0,
+        "aasist": 642,
+        "ecapa": 508
       },
       "missing_packet_fields": [],
       "adapter_mode": "real",

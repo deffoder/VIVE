@@ -20,7 +20,7 @@ class Packetizer(
     private val strideBytes = AudioFormat.bytesFor(strideSeconds)
 
     private val ring = RingBuffer(capacityBytes = windowBytes * 4)
-    private var bytesSinceLastWindow = 0
+    private var totalBytes = 0L
     private var seq = 0
 
     val packetsEmitted: Int get() = seq
@@ -31,15 +31,33 @@ class Packetizer(
      * Emitting a list rather than one packet matters: a large chunk can
      * complete several windows, and dropping the extras would silently lose
      * analysis coverage.
+     *
+     * Window `k` (zero-based) ends once `windowBytes + k * strideBytes` have
+     * been fed in total. Deriving it from the running total rather than from a
+     * "bytes since the last window" counter is what makes the timestamps
+     * correct: that counter started at zero and reached a FULL window before
+     * the first emit, so it satisfied the stride condition twice and produced
+     * a spurious second window - the same 2 s of audio, labelled 1-3 s. Every
+     * later window inherited that one-second offset, so each one was analysed
+     * against a span it did not contain.
      */
     fun feed(pcm: ByteArray): List<AudioPacket> {
         ring.write(pcm)
-        bytesSinceLastWindow += pcm.size
+        totalBytes += pcm.size
 
         val out = mutableListOf<AudioPacket>()
-        // The first window needs a full window's worth of audio; after that,
-        // one stride is enough to advance.
-        while (ring.available >= windowBytes && bytesSinceLastWindow >= strideBytes) {
+        while (totalBytes >= windowBytes.toLong() + seq.toLong() * strideBytes) {
+            val endBytes = windowBytes.toLong() + seq.toLong() * strideBytes
+            // How much audio arrived AFTER this window closed. Normally zero,
+            // but a chunk spanning several windows must not hand all of them
+            // the newest 2 s.
+            val trailing = (totalBytes - endBytes).toInt()
+            val pcmWindow = if (trailing == 0) {
+                ring.readLast(windowBytes)
+            } else {
+                ring.readLast(windowBytes + trailing).copyOf(windowBytes)
+            }
+
             seq += 1
             val startSec = (seq - 1) * strideSeconds
             out += AudioPacket(
@@ -47,16 +65,15 @@ class Packetizer(
                 packetId = "P%03d".format(seq),
                 startSec = startSec,
                 endSec = startSec + windowSeconds,
-                pcm = ring.readLast(windowBytes),
+                pcm = pcmWindow,
             )
-            bytesSinceLastWindow -= strideBytes
         }
         return out
     }
 
     fun reset() {
         ring.clear()
-        bytesSinceLastWindow = 0
+        totalBytes = 0L
         seq = 0
     }
 

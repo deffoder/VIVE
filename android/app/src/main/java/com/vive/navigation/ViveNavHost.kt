@@ -80,6 +80,12 @@ fun ViveNavHost(
                 onOpenSession = { navController.navigate(ViveDestination.CallSummary.create(it)) },
                 onResumeActiveCall = { navController.navigate(ViveDestination.ActiveCall.create(it)) },
                 onViewAllSessions = { navController.navigate(ViveDestination.Sessions.route) },
+                // Navigates with the REAL session id the backend returned, so
+                // the analysis screen observes the session that was actually
+                // created rather than a placeholder.
+                onStartLiveSession = {
+                    navController.navigate(ViveDestination.ActiveCall.create(it))
+                },
             )
         }
         composable(ViveDestination.Sessions.route) {

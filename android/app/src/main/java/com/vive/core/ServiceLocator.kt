@@ -45,24 +45,68 @@ object ServiceLocator {
         FallbackSessionRepository(remoteSessions, DemoSessionRepository())
     }
 
+    private val remoteAlerts: RemoteAlertRepository by lazy {
+        RemoteAlertRepository(service)
+    }
+
+    private val remoteModels: RemoteModelRepository by lazy {
+        RemoteModelRepository(service)
+    }
+
     var sessions: SessionRepository = fallbackSessions
         internal set
 
-    var alerts: AlertRepository = DemoAlertRepository()
+    /**
+     * Alerts come from the backend's policy engine, never from a demo list.
+     *
+     * This was wired to `DemoAlertRepository`, so the Alerts screen showed
+     * invented alerts naming sessions that never happened - indistinguishable
+     * on screen from real policy output. An unreachable backend now yields an
+     * honest error or empty state instead.
+     */
+    var alerts: AlertRepository = remoteAlerts
         internal set
 
-    var models: ModelRepository = DemoModelRepository()
+    /**
+     * Model status comes from `/api/v1/ready` and `/api/v1/models`.
+     *
+     * Also previously a demo repository, which meant the Model Information
+     * screen reported adapters as AVAILABLE without anything having loaded -
+     * the exact claim that screen exists to substantiate.
+     */
+    var models: ModelRepository = remoteModels
         internal set
 
     /**
      * True while demo data is on screen.
      *
-     * In this build every backend adapter is also a mock, so this stays true
-     * whether the data came from the demo repository or from the backend's mock
-     * adapters. It only becomes false once real adapters report `mode: "real"`.
+     * Was hard-coded `true`, which was correct while every backend adapter was
+     * also a mock. It is no longer correct: with the backend in real mode the
+     * badge claimed real inference was demo data, which is the same class of
+     * error as the reverse and just as misleading to a viewer.
+     *
+     * It now reports what was actually observed. [observeAdapterMode] is fed
+     * from each packet's `adapter_mode`, so the badge follows the evidence on
+     * screen rather than a build-time assumption. It stays `true` until a real
+     * packet proves otherwise: defaulting to "this is demo data" is the safe
+     * direction, because the failure mode is understating the product rather
+     * than overstating it.
      */
     val isDemo: Boolean
-        get() = true
+        get() = usingOfflineFallback || lastAdapterModeWasMock
+
+    @Volatile
+    private var lastAdapterModeWasMock: Boolean = true
+
+    /**
+     * Records the adapter mode carried by a packet that reached the UI.
+     *
+     * Called from the mapper as packets arrive, so it reflects the pipeline
+     * that actually produced what is on screen.
+     */
+    fun observeAdapterMode(isMock: Boolean) {
+        lastAdapterModeWasMock = isMock
+    }
 
     /** True specifically because the backend could not be reached. */
     val usingOfflineFallback: Boolean
@@ -71,6 +115,19 @@ object ServiceLocator {
     /** Drives the scripted demo/replay path against a live backend. */
     fun sendDemoTranscript(sessionId: String, text: String, speaker: String = "Caller") {
         remoteSessions.sendTranscript(sessionId, text, speaker)
+    }
+
+    /**
+     * Sends one captured analysis window to the backend.
+     *
+     * Deliberately routed through [remoteSessions] rather than [sessions]: the
+     * live capture path must reach the real backend or fail visibly. Sending
+     * real microphone audio into a demo repository would produce scripted
+     * results that look like analysis of what the user just said, which is the
+     * one outcome this project must never produce.
+     */
+    suspend fun sendAudio(sessionId: String, pcm: ByteArray) {
+        remoteSessions.sendAudio(sessionId, pcm)
     }
 
     suspend fun closeStream(sessionId: String) {
@@ -90,11 +147,17 @@ object ServiceLocator {
 
     fun reset() {
         sessions = fallbackSessions
-        alerts = DemoAlertRepository()
-        models = DemoModelRepository()
+        alerts = remoteAlerts
+        models = remoteModels
     }
 
-    /** Uses demo data only, with no network attempt. Useful for offline demos. */
+    /**
+     * Demo data only, with no network attempt.
+     *
+     * NOT the production path and never selected automatically: it exists for
+     * rehearsing a demo with no backend present, and anything it serves is
+     * badged as demo data. Nothing in the app calls it.
+     */
     fun useDemoOnly() {
         sessions = DemoSessionRepository()
         alerts = DemoAlertRepository()
@@ -104,7 +167,7 @@ object ServiceLocator {
     /** Uses the backend exclusively, with no demo fallback. */
     fun useBackendOnly() {
         sessions = remoteSessions
-        alerts = RemoteAlertRepository(service)
-        models = RemoteModelRepository(service)
+        alerts = remoteAlerts
+        models = remoteModels
     }
 }

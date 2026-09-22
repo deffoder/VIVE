@@ -148,6 +148,7 @@ fun PacketDto.toDomain() = Packet(
     ood = ood?.let {
         OodEvidence(it.state.toEnumOr(OodState.UNAVAILABLE), it.uncertainty)
     },
+    adapterMode = adapterMode?.toEnumOr(AdapterMode.MOCK),
 )
 
 /** True when the backend produced this packet with demo adapters. */

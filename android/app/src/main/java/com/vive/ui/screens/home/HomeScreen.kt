@@ -12,6 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,9 +50,12 @@ fun HomeScreen(
     onResumeActiveCall: (String) -> Unit,
     onViewAllSessions: () -> Unit,
     modifier: Modifier = Modifier,
+    onStartLiveSession: ((String) -> Unit)? = null,
     viewModel: SessionListViewModel = viewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val starting by viewModel.starting.collectAsStateWithLifecycle()
+    var startError by remember { mutableStateOf<String?>(null) }
 
     ViveScreenScaffold(title = "VIVE", modifier = modifier) { padding ->
         ViveScreenBody(padding) {
@@ -65,6 +71,42 @@ fun HomeScreen(
                     ActiveCallBanner(active) { onResumeActiveCall(active.sessionId) }
                 } else {
                     ProtectedBanner()
+                }
+
+                // Entry point to the live path. Without this the app could
+                // only ever observe sessions created elsewhere, which is why
+                // microphone capture was unreachable despite being built.
+                onStartLiveSession?.let { navigate ->
+                    ViveCard {
+                        SectionHeader(title = "Live analysis")
+                        Text(
+                            text = "Analyses audio from this device's microphone " +
+                                "during an authorized in-app session. Ordinary " +
+                                "cellular call audio is not accessible to any " +
+                                "third-party Android app.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        startError?.let { message ->
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+                            )
+                        }
+                        PrimaryButton(
+                            text = if (starting) "Starting..." else "Start live analysis",
+                            onClick = {
+                                startError = null
+                                viewModel.startLiveSession(
+                                    onCreated = navigate,
+                                    onError = { startError = it.message },
+                                )
+                            },
+                            modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+                        )
+                    }
                 }
 
                 MetricRow {

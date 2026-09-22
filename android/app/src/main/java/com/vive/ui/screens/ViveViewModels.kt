@@ -1,14 +1,22 @@
 package com.vive.ui.screens
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vive.audio.CaptureController
+import com.vive.audio.CaptureState
+import com.vive.audio.MicrophoneAudioSource
 import com.vive.core.ServiceLocator
 import com.vive.core.UiState
+import com.vive.core.ViveError
+import com.vive.core.ViveLog
 import com.vive.core.ViveResult
+import com.vive.data.model.AdapterMode
 import com.vive.data.model.Alert
 import com.vive.data.model.ModelInfo
 import com.vive.data.model.Packet
 import com.vive.data.model.Session
+import com.vive.data.model.SourceType
 import com.vive.data.model.TranscriptLine
 import com.vive.data.remote.StreamState
 import com.vive.data.remote.ViveEvent
@@ -45,11 +53,41 @@ class SessionListViewModel : ViewModel() {
     private val _state = MutableStateFlow<UiState<List<Session>>>(UiState.Loading)
     val state: StateFlow<UiState<List<Session>>> = _state.asStateFlow()
 
+    private val _starting = MutableStateFlow(false)
+    val starting: StateFlow<Boolean> = _starting.asStateFlow()
+
     init { refresh() }
 
     fun refresh() = viewModelScope.launch {
         _state.value = UiState.Loading
         _state.value = ServiceLocator.sessions.listSessions().toListState()
+    }
+
+    /**
+     * Creates a real backend session for authorized in-app microphone capture.
+     *
+     * [onCreated] fires only on success, with the real session id from the
+     * backend. A failure reports itself and navigates nowhere: opening an
+     * analysis screen for a session the backend never created would show an
+     * empty call that looks like a system fault rather than a connection one.
+     *
+     * `IN_APP` is the source type because that is what this is - audio the
+     * user authorized inside the app. It is not `CELLULAR_SCREENING`, which
+     * carries no audio at all (docs/ARCHITECTURE.md 7).
+     */
+    fun startLiveSession(onCreated: (String) -> Unit, onError: (ViveError) -> Unit) {
+        if (_starting.value) return
+        _starting.value = true
+        viewModelScope.launch {
+            when (val created = ServiceLocator.sessions.createSession(SourceType.IN_APP)) {
+                is ViveResult.Success -> {
+                    refresh()
+                    onCreated(created.data.sessionId)
+                }
+                is ViveResult.Failure -> onError(created.error)
+            }
+            _starting.value = false
+        }
     }
 }
 
@@ -74,6 +112,23 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
 
     private var streamJob: Job? = null
     private var lastSeq: Int = 0
+
+    /**
+     * Microphone capture for this session.
+     *
+     * Null until the user explicitly starts live analysis. A session that is
+     * only being reviewed - a past call, or one driven from elsewhere - must
+     * never open the microphone, so this is created on demand rather than in
+     * `init`.
+     */
+    private var capture: CaptureController? = null
+
+    private val _captureState = MutableStateFlow<CaptureState>(CaptureState.Idle)
+    val captureState: StateFlow<CaptureState> = _captureState.asStateFlow()
+
+    /** Analysis windows actually sent upstream. Drives the live UI counter. */
+    private val _windowsSent = MutableStateFlow(0)
+    val windowsSent: StateFlow<Int> = _windowsSent.asStateFlow()
 
     init {
         refresh()
@@ -137,6 +192,9 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
     private fun appendPacket(packet: Packet) {
         val existing = (_packets.value as? UiState.Success)?.data.orEmpty()
         if (existing.any { it.packetId == packet.packetId }) return
+        // The badge follows the packets actually on screen, so it can never
+        // claim real inference is demo data or the reverse.
+        ServiceLocator.observeAdapterMode(packet.adapterMode == AdapterMode.MOCK)
         _packets.value = UiState.Success(existing + packet)
     }
 
@@ -147,11 +205,61 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
         }
     }
 
+    /**
+     * Starts capturing the device microphone and streaming it to the backend.
+     *
+     * [CaptureController] does the buffering, 2 s/1 s windowing and silence
+     * skipping; this only forwards each completed window. No analysis happens
+     * on the device, so what the screen renders afterwards is the backend's
+     * verdict on audio the user actually spoke - never a local guess
+     * (docs/ARCHITECTURE.md 1, decision 8).
+     *
+     * This is the device MICROPHONE during an authorized in-app session. It is
+     * not cellular call audio, which Android does not permit a third-party app
+     * to capture (docs/BLOCKERS.md P1).
+     */
+    fun startCapture(context: Context) {
+        if (capture != null) return
+
+        val controller = CaptureController(
+            source = MicrophoneAudioSource(context.applicationContext),
+            scope = viewModelScope,
+        )
+        capture = controller
+
+        viewModelScope.launch { controller.state.collect { _captureState.value = it } }
+        viewModelScope.launch { controller.packetsSent.collect { _windowsSent.value = it } }
+
+        controller.start { packet ->
+            // A failed send must not kill capture. The stream reconnects on its
+            // own, and a window lost in the gap is recovered by the same
+            // `since_seq` backfill that covers any other disconnect.
+            runCatching { ServiceLocator.sendAudio(sessionId, packet.pcm) }
+                .onFailure { ViveLog.e(TAG, "window ${packet.packetId} not sent") }
+        }
+    }
+
+    /** Stops the microphone without ending the backend session. */
+    fun stopCapture() {
+        capture?.stop()
+        capture = null
+    }
+
     /** Safe cancellation when the user leaves the session. */
     override fun onCleared() {
+        // Cancel rather than stop: the user has left, so buffered audio is
+        // discarded instead of uploaded. An AudioRecord that is never released
+        // holds the microphone for the lifetime of the process, and the next
+        // session would fail to initialise with no obvious cause.
+        capture?.cancel()
+        capture = null
         streamJob?.cancel()
         streamJob = null
         super.onCleared()
+    }
+
+    private companion object {
+        const val TAG = "SessionDetailViewModel"
     }
 
     fun refresh() = viewModelScope.launch {

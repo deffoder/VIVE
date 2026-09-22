@@ -12,10 +12,20 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.vive.audio.CaptureState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vive.core.UiState
 import com.vive.data.model.Behavior
@@ -62,6 +72,7 @@ fun ActiveCallScreen(
 
     ViveScreenScaffold(title = "Call analysis", onBack = onBack, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
+            LiveCaptureCard(viewModel)
             StateHost(sessionState, onRetry = viewModel::refresh) { session ->
                 val packets = (packetState as? UiState.Success)?.data.orEmpty()
                 ActiveCallContent(
@@ -73,6 +84,98 @@ fun ActiveCallScreen(
                     onEndCall = onEndCall,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Microphone capture control.
+ *
+ * Holds the runtime permission flow, because `RECORD_AUDIO` is a dangerous
+ * permission: declaring it in the manifest grants nothing on API 23+, and
+ * capture must not be attempted until the user has actually said yes.
+ *
+ * What it reports is capture state and windows SENT - not analysis. Whether
+ * those windows produced anything is the backend's answer, rendered by the
+ * rest of the screen.
+ */
+@Composable
+private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
+    val context = LocalContext.current
+    val captureState by viewModel.captureState.collectAsStateWithLifecycle()
+    val windowsSent by viewModel.windowsSent.collectAsStateWithLifecycle()
+
+    var permissionDenied by remember { mutableStateOf(false) }
+    val granted = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.RECORD_AUDIO,
+    ) == PackageManager.PERMISSION_GRANTED
+
+    val requestPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { allowed ->
+        permissionDenied = !allowed
+        if (allowed) viewModel.startCapture(context)
+    }
+
+    val capturing = captureState is CaptureState.Capturing ||
+        captureState is CaptureState.Starting
+
+    ViveCard {
+        SectionHeader(title = "Live microphone analysis")
+        Text(
+            text = when (val state = captureState) {
+                is CaptureState.Idle -> "Not capturing."
+                is CaptureState.Starting -> "Starting microphone..."
+                is CaptureState.Capturing ->
+                    "Capturing. $windowsSent analysis windows sent to the backend."
+                is CaptureState.Stopping -> "Stopping..."
+                is CaptureState.Completed ->
+                    "Capture ended. $windowsSent windows were sent."
+                is CaptureState.Failed -> state.reason
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (captureState is CaptureState.Failed) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        if (permissionDenied) {
+            Text(
+                text = "Microphone access is required to analyse live audio. " +
+                    "Nothing is captured without it.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+            )
+        }
+        Text(
+            text = "Analyses this device's microphone during an authorized " +
+                "in-app session. Two-way cellular call audio is not accessible " +
+                "to third-party Android apps.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+        )
+        if (capturing) {
+            SecondaryButton(
+                text = "Stop microphone",
+                onClick = viewModel::stopCapture,
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+            )
+        } else {
+            PrimaryButton(
+                text = "Start microphone analysis",
+                onClick = {
+                    permissionDenied = false
+                    if (granted) {
+                        viewModel.startCapture(context)
+                    } else {
+                        requestPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+            )
         }
     }
 }
