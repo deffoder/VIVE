@@ -1,0 +1,788 @@
+{
+  "experiment_id": "9E_text_heads",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T09:26:56+00:00",
+  "question": "How well do the intent and behaviour heads perform on held-out data, how much of that came from near-duplicate leakage, and are their outputs independent enough for a noisy-OR fusion?",
+  "hypothesis": "Headline macro-F1 will drop once near-duplicates are removed, and the two heads' outputs will be strongly dependent because both were derived from the same scam/not-scam partition (O10).",
+  "method": "Run the real adapters over the held-out split. Score twice - full split and de-leaked split - and measure correlation and mutual information between the two heads' risk contributions as fusion consumes them.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "scamshield",
+      "source": "huggingface.co/datasets/sidzzz07/scamshield-dataset",
+      "license": "MIT",
+      "split": "test",
+      "samples": 8644
+    }
+  ],
+  "models": [
+    {
+      "name": "intent-classifier",
+      "revision": "phase7 mDistilBERT fine-tune",
+      "license": "Apache-2.0 (base)"
+    },
+    {
+      "name": "behavior-classifier",
+      "revision": "phase7 mDistilBERT fine-tune",
+      "license": "Apache-2.0 (base)"
+    }
+  ],
+  "results": {
+    "full_test_split": {
+      "records": 8644,
+      "intent": {
+        "macro_f1": 0.9219,
+        "macro_f1_denominator": "7 of 12 classes present in the test split",
+        "micro_f1": 0.9799,
+        "weighted_f1": 0.9799,
+        "classes_scored": 7,
+        "classes_with_no_data": 5,
+        "per_class": {
+          "NORMAL_CONVERSATION": {
+            "support": 5479,
+            "precision": 0.9867,
+            "recall": 0.9876,
+            "f1": 0.9871
+          },
+          "OTP_REQUEST": {
+            "support": 8,
+            "precision": 0.5455,
+            "recall": 0.75,
+            "f1": 0.6316,
+            "status": "UNMEASURABLE - 8 records is below the 30-record floor; this F1 must not be quoted as a capability"
+          },
+          "PASSWORD_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "CARD_DETAILS_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "BANKING_CREDENTIAL_REQUEST": {
+            "support": 160,
+            "precision": 0.9695,
+            "recall": 0.9938,
+            "f1": 0.9815
+          },
+          "MONEY_TRANSFER_REQUEST": {
+            "support": 151,
+            "precision": 0.9536,
+            "recall": 0.9536,
+            "f1": 0.9536
+          },
+          "ACCOUNT_CHANGE_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "REMOTE_ACCESS_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "URGENT_ACTION": {
+            "support": 97,
+            "precision": 0.949,
+            "recall": 0.9588,
+            "f1": 0.9538
+          },
+          "THREAT_OR_INTIMIDATION": {
+            "support": 89,
+            "precision": 0.9885,
+            "recall": 0.9663,
+            "f1": 0.9773
+          },
+          "CONFIDENTIAL_INFORMATION": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "UNKNOWN": {
+            "support": 2660,
+            "precision": 0.9706,
+            "recall": 0.9665,
+            "f1": 0.9685
+          }
+        },
+        "confusion_matrix": [
+          [
+            5411,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            4,
+            0,
+            0,
+            63
+          ],
+          [
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            159,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            0,
+            144,
+            0,
+            0,
+            0,
+            0,
+            0,
+            5
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            93,
+            0,
+            0,
+            4
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            86,
+            0,
+            3
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            73,
+            3,
+            0,
+            0,
+            5,
+            6,
+            0,
+            0,
+            1,
+            1,
+            0,
+            2571
+          ]
+        ]
+      },
+      "behavior": {
+        "macro_f1": 0.946,
+        "macro_f1_denominator": "all 8 classes, absent ones counted as 0",
+        "micro_f1": 0.9728,
+        "weighted_f1": 0.9727,
+        "classes_scored": 6,
+        "classes_with_no_data": 2,
+        "per_class": {
+          "AUTHORITY_IMPERSONATION": {
+            "support": 347,
+            "precision": 0.9184,
+            "recall": 0.9078,
+            "f1": 0.913
+          },
+          "URGENCY": {
+            "support": 665,
+            "precision": 0.9604,
+            "recall": 0.985,
+            "f1": 0.9725
+          },
+          "THREAT": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "FEAR": {
+            "support": 324,
+            "precision": 0.9633,
+            "recall": 0.9722,
+            "f1": 0.9677
+          },
+          "SECRECY": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "PRESSURE": {
+            "support": 507,
+            "precision": 0.8844,
+            "recall": 0.86,
+            "f1": 0.872
+          },
+          "REWARD_PROMISE": {
+            "support": 976,
+            "precision": 0.9643,
+            "recall": 0.9682,
+            "f1": 0.9663
+          },
+          "NORMAL": {
+            "support": 6738,
+            "precision": 0.992,
+            "recall": 0.9773,
+            "f1": 0.9846
+          }
+        },
+        "per_label_confusion": {
+          "AUTHORITY_IMPERSONATION": {
+            "tp": 315,
+            "fp": 28,
+            "fn": 32,
+            "tn": 8269
+          },
+          "URGENCY": {
+            "tp": 655,
+            "fp": 27,
+            "fn": 10,
+            "tn": 7952
+          },
+          "THREAT": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 8644
+          },
+          "FEAR": {
+            "tp": 315,
+            "fp": 12,
+            "fn": 9,
+            "tn": 8308
+          },
+          "SECRECY": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 8644
+          },
+          "PRESSURE": {
+            "tp": 436,
+            "fp": 57,
+            "fn": 71,
+            "tn": 8080
+          },
+          "REWARD_PROMISE": {
+            "tp": 945,
+            "fp": 35,
+            "fn": 31,
+            "tn": 7633
+          },
+          "NORMAL": {
+            "tp": 6585,
+            "fp": 53,
+            "fn": 153,
+            "tn": 1853
+          }
+        }
+      }
+    },
+    "deleaked_test_split": {
+      "records": 8022,
+      "intent": {
+        "macro_f1": 0.9213,
+        "macro_f1_denominator": "7 of 12 classes present in the test split",
+        "micro_f1": 0.9799,
+        "weighted_f1": 0.98,
+        "classes_scored": 7,
+        "classes_with_no_data": 5,
+        "per_class": {
+          "NORMAL_CONVERSATION": {
+            "support": 5057,
+            "precision": 0.9868,
+            "recall": 0.9873,
+            "f1": 0.9871
+          },
+          "OTP_REQUEST": {
+            "support": 8,
+            "precision": 0.5455,
+            "recall": 0.75,
+            "f1": 0.6316,
+            "status": "UNMEASURABLE - 8 records is below the 30-record floor; this F1 must not be quoted as a capability"
+          },
+          "PASSWORD_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "CARD_DETAILS_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "BANKING_CREDENTIAL_REQUEST": {
+            "support": 136,
+            "precision": 0.9712,
+            "recall": 0.9926,
+            "f1": 0.9818
+          },
+          "MONEY_TRANSFER_REQUEST": {
+            "support": 146,
+            "precision": 0.9524,
+            "recall": 0.9589,
+            "f1": 0.9556
+          },
+          "ACCOUNT_CHANGE_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "REMOTE_ACCESS_REQUEST": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "URGENT_ACTION": {
+            "support": 90,
+            "precision": 0.9451,
+            "recall": 0.9556,
+            "f1": 0.9503
+          },
+          "THREAT_OR_INTIMIDATION": {
+            "support": 56,
+            "precision": 0.9818,
+            "recall": 0.9643,
+            "f1": 0.973
+          },
+          "CONFIDENTIAL_INFORMATION": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "UNKNOWN": {
+            "support": 2529,
+            "precision": 0.9714,
+            "recall": 0.9676,
+            "f1": 0.9695
+          }
+        },
+        "confusion_matrix": [
+          [
+            4993,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            4,
+            0,
+            0,
+            59
+          ],
+          [
+            0,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            135,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            0,
+            140,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            86,
+            0,
+            0,
+            4
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            54,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            67,
+            3,
+            0,
+            0,
+            4,
+            6,
+            0,
+            0,
+            1,
+            1,
+            0,
+            2447
+          ]
+        ]
+      },
+      "behavior": {
+        "macro_f1": 0.9403,
+        "macro_f1_denominator": "all 8 classes, absent ones counted as 0",
+        "micro_f1": 0.9716,
+        "weighted_f1": 0.9715,
+        "classes_scored": 6,
+        "classes_with_no_data": 2,
+        "per_class": {
+          "AUTHORITY_IMPERSONATION": {
+            "support": 294,
+            "precision": 0.9038,
+            "recall": 0.8946,
+            "f1": 0.8991
+          },
+          "URGENCY": {
+            "support": 580,
+            "precision": 0.9564,
+            "recall": 0.9828,
+            "f1": 0.9694
+          },
+          "THREAT": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "FEAR": {
+            "support": 258,
+            "precision": 0.954,
+            "recall": 0.9651,
+            "f1": 0.9595
+          },
+          "SECRECY": {
+            "support": 0,
+            "status": "NO TEST DATA - cannot be scored"
+          },
+          "PRESSURE": {
+            "support": 451,
+            "precision": 0.8787,
+            "recall": 0.8514,
+            "f1": 0.8649
+          },
+          "REWARD_PROMISE": {
+            "support": 906,
+            "precision": 0.9637,
+            "recall": 0.9658,
+            "f1": 0.9647
+          },
+          "NORMAL": {
+            "support": 6278,
+            "precision": 0.9918,
+            "recall": 0.9769,
+            "f1": 0.9843
+          }
+        },
+        "per_label_confusion": {
+          "AUTHORITY_IMPERSONATION": {
+            "tp": 263,
+            "fp": 28,
+            "fn": 31,
+            "tn": 7700
+          },
+          "URGENCY": {
+            "tp": 570,
+            "fp": 26,
+            "fn": 10,
+            "tn": 7416
+          },
+          "THREAT": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 8022
+          },
+          "FEAR": {
+            "tp": 249,
+            "fp": 12,
+            "fn": 9,
+            "tn": 7752
+          },
+          "SECRECY": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 8022
+          },
+          "PRESSURE": {
+            "tp": 384,
+            "fp": 53,
+            "fn": 67,
+            "tn": 7518
+          },
+          "REWARD_PROMISE": {
+            "tp": 875,
+            "fp": 33,
+            "fn": 31,
+            "tn": 7083
+          },
+          "NORMAL": {
+            "tp": 6133,
+            "fp": 51,
+            "fn": 145,
+            "tn": 1693
+          }
+        }
+      }
+    },
+    "near_duplicate_leakage_cost": {
+      "records_removed": 622,
+      "intent_macro_f1_delta": -0.0006,
+      "behavior_macro_f1_delta": -0.0057
+    },
+    "head_dependence": {
+      "pearson_intent_vs_behavior_risk": 0.5281,
+      "spearman_intent_vs_behavior_risk": 0.6247,
+      "mutual_information_bits": 0.1202,
+      "entropy_intent_risk_bits": 0.3656,
+      "entropy_behavior_risk_bits": 1.1136,
+      "normalised_mutual_information": 0.3287,
+      "predicted_intent_non_normal_matches_is_scam_pct": 98.3688,
+      "predicted_behaviour_flag_matches_is_scam_pct": 84.4285,
+      "behaviour_flag_rate_on_benign_records": 0.01,
+      "behaviour_flag_rate_on_scam_records": 0.5921
+    }
+  },
+  "interpretation": "Removing near-duplicates moved intent macro-F1 by -0.0006 and behaviour by -0.0057 over 622 records. On dependence, the two heads' fusion inputs share a normalised mutual information of 0.3287, and the behaviour head fires on 1.00% of benign records. Both bear directly on the noisy-OR independence assumption in fusion.py.",
+  "limitations": [
+    "This is SMS text, not call transcripts. Both heads are evaluated on the register they were trained on; conversational speech transcribed by ASR is a different distribution and is not measured here.",
+    "Records are scored from ground-truth text, not from ASR output. In the live pipeline these heads read a transcript, so real end-to-end accuracy is bounded by ASR accuracy as well (docs/BLOCKERS.md P4).",
+    "Intent labels remain 100% collinear with the corpus scam flag (O10). A high intent macro-F1 partly measures the easier scam/not-scam boundary and must not be presented as intent-discrimination accuracy.",
+    "No Tamil records exist, so neither head is evaluated in Tamil at all. Tamil remains UNSUPPORTED_LANGUAGE (O11).",
+    "The de-leaked split removes records whose digits-masked key matches a training record. That over-removes slightly, so the de-leaked figure is a conservative lower bound rather than an exact correction."
+  ],
+  "conclusion": "Quote the de-leaked figures, with support counts, and never quote OTP_REQUEST. The dependence measurement determines whether noisy-OR is double-counting one signal; it feeds the fusion ablation rather than being acted on here.",
+  "configuration": {
+    "min_support_floor": 30,
+    "behavior_threshold": 0.5,
+    "max_length": 96
+  },
+  "runtime_sec": 1037.3
+}

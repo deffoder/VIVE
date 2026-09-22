@@ -1,0 +1,323 @@
+{
+  "experiment_id": "9F_fusion_ablation_calibration",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T09:46:06+00:00",
+  "question": "How much does each evidence channel contribute to the fused risk score, and is that score calibrated well enough to be read as a probability?",
+  "hypothesis": "The intent channel will dominate, because its influence weight is the highest and its labels are collinear with the target. The score will NOT be calibrated as a probability, since nothing in fusion was fitted to produce one.",
+  "method": "Drive the real fusion with real intent and behaviour outputs over held-out text, ablating channels. Select thresholds on validation, report on test. Measure reliability, Brier score and expected calibration error against is_scam.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "scamshield",
+      "source": "huggingface.co/datasets/sidzzz07/scamshield-dataset",
+      "license": "MIT",
+      "split": "val (threshold selection)",
+      "samples": 8546
+    },
+    {
+      "name": "scamshield",
+      "source": "huggingface.co/datasets/sidzzz07/scamshield-dataset",
+      "license": "MIT",
+      "split": "test (reporting)",
+      "samples": 8644
+    }
+  ],
+  "models": [
+    {
+      "name": "risk-fusion",
+      "revision": "risk-fusion-demo-1",
+      "license": "in-repo",
+      "note": "expert-set weights, never fitted (O6)"
+    }
+  ],
+  "results": {
+    "ablation": {
+      "full_text_pipeline": {
+        "roc_auc": 0.9825,
+        "median_score_scam": 36,
+        "median_score_benign": 18,
+        "at_policy_alert_threshold_65": {
+          "threshold": 65,
+          "precision": 0.9972,
+          "recall": 0.1184,
+          "false_positive_rate": 0.0002,
+          "false_negative_rate": 0.8816,
+          "tp": 351,
+          "fp": 1,
+          "fn": 2614,
+          "tn": 5056
+        },
+        "at_threshold_selected_on_validation": {
+          "threshold": 20,
+          "precision": 0.9688,
+          "recall": 0.9619,
+          "false_positive_rate": 0.0182,
+          "false_negative_rate": 0.0381,
+          "tp": 2852,
+          "fp": 92,
+          "fn": 113,
+          "tn": 4965
+        },
+        "validation_selected_threshold": 20
+      },
+      "intent_only": {
+        "roc_auc": 0.9829,
+        "median_score_scam": 19,
+        "median_score_benign": 16,
+        "at_policy_alert_threshold_65": {
+          "threshold": 65,
+          "precision": 0.9972,
+          "recall": 0.1184,
+          "false_positive_rate": 0.0002,
+          "false_negative_rate": 0.8816,
+          "tp": 351,
+          "fp": 1,
+          "fn": 2614,
+          "tn": 5056
+        },
+        "at_threshold_selected_on_validation": {
+          "threshold": 5,
+          "precision": 0.3696,
+          "recall": 1.0,
+          "false_positive_rate": 1.0,
+          "false_negative_rate": 0.0,
+          "tp": 2965,
+          "fp": 5057,
+          "fn": 0,
+          "tn": 0
+        },
+        "validation_selected_threshold": 5
+      },
+      "behavior_only": {
+        "roc_auc": 0.774,
+        "median_score_scam": 36,
+        "median_score_benign": 21,
+        "at_policy_alert_threshold_65": {
+          "threshold": 65,
+          "precision": 0.0,
+          "recall": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 1.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2965,
+          "tn": 5057
+        },
+        "at_threshold_selected_on_validation": {
+          "threshold": 25,
+          "precision": 0.9728,
+          "recall": 0.5781,
+          "false_positive_rate": 0.0095,
+          "false_negative_rate": 0.4219,
+          "tp": 1714,
+          "fp": 48,
+          "fn": 1251,
+          "tn": 5009
+        },
+        "validation_selected_threshold": 25
+      },
+      "context_only": {
+        "roc_auc": 0.5,
+        "median_score_scam": 19,
+        "median_score_benign": 19,
+        "at_policy_alert_threshold_65": {
+          "threshold": 65,
+          "precision": 0.0,
+          "recall": 0.0,
+          "false_positive_rate": 0.0,
+          "false_negative_rate": 1.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2965,
+          "tn": 5057
+        },
+        "at_threshold_selected_on_validation": {
+          "threshold": 5,
+          "precision": 0.3696,
+          "recall": 1.0,
+          "false_positive_rate": 1.0,
+          "false_negative_rate": 0.0,
+          "tp": 2965,
+          "fp": 5057,
+          "fn": 0,
+          "tn": 0
+        },
+        "validation_selected_threshold": 5
+      },
+      "full_caller_verified": {
+        "roc_auc": 0.9825,
+        "median_score_scam": 28,
+        "median_score_benign": 9,
+        "at_policy_alert_threshold_65": {
+          "threshold": 65,
+          "precision": 0.9972,
+          "recall": 0.1184,
+          "false_positive_rate": 0.0002,
+          "false_negative_rate": 0.8816,
+          "tp": 351,
+          "fp": 1,
+          "fn": 2614,
+          "tn": 5056
+        },
+        "at_threshold_selected_on_validation": {
+          "threshold": 10,
+          "precision": 0.9684,
+          "recall": 0.9818,
+          "false_positive_rate": 0.0188,
+          "false_negative_rate": 0.0182,
+          "tp": 2911,
+          "fp": 95,
+          "fn": 54,
+          "tn": 4962
+        },
+        "validation_selected_threshold": 10
+      }
+    },
+    "audio_channel_sensitivity_label_free": {
+      "antispoof_sweep_on_benign_text": {
+        "0.0": 18,
+        "0.25": 27,
+        "0.5": 37,
+        "0.75": 46,
+        "0.9": 51,
+        "1.0": 55
+      },
+      "antispoof_sweep_on_risky_text": {
+        "0.0": 79,
+        "0.25": 81,
+        "0.5": 83,
+        "0.75": 86,
+        "0.9": 87,
+        "1.0": 88
+      },
+      "speaker_similarity_sweep_on_benign_text": {
+        "0.0": 43,
+        "0.25": 37,
+        "0.5": 30,
+        "0.75": 24,
+        "1.0": 18
+      },
+      "no_audio_evidence_benign": 18,
+      "no_audio_evidence_risky": 79,
+      "max_score_from_antispoof_alone": 55,
+      "synthetic_only_ceiling_binds": true
+    },
+    "calibration": {
+      "brier_score": 0.1798,
+      "brier_score_of_always_predicting_base_rate": 0.233,
+      "expected_calibration_error": 0.3171,
+      "base_scam_rate_in_test": 0.3696,
+      "reliability_bins": [
+        {
+          "bin": "0.0-0.1",
+          "n": 0
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 5078,
+          "mean_predicted": 0.1801,
+          "observed_scam_rate": 0.0223,
+          "gap": -0.1578
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 1124,
+          "mean_predicted": 0.21,
+          "observed_scam_rate": 0.9644,
+          "gap": 0.7544
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 798,
+          "mean_predicted": 0.3698,
+          "observed_scam_rate": 0.9574,
+          "gap": 0.5876
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 611,
+          "mean_predicted": 0.435,
+          "observed_scam_rate": 0.9738,
+          "gap": 0.5388
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 51,
+          "mean_predicted": 0.5765,
+          "observed_scam_rate": 0.9804,
+          "gap": 0.4039
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 14,
+          "mean_predicted": 0.6607,
+          "observed_scam_rate": 1.0,
+          "gap": 0.3393
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 151,
+          "mean_predicted": 0.7721,
+          "observed_scam_rate": 0.9934,
+          "gap": 0.2213
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 195,
+          "mean_predicted": 0.8075,
+          "observed_scam_rate": 1.0,
+          "gap": 0.1925
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 0
+        }
+      ],
+      "score_is_a_calibrated_probability": false
+    },
+    "records_scored": {
+      "validation": 8546,
+      "test": 8644,
+      "test_deleaked": 8022
+    }
+  },
+  "interpretation": "The full text pipeline separates scam from benign text at AUC 0.9825, against 0.774 for behaviour alone and 0.5 for context alone - the intent channel carries nearly all of it, as its influence weight and its label collinearity both predict. On calibration, the expected calibration error is 0.3171 and score/100 is NOT a usable probability.",
+  "limitations": [
+    "Fusion is driven by TEXT records, not calls. The anti-spoof and speaker channels carry no evidence in the ablation because no labelled audio exists to score them against; their effect is reported separately as a label-free sensitivity sweep.",
+    "`is_scam` is a proxy. It marks scam TEXT, not confirmed fraud by a caller. Every precision, recall and calibration figure here is against that proxy.",
+    "Intent labels are 100% collinear with `is_scam` (O10), so any configuration containing the intent channel is graded against a target derived from its own training labels. Those rows are optimistic by construction and the size of that inflation is not separately measurable from this corpus.",
+    "Thresholds were selected on validation and reported on test, but both splits come from the same corpus, so the selection transfers only as far as the corpus does.",
+    "Calibration is measured on the de-leaked test split with the audio channels absent. A live call with anti-spoof evidence present would produce a different score distribution, which is not calibrated here."
+  ],
+  "conclusion": "The prohibition on reading `risk.score` as a fraud probability is now measured rather than merely asserted, and the reliability table is the evidence. The ablation also shows the fused score is close to a one-channel score on text-only input, which is what the noisy-OR independence assumption was supposed to avoid; fusion weights stay provisional (O6).",
+  "configuration": {
+    "alert_threshold": 65,
+    "calibration_bins": 10,
+    "audio_channels": "absent (no anti-spoof score, speaker NO_REFERENCE)"
+  },
+  "runtime_sec": 1936.6
+}

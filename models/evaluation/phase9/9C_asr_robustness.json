@@ -1,0 +1,340 @@
+{
+  "experiment_id": "9C_asr_robustness",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T08:45:35+00:00",
+  "question": "How much of the clean-speech ASR accuracy survives call-like channel degradation, and what does VIVE's actual 2 s analysis window cost relative to a full utterance?",
+  "hypothesis": "Band-limiting and codec compression will cost less than additive noise, and the 2 s window will be the single largest degradation because it truncates mid-sentence and removes the context CTC relies on.",
+  "method": "Decode the same FLEURS utterances through the real VIVE ASR adapter under each perturbation. All outputs stay at 16 kHz. WER and CER use the same normaliser as every earlier VIVE ASR measurement, so rows are comparable to the Phase 7 baseline.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "google/fleurs hi_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 40,
+      "language": "hi"
+    },
+    {
+      "name": "google/fleurs ta_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 40,
+      "language": "ta"
+    }
+  ],
+  "models": [
+    {
+      "name": "indic-conformer-600m",
+      "revision": "ai4bharat CTC path",
+      "license": "MIT",
+      "execution_provider": "CPUExecutionProvider"
+    }
+  ],
+  "results": {
+    "per_language_per_condition": {
+      "hi": {
+        "clean": {
+          "wer": 0.1141,
+          "cer": 0.0421,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1169.2,
+          "reference_is_full_utterance": false
+        },
+        "snr20": {
+          "wer": 0.1217,
+          "cer": 0.0457,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 958.7,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0076,
+          "wer_ratio_vs_clean": 1.066
+        },
+        "snr10": {
+          "wer": 0.1597,
+          "cer": 0.0636,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 943.5,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0456,
+          "wer_ratio_vs_clean": 1.4
+        },
+        "snr5": {
+          "wer": 0.1683,
+          "cer": 0.0773,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 934.8,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0542,
+          "wer_ratio_vs_clean": 1.475
+        },
+        "telephony_band": {
+          "wer": 0.134,
+          "cer": 0.0492,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 964.0,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0199,
+          "wer_ratio_vs_clean": 1.175
+        },
+        "g711_ulaw": {
+          "wer": 0.1198,
+          "cer": 0.0432,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1019.1,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0057,
+          "wer_ratio_vs_clean": 1.05
+        },
+        "narrowband_8k": {
+          "wer": 0.1179,
+          "cer": 0.0427,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 968.3,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0038,
+          "wer_ratio_vs_clean": 1.033
+        },
+        "reverb": {
+          "wer": 0.1369,
+          "cer": 0.0503,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1017.0,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0228,
+          "wer_ratio_vs_clean": 1.2
+        },
+        "quiet_-20dB": {
+          "wer": 0.1131,
+          "cer": 0.0427,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1047.1,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.001,
+          "wer_ratio_vs_clean": 0.991
+        },
+        "clipped": {
+          "wer": 0.1141,
+          "cer": 0.0423,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 969.9,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.0,
+          "wer_ratio_vs_clean": 1.0
+        },
+        "window_2s": {
+          "wer": 0.8959,
+          "cer": 0.8735,
+          "utterances": 39,
+          "decode_failures": 1,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 305.4,
+          "reference_is_full_utterance": true,
+          "wer_delta_vs_clean": 0.7818,
+          "wer_ratio_vs_clean": 7.852
+        }
+      },
+      "ta": {
+        "clean": {
+          "wer": 0.2936,
+          "cer": 0.108,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1204.5,
+          "reference_is_full_utterance": false
+        },
+        "snr20": {
+          "wer": 0.2832,
+          "cer": 0.0972,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 983.3,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.0104,
+          "wer_ratio_vs_clean": 0.964
+        },
+        "snr10": {
+          "wer": 0.3219,
+          "cer": 0.1063,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 944.4,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0283,
+          "wer_ratio_vs_clean": 1.096
+        },
+        "snr5": {
+          "wer": 0.3994,
+          "cer": 0.1506,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 939.2,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.1058,
+          "wer_ratio_vs_clean": 1.36
+        },
+        "telephony_band": {
+          "wer": 0.2876,
+          "cer": 0.0972,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 941.8,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.006,
+          "wer_ratio_vs_clean": 0.98
+        },
+        "g711_ulaw": {
+          "wer": 0.2876,
+          "cer": 0.0987,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 945.4,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.006,
+          "wer_ratio_vs_clean": 0.98
+        },
+        "narrowband_8k": {
+          "wer": 0.2876,
+          "cer": 0.0989,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 1053.4,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.006,
+          "wer_ratio_vs_clean": 0.98
+        },
+        "reverb": {
+          "wer": 0.307,
+          "cer": 0.1041,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 947.4,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0134,
+          "wer_ratio_vs_clean": 1.046
+        },
+        "quiet_-20dB": {
+          "wer": 0.3025,
+          "cer": 0.1158,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 977.3,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": 0.0089,
+          "wer_ratio_vs_clean": 1.03
+        },
+        "clipped": {
+          "wer": 0.2832,
+          "cer": 0.1002,
+          "utterances": 40,
+          "decode_failures": 0,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 981.8,
+          "reference_is_full_utterance": false,
+          "wer_delta_vs_clean": -0.0104,
+          "wer_ratio_vs_clean": 0.964
+        },
+        "window_2s": {
+          "wer": 0.9147,
+          "cer": 0.8866,
+          "utterances": 37,
+          "decode_failures": 3,
+          "empty_hypotheses": 0,
+          "median_latency_ms": 301.7,
+          "reference_is_full_utterance": true,
+          "wer_delta_vs_clean": 0.6211,
+          "wer_ratio_vs_clean": 3.115
+        }
+      }
+    }
+  },
+  "interpretation": "Clean FLEURS accuracy does not transfer unchanged to call-like audio. The harshest channel condition measured was ta/snr5 at WER 0.3994. The per-condition deltas identify which parts of a call path cost the most, which is what a deployment decision needs; they do not produce a telephone-call accuracy figure and none may be quoted as one.",
+  "limitations": [
+    "All degradations are SIMULATED. A real call additionally carries packet loss, jitter concealment, echo cancellation, automatic gain control and an unknown handset response. None are modelled, so these rows are a lower bound on real-world degradation, not a telephone WER.",
+    "40 utterances per language per condition. Differences smaller than a few points should not be read as real.",
+    "The `window_2s` row scores a 2 s decode against the FULL utterance reference, because no per-window ground truth exists. Its WER is therefore dominated by deletions and is NOT comparable to the other rows as an accuracy figure - it states the cost of windowing.",
+    "FLEURS speakers read prepared text. Spontaneous conversational speech - disfluency, overlap, code-switching - is not represented and is expected to be harder.",
+    "Noise is white Gaussian. Real call noise is non-stationary: traffic, babble, music on hold. White noise is the easy case.",
+    "`median_latency_ms` here is incidental, not a benchmark: this run may share the machine with other work. The authoritative latency figures come from the dedicated runtime experiment, which controls for that. A Phase 7 RTF probe was already invalidated once by exactly this contention, so these numbers are recorded but not quoted."
+  ],
+  "conclusion": "Report ASR accuracy as a range across measured conditions with the condition named, never as a single number. The clean FLEURS WER stays the upper bound and must keep its 'clean read speech' label wherever it appears.",
+  "configuration": {
+    "conditions": [
+      "clean",
+      "clipped",
+      "g711_ulaw",
+      "narrowband_8k",
+      "quiet_-20dB",
+      "reverb",
+      "snr10",
+      "snr20",
+      "snr5",
+      "telephony_band",
+      "window_2s"
+    ],
+    "normalisation": [
+      "Unicode NFC",
+      "lowercase",
+      "strip punctuation including Devanagari danda U+0964 and double danda U+0965",
+      "collapse whitespace"
+    ],
+    "clips_per_language": 40,
+    "window_sec": 2.0,
+    "output_sample_rate": 16000
+  },
+  "runtime_sec": 1425.7
+}

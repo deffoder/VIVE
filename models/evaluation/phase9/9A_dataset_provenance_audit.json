@@ -1,0 +1,774 @@
+{
+  "experiment_id": "9A_dataset_provenance_audit",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T08:28:03+00:00",
+  "question": "Do the datasets Phase 9 will evaluate on have verified licences, disjoint splits and enough test support to support the metrics that will be computed from them?",
+  "hypothesis": "The Phase 7 build script reported clean splits and verified licences. Re-deriving those properties from the manifests will confirm them, and will also surface near-duplicate leakage that exact hashing did not test for.",
+  "method": "Read every manifest record directly. Re-derive licences, lineage separation, exact and near-duplicate leakage, per-class test support, synthetic provenance, Tamil codepoints and label collinearity. Compare nothing against the build script's own summary.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "scamshield",
+      "source": "huggingface.co/datasets/sidzzz07/scamshield-dataset",
+      "license": "MIT",
+      "split": "train+val+test",
+      "samples": 85602,
+      "dataset_version": "2026-09-21-snapshot"
+    }
+  ],
+  "models": [],
+  "results": {
+    "text_corpus": {
+      "records_per_split": {
+        "train": 68412,
+        "val": 8546,
+        "test": 8644
+      },
+      "licences": {
+        "MIT/VERIFIED": 85602
+      },
+      "records_without_verified_licence": 0,
+      "lineage_groups": 178,
+      "lineages_straddling_splits": {
+        "real_smishing_dataset": [
+          "test",
+          "train",
+          "val"
+        ],
+        "real_uci_sms_spam": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_kyc_icici": [
+          "train",
+          "val"
+        ],
+        "real_ysangam_indian_cyber_scam_hinglish": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_patna": [
+          "test",
+          "train"
+        ],
+        "real_kaggle_hindi_merged": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_22": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_ahmedabad": [
+          "train",
+          "val"
+        ],
+        "group_benign_batch_21": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_31": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_02": [
+          "test",
+          "train",
+          "val"
+        ],
+        "real_indian_telecom_sms": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_07": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_03": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_kyc_pnb": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_06": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_15": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_bluedart": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_25": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_26": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_05": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_24": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_bescom": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_27": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_12": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_33": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_10": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_kyc_indusind": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_13": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_04": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_bengaluru": [
+          "test",
+          "train"
+        ],
+        "real_benchmark_ground_truth": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_dtdc": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_09": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_11": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_00": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_17": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_01": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_30": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_18": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_xpressbees": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_17": [
+          "test",
+          "train"
+        ],
+        "group_elec_pspcl": [
+          "test",
+          "train"
+        ],
+        "group_benign_batch_16": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_20": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_23": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_28": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_chandigarh": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_kyc_idfc_first": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_29": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_msedcl": [
+          "train",
+          "val"
+        ],
+        "group_challan_mumbai": [
+          "test",
+          "train"
+        ],
+        "group_job_task_00": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_19": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_job_task_02": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_ekart": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_07": [
+          "test",
+          "train"
+        ],
+        "group_kyc_axis_bank": [
+          "train",
+          "val"
+        ],
+        "group_benign_batch_14": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_wbsedcl": [
+          "test",
+          "train"
+        ],
+        "group_kyc_union_bank": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_34": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_job_task_22": [
+          "test",
+          "train"
+        ],
+        "group_benign_batch_32": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_benign_batch_08": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_20": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_bses": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_jaipur": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_05": [
+          "test",
+          "train"
+        ],
+        "group_lottery_21": [
+          "test",
+          "train"
+        ],
+        "group_kyc_yes_bank": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_lucknow": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_delhi": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_fedex": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_dhbvn": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_kyc_canara_bank": [
+          "test",
+          "train"
+        ],
+        "group_lottery_15": [
+          "test",
+          "train"
+        ],
+        "group_challan_pune": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_challan_kolkata": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_job_task_17": [
+          "train",
+          "val"
+        ],
+        "group_elec_tata_power": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_job_task_23": [
+          "test",
+          "train"
+        ],
+        "group_elec_uppcl": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_03": [
+          "train",
+          "val"
+        ],
+        "group_kyc_sbi": [
+          "train",
+          "val"
+        ],
+        "group_courier_delhivery": [
+          "test",
+          "train"
+        ],
+        "group_elec_tsspdcl": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_cesc": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_adani_electricity": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_courier_india_post": [
+          "train",
+          "val"
+        ],
+        "group_kyc_hdfc": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_elec_jvvnl": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_job_task_05": [
+          "test",
+          "train"
+        ],
+        "group_lottery_16": [
+          "train",
+          "val"
+        ],
+        "group_courier_shadowfax": [
+          "test",
+          "train"
+        ],
+        "group_challan_bhopal": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_upi_collect_01": [
+          "train",
+          "val"
+        ],
+        "group_job_task_10": [
+          "train",
+          "val"
+        ],
+        "group_lottery_20": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_19": [
+          "train",
+          "val"
+        ],
+        "group_kyc_bank_of_baroda": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_00": [
+          "test",
+          "train"
+        ],
+        "group_job_task_24": [
+          "train",
+          "val"
+        ],
+        "group_job_task_07": [
+          "test",
+          "train"
+        ],
+        "group_kyc_kotak_bank": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_06": [
+          "test",
+          "train"
+        ],
+        "group_upi_collect_02": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_15": [
+          "test",
+          "train"
+        ],
+        "group_lottery_02": [
+          "train",
+          "val"
+        ],
+        "group_lottery_24": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_13": [
+          "train",
+          "val"
+        ],
+        "group_upi_collect_00": [
+          "test",
+          "train"
+        ],
+        "group_lottery_04": [
+          "test",
+          "train"
+        ],
+        "group_upi_collect_23": [
+          "test",
+          "train"
+        ],
+        "group_lottery_14": [
+          "test",
+          "train"
+        ],
+        "group_lottery_11": [
+          "test",
+          "train"
+        ],
+        "group_freeze_cbi_10": [
+          "train",
+          "val"
+        ],
+        "group_job_task_01": [
+          "train",
+          "val"
+        ],
+        "group_job_task_04": [
+          "test",
+          "train"
+        ],
+        "group_lottery_17": [
+          "train",
+          "val"
+        ],
+        "group_lottery_13": [
+          "test",
+          "train"
+        ],
+        "group_job_task_15": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_12": [
+          "train",
+          "val"
+        ],
+        "group_job_task_12": [
+          "test",
+          "train"
+        ],
+        "group_job_task_20": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_lottery_03": [
+          "test",
+          "train"
+        ],
+        "group_job_task_11": [
+          "train",
+          "val"
+        ],
+        "group_freeze_cbi_04": [
+          "test",
+          "train"
+        ],
+        "group_job_task_21": [
+          "test",
+          "train"
+        ],
+        "group_freeze_cbi_14": [
+          "train",
+          "val"
+        ],
+        "group_job_task_16": [
+          "test",
+          "train",
+          "val"
+        ],
+        "group_lottery_05": [
+          "test",
+          "train"
+        ],
+        "group_job_task_03": [
+          "train",
+          "val"
+        ],
+        "group_upi_collect_03": [
+          "train",
+          "val"
+        ]
+      },
+      "exact_train_test_leaks": 0,
+      "near_duplicate_train_test_leaks_upper_bound": 375,
+      "test_intent_support": {
+        "NORMAL_CONVERSATION": 5479,
+        "URGENT_ACTION": 97,
+        "UNKNOWN": 2660,
+        "THREAT_OR_INTIMIDATION": 89,
+        "BANKING_CREDENTIAL_REQUEST": 160,
+        "MONEY_TRANSFER_REQUEST": 151,
+        "OTP_REQUEST": 8
+      },
+      "test_behavior_support": {
+        "NORMAL": 6738,
+        "URGENCY": 665,
+        "FEAR": 324,
+        "AUTHORITY_IMPERSONATION": 347,
+        "PRESSURE": 507,
+        "REWARD_PROMISE": 976
+      },
+      "intent_classes_below_support_floor": {
+        "OTP_REQUEST": 8
+      },
+      "behavior_classes_below_support_floor": {},
+      "min_test_support_floor": 30,
+      "synthetic_provenance_per_split": {
+        "train": 3009,
+        "val": 353,
+        "test": 358
+      },
+      "tamil_codepoints": 0,
+      "tamil_tagged_records": 0,
+      "intent_collinear_with_is_scam_pct": 100.0,
+      "benign_records_with_behaviour_flag": 0
+    },
+    "audio_and_checkpoint_sources": {
+      "declared": [
+        {
+          "name": "google/fleurs hi_in/ta_in",
+          "source": "HuggingFace",
+          "license": "CC-BY-4.0",
+          "status": "VERIFIED",
+          "note": "clean read speech; NOT telephone audio"
+        },
+        {
+          "name": "AASIST (clovaai)",
+          "source": "GitHub clovaai/aasist",
+          "license": "MIT",
+          "status": "VERIFIED",
+          "note": "trained on ASVspoof2019 LA; no VIVE evaluation corpus (O5)"
+        },
+        {
+          "name": "ECAPA-TDNN (speechbrain)",
+          "source": "HuggingFace speechbrain/spkrec-ecapa-voxceleb",
+          "license": "Apache-2.0",
+          "status": "VERIFIED",
+          "note": "no speaker-labelled corpus acquired (O5)"
+        },
+        {
+          "name": "IndicConformer-600M",
+          "source": "HuggingFace ai4bharat",
+          "license": "MIT",
+          "status": "VERIFIED",
+          "note": "gated repo; terms accepted by the account holder"
+        },
+        {
+          "name": "Silero VAD v5",
+          "source": "GitHub snakers4/silero-vad",
+          "license": "MIT",
+          "status": "VERIFIED",
+          "note": ""
+        },
+        {
+          "name": "mDistilBERT",
+          "source": "HuggingFace distilbert-base-multilingual-cased",
+          "license": "Apache-2.0",
+          "status": "VERIFIED",
+          "note": "base for both text heads"
+        },
+        {
+          "name": "ASVspoof2019 LA",
+          "source": "asvspoof.org",
+          "license": "registration required",
+          "status": "UNAVAILABLE",
+          "note": "anti-spoofing EER cannot be computed without it (O5)"
+        },
+        {
+          "name": "VoxCeleb1 test",
+          "source": "robots.ox.ac.uk",
+          "license": "request form required",
+          "status": "UNAVAILABLE",
+          "note": "speaker verification EER cannot be computed without it (O5)"
+        }
+      ],
+      "pretrained_checks_present": true
+    },
+    "splits_usable_for_held_out_evaluation": false
+  },
+  "interpretation": "Split hygiene and licensing are sufficient for held-out text evaluation. What bounds Phase 9 is not split quality but label quality and missing corpora: intent remains collinear with the scam flag, several classes sit under the 30-record floor, and neither anti-spoofing nor speaker verification has an evaluation corpus at all.",
+  "limitations": [
+    "The near-duplicate check masks digits, so it over-counts: two distinct messages differing only in a number collapse to one key. The figure is an upper bound on leakage, not a count of leaked records.",
+    "Licence status is read from the manifest, which records what was verified at build time against repository metadata. It is not a legal review and does not re-check the upstream repository today.",
+    "ASVspoof2019 LA and VoxCeleb1 remain unavailable, so anti-spoofing and speaker-verification EER cannot be computed in Phase 9 at all (docs/BLOCKERS.md O5).",
+    "This audits data suitability only. A clean split says nothing about whether the labels themselves are meaningful - O10 collinearity is re-measured here and remains a property of the corpus."
+  ],
+  "conclusion": "Proceed with text-head, fusion and calibration evaluation on these splits, reporting support counts everywhere. Do not attempt an anti-spoofing or speaker EER; O5 blocks both.",
+  "runtime_sec": 10.0
+}

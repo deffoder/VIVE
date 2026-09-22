@@ -1,0 +1,303 @@
+{
+  "experiment_id": "9B_aasist_early_window",
+  "phase": 9,
+  "run_at_utc": "2026-09-22T10:28:01+00:00",
+  "question": "Can AASIST produce useful anti-spoofing evidence from less than its native 64,600-sample (~4.04 s) window, using only genuine audio and without any adapter change?",
+  "hypothesis": "Shorter windows will degrade discrimination gradually rather than collapse, so a 2 s window may retain enough separation to be worth reporting early at lower confidence.",
+  "method": "Score prefixes of the same clips at 1, 2, 3, 4 and 4.0375 s. No padding, tiling or resampling at any length; clips too short for a length are dropped from it. Report EER, ROC AUC and fixed-threshold error rates per length against the two-class probe, plus label-free agreement with each clip's own full-window score.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "vive-aasist-probe-v1 (spoof half)",
+      "source": "microsoft/speecht5_tts + speecht5_hifigan",
+      "license": "MIT",
+      "split": "probe",
+      "samples": 60
+    },
+    {
+      "name": "vive-aasist-probe-v1 (bonafide half)",
+      "source": "google/fleurs test hi_in+ta_in",
+      "license": "CC-BY-4.0",
+      "split": "probe",
+      "samples": 60
+    }
+  ],
+  "models": [
+    {
+      "name": "aasist",
+      "revision": "clovaai/aasist AASIST.pth",
+      "license": "MIT",
+      "trained_on": "ASVspoof2019 LA",
+      "native_input_samples": 64600,
+      "accepts_variable_length": true
+    }
+  ],
+  "results": {
+    "probe_validity_control": {
+      "checked": true,
+      "spoof": {
+        "clips_checked": 20,
+        "vad_detected_speech": 20,
+        "median_rms": 0.0523
+      },
+      "bonafide": {
+        "clips_checked": 20,
+        "vad_detected_speech": 19,
+        "median_rms": 0.0428
+      }
+    },
+    "per_window_length": {
+      "1.0000s": {
+        "window_sec": 1.0,
+        "window_samples": 16000,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.9982,
+          "bonafide": 0.9975
+        },
+        "latency_ms": {
+          "median": 95.1,
+          "max": 124.6
+        },
+        "eer": 0.45,
+        "eer_threshold": 0.9977,
+        "eer_90pct_interval": {
+          "p05": 0.3667,
+          "p95": 0.55,
+          "resamples": 400
+        },
+        "roc_auc": 0.4875,
+        "at_fixed_threshold_0.5": {
+          "spoof_missed_rate": 0.0,
+          "bonafide_false_alarm_rate": 1.0
+        }
+      },
+      "2.0000s": {
+        "window_sec": 2.0,
+        "window_samples": 32000,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.9845,
+          "bonafide": 0.9643
+        },
+        "latency_ms": {
+          "median": 183.3,
+          "max": 246.4
+        },
+        "eer": 0.45,
+        "eer_threshold": 0.9817,
+        "eer_90pct_interval": {
+          "p05": 0.3833,
+          "p95": 0.55,
+          "resamples": 400
+        },
+        "roc_auc": 0.5039,
+        "at_fixed_threshold_0.5": {
+          "spoof_missed_rate": 0.0833,
+          "bonafide_false_alarm_rate": 0.95
+        }
+      },
+      "3.0000s": {
+        "window_sec": 3.0,
+        "window_samples": 48000,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.9032,
+          "bonafide": 0.6934
+        },
+        "latency_ms": {
+          "median": 279.9,
+          "max": 368.1
+        },
+        "eer": 0.4167,
+        "eer_threshold": 0.8385,
+        "eer_90pct_interval": {
+          "p05": 0.3583,
+          "p95": 0.5,
+          "resamples": 400
+        },
+        "roc_auc": 0.5317,
+        "at_fixed_threshold_0.5": {
+          "spoof_missed_rate": 0.2,
+          "bonafide_false_alarm_rate": 0.5833
+        }
+      },
+      "4.0000s": {
+        "window_sec": 4.0,
+        "window_samples": 64000,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.8118,
+          "bonafide": 0.4193
+        },
+        "latency_ms": {
+          "median": 376.4,
+          "max": 473.7
+        },
+        "eer": 0.4333,
+        "eer_threshold": 0.6482,
+        "eer_90pct_interval": {
+          "p05": 0.35,
+          "p95": 0.5,
+          "resamples": 400
+        },
+        "roc_auc": 0.5592,
+        "at_fixed_threshold_0.5": {
+          "spoof_missed_rate": 0.3833,
+          "bonafide_false_alarm_rate": 0.4833
+        }
+      },
+      "4.0375s": {
+        "window_sec": 4.0375,
+        "window_samples": 64600,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.8225,
+          "bonafide": 0.4248
+        },
+        "latency_ms": {
+          "median": 384.2,
+          "max": 492.6
+        },
+        "eer": 0.4333,
+        "eer_threshold": 0.6391,
+        "eer_90pct_interval": {
+          "p05": 0.35,
+          "p95": 0.5,
+          "resamples": 400
+        },
+        "roc_auc": 0.56,
+        "at_fixed_threshold_0.5": {
+          "spoof_missed_rate": 0.3667,
+          "bonafide_false_alarm_rate": 0.4667
+        }
+      }
+    },
+    "agreement_with_full_window": {
+      "1.0000s": {
+        "pairs": 120,
+        "median_abs_delta_vs_full_window": 0.3565,
+        "max_abs_delta_vs_full_window": 0.996,
+        "verdict_flip_rate_at_0.5": 0.45
+      },
+      "2.0000s": {
+        "pairs": 120,
+        "median_abs_delta_vs_full_window": 0.2103,
+        "max_abs_delta_vs_full_window": 0.9884,
+        "verdict_flip_rate_at_0.5": 0.3833
+      },
+      "3.0000s": {
+        "pairs": 120,
+        "median_abs_delta_vs_full_window": 0.0827,
+        "max_abs_delta_vs_full_window": 0.6499,
+        "verdict_flip_rate_at_0.5": 0.1917
+      },
+      "4.0000s": {
+        "pairs": 120,
+        "median_abs_delta_vs_full_window": 0.0017,
+        "max_abs_delta_vs_full_window": 0.1082,
+        "verdict_flip_rate_at_0.5": 0.0167
+      }
+    },
+    "probe_manifest": {
+      "probe_id": "vive-aasist-probe-v1",
+      "purpose": "Two-class probe for AASIST. One synthesis family only; not a substitute for ASVspoof.",
+      "sample_rate": 16000,
+      "resampling_performed": false,
+      "classes": {
+        "spoof": {
+          "count": 60,
+          "generator": "microsoft/speecht5_tts + microsoft/speecht5_hifigan",
+          "license": "MIT",
+          "license_status": "VERIFIED",
+          "speaker_embeddings": "Matthijs/cmu-arctic-xvectors (MIT)",
+          "language": "en",
+          "native_sample_rate": 16000
+        },
+        "bonafide": {
+          "count": 60,
+          "source": "google/fleurs test (hi_in + ta_in)",
+          "license": "CC-BY-4.0",
+          "license_status": "VERIFIED",
+          "language": "hi, ta",
+          "native_sample_rate": 16000
+        }
+      },
+      "known_confounds": [
+        "The two classes differ in LANGUAGE as well as in authenticity: spoof is English, bonafide is Hindi and Tamil. A separation measured here could partly reflect language or channel rather than synthesis. This is the probe's most serious weakness and any number derived from it must carry it.",
+        "The two classes differ in RECORDING CHANNEL: FLEURS is recorded read speech, the spoof half is vocoder output with no channel at all. AASIST is known to key on low-level channel cues.",
+        "One synthesis family. Nothing here generalises to other generators (docs/BLOCKERS.md P2)."
+      ],
+      "rejected_alternatives": {
+        "facebook/mms-tts-hin, facebook/mms-tts-tam": "CC-BY-NC-4.0 forbids commercial use",
+        "ai4bharat/indic-parler-tts": "Apache-2.0 but gated:auto; needs account-holder acceptance, not downloaded",
+        "ASVspoof2019 LA": "registration agreement required (O5)"
+      }
+    },
+    "variable_length_input_is_native": true,
+    "padding_or_resampling_used": false,
+    "discriminates_above_chance": false
+  },
+  "interpretation": "AASIST does not separate this synthesis family from genuine speech at ANY window length. The best window was 3.0s at EER 0.4167 (90% interval 0.3583-0.5, AUC 0.5317), and that interval includes 0.50 - chance. The stated language and channel confound cuts the reassuring way here: English vocoder output against Hindi/Tamil recorded speech should have been EASIER to separate than genuine spoofing, so a near-chance result under a favourable confound is a conservative reading, not an optimistic one. The class-index convention cannot rescue it either: reversing it gives AUC 0.4683, also chance.",
+  "limitations": [
+    "The probe has ONE synthesis family (SpeechT5 + HiFiGAN). Nothing here generalises to other generators (docs/BLOCKERS.md P2), and this is not an ASVspoof-comparable EER.",
+    "The two probe classes differ in language and recording channel as well as in authenticity: spoof is English vocoder output, bonafide is Hindi/Tamil recorded speech. Separation measured here may partly reflect channel rather than synthesis, which would make these numbers OPTIMISTIC.",
+    "Sample size is small. The bootstrap interval is reported for exactly that reason and must be quoted alongside any EER from this table.",
+    "Agreement with the full-window score is label-free and only a necessary condition. The full-window answer is itself unvalidated out of domain (docs/BLOCKERS.md O12), so agreeing with it is not evidence of correctness.",
+    "Clips shorter than a given window length are dropped from that length, so the clip set can differ slightly between lengths. Counts are reported per length."
+  ],
+  "conclusion": "The early-window question is moot. Shorter windows run natively and need no adapter change, but there is no measured anti-spoofing performance at the native length to deliver earlier. VIVE must not present AASIST output as synthetic-voice evidence on audio of this kind, and no real-time anti-spoofing capability may be claimed. Fusion weights are NOT changed on the strength of one synthesis family; that needs a real corpus (docs/BLOCKERS.md O5).",
+  "configuration": {
+    "window_seconds": [
+      1.0,
+      2.0,
+      3.0,
+      4.0,
+      4.0375
+    ],
+    "fixed_threshold": 0.5,
+    "padding": "none",
+    "resampling": "none",
+    "sample_rate": 16000
+  },
+  "runtime_sec": 333.4
+}
