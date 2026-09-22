@@ -245,6 +245,34 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
         capture = null
     }
 
+    /**
+     * Ends the analysis session for real.
+     *
+     * "End call" used to only navigate to the summary screen. The microphone
+     * kept recording and the backend session stayed STREAMING indefinitely -
+     * a control that changed the screen without performing the operation it
+     * named. [onEnded] fires once the backend has confirmed, so the summary
+     * opens on a session that is actually finished.
+     *
+     * Order matters: release the microphone BEFORE ending the session, or the
+     * recorder keeps running with nowhere to send.
+     */
+    fun endSession(onEnded: () -> Unit = {}) {
+        stopCapture()
+        viewModelScope.launch {
+            when (val ended = ServiceLocator.sessions.endSession(sessionId)) {
+                is ViveResult.Success -> _session.value = UiState.Success(ended.data)
+                // A failed end is reported, not hidden, but the user is still
+                // taken to the summary: the local session is over either way.
+                is ViveResult.Failure -> ViveLog.e(TAG, "endSession failed")
+            }
+            runCatching { ServiceLocator.closeStream(sessionId) }
+            streamJob?.cancel()
+            streamJob = null
+            onEnded()
+        }
+    }
+
     /** Safe cancellation when the user leaves the session. */
     override fun onCleared() {
         // Cancel rather than stop: the user has left, so buffered audio is

@@ -121,3 +121,19 @@ def test_models_report_mode_and_no_accuracy(client: TestClient) -> None:
 def test_delete_session_actually_removes_it(client: TestClient, session_id: str) -> None:
     assert client.delete(f"/api/v1/sessions/{session_id}").status_code == 204
     assert client.get(f"/api/v1/sessions/{session_id}").status_code == 404
+
+
+def test_models_report_the_version_that_actually_loaded(client: TestClient) -> None:
+    """A model reported AVAILABLE must also say WHICH model it is.
+
+    `version` was hard-coded to "demo" for mock and "" for everything else, so
+    in real mode the Model Information screen showed adapters as AVAILABLE
+    with a blank version - status without identity. An operator checking what
+    is deployed needs the version more than the status.
+    """
+    models = client.get("/api/v1/models").json()
+    assert models, "the inventory must not be empty"
+    for model in models:
+        assert model["version"], (
+            f"{model['id']} reports status {model['status']} with no version"
+        )

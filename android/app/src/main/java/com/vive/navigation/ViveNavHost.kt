@@ -127,8 +127,13 @@ fun ViveNavHost(
                 onOpenPacketTimeline = {
                     navController.navigate(ViveDestination.PacketTimeline.create(sessionId))
                 },
+                // Ends the session for real - stops the microphone and tells
+                // the backend - then opens the summary. Navigating alone left
+                // the mic recording and the session STREAMING forever.
                 onEndCall = {
-                    navController.navigate(ViveDestination.CallSummary.create(sessionId))
+                    vm.endSession {
+                        navController.navigate(ViveDestination.CallSummary.create(sessionId))
+                    }
                 },
             )
         }

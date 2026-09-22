@@ -73,12 +73,22 @@ async def list_models(state: StateDep, principal: AuthDep) -> list[ModelInfo]:
     docs/ML_SPEC.md 8.5 forbids publishing an unmeasured metric.
     """
     states = state.adapters.states()
+    # The real version comes from the adapter that actually loaded, via
+    # describe(). It used to be blank for every real model - the field was
+    # hard-coded to "demo" for mock and "" otherwise - so the Model
+    # Information screen could report a model as AVAILABLE while showing
+    # nothing about WHICH model that was. An operator checking what is
+    # deployed needs the version more than the status.
+    infos = state.adapters.infos()
     models = [
         ModelInfo(
             id=model_id,
             display_name=display,
             purpose=purpose,
-            version="demo" if states[key][1].value == "mock" else "",
+            version=(
+                "demo" if states[key][1].value == "mock"
+                else (infos[key].model_version or "")
+            ),
             mode=states[key][1],
             status=states[key][0],
         )
