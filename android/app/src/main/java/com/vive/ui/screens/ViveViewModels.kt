@@ -17,6 +17,7 @@ import com.vive.data.model.AdapterMode
 import com.vive.data.model.Alert
 import com.vive.data.model.ModelInfo
 import com.vive.data.model.Packet
+import com.vive.data.model.ReadyState
 import com.vive.data.model.Session
 import com.vive.data.model.SourceType
 import com.vive.data.model.TranscriptLine
@@ -464,6 +465,37 @@ class AlertsViewModel : ViewModel() {
     fun acknowledge(alertId: String) = viewModelScope.launch {
         ServiceLocator.alerts.acknowledge(alertId)
         refresh()
+    }
+}
+
+/**
+ * Backend readiness, for the system-status line on Home.
+ *
+ * Kept separate from [ModelsViewModel] because this answers a different
+ * question. The model inventory is a catalogue the user opens deliberately;
+ * this is a one-line answer to "is the analysis engine actually working right
+ * now", which Home must show without being asked.
+ *
+ * It also re-resolves the demo badge. `ViveApplication` asks once at start-up,
+ * and if the backend was unreachable at that moment the badge stayed on for
+ * the rest of the process - which is how a screen full of real backend data
+ * ended up labelled demo data.
+ */
+class SystemStatusViewModel : ViewModel() {
+
+    private val _state = MutableStateFlow<UiState<ReadyState>>(UiState.Loading)
+    val state: StateFlow<UiState<ReadyState>> = _state.asStateFlow()
+
+    init { refresh() }
+
+    fun refresh() = viewModelScope.launch {
+        _state.value = when (val result = ServiceLocator.models.ready()) {
+            is ViveResult.Success -> {
+                ServiceLocator.observeAdapterMode(result.data.hasMockAdapter)
+                UiState.Success(result.data)
+            }
+            is ViveResult.Failure -> UiState.Error(result.error)
+        }
     }
 }
 

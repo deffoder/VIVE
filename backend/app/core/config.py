@@ -95,7 +95,26 @@ class Settings(BaseSettings):
     """Directory containing `silero_vad.jit`."""
 
     antispoof_model_dir: str = ""
-    """Directory containing `AASIST.pth`."""
+    """Directory holding the anti-spoof checkpoint.
+
+    Interpreted according to `antispoof_kind`: an AASIST directory containing
+    `AASIST.pth`, or a HuggingFace audio-classification directory containing
+    `config.json` and `preprocessor_config.json`.
+    """
+
+    antispoof_kind: Literal["aasist", "wav2vec2"] = "wav2vec2"
+    """Which anti-spoof implementation to load.
+
+    Defaults to `wav2vec2`. AASIST is not removed - it remains selectable and
+    its integration is proven correct (EER 0.0133 in-domain, Phase J) - but it
+    does not transfer to VIVE's audio, scoring at chance on the synthesis
+    probe and 0.9998 on genuine handset speech (O12). Phase J2 measured a
+    wav2vec2 checkpoint at 0.1000 on the same probe against AASIST's 0.4333.
+
+    Defaulting to the model that transfers is the point: a default that has to
+    be changed to get the measured behaviour is a default that ships the
+    unmeasured one.
+    """
 
     speaker_model_dir: str = ""
     """SpeechBrain ECAPA-TDNN directory (`hyperparams.yaml` + checkpoints)."""

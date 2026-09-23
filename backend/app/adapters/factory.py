@@ -36,6 +36,7 @@ def build_bundle(settings: Settings) -> AdapterBundle:
 def _build_real_bundle(settings: Settings) -> AdapterBundle:
     """Real where implemented, mock elsewhere, honest about which is which."""
     # Imported here so `mock` mode never touches the real package.
+    from app.adapters.real.antispoof_wav2vec import Wav2VecAntiSpoofAdapter
     from app.adapters.real.asr_conformer import IndicConformerAsrAdapter
     from app.adapters.real.asr_router import RoutingAsrAdapter
     from app.adapters.real.asr_whisper import WhisperAsrAdapter
@@ -61,7 +62,15 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
     intent = RealIntentAdapter(settings.intent_model_dir)
     behavior = RealBehaviorAdapter(settings.behavior_model_dir)
     vad = SileroVadAdapter(settings.vad_model_dir)
-    antispoof = AasistAntiSpoofAdapter(settings.antispoof_model_dir)
+    # AASIST stays selectable and its integration is proven correct
+    # (EER 0.0133 in-domain, Phase J), but it does not transfer to VIVE's
+    # audio. The default is the model Phase J2 measured at 0.1000 on the
+    # off-domain probe against AASIST's 0.4333.
+    antispoof = (
+        AasistAntiSpoofAdapter(settings.antispoof_model_dir)
+        if settings.antispoof_kind == "aasist"
+        else Wav2VecAntiSpoofAdapter(settings.antispoof_model_dir)
+    )
     speaker = EcapaSpeakerAdapter(settings.speaker_model_dir)
 
     for adapter in (vad, antispoof, speaker, asr, intent, behavior):

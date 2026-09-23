@@ -91,3 +91,9 @@ models/notebooks/**/.ipynb_checkpoints/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Runtime SQLite store. Holds session transcripts, which are sensitive
+# (SECURITY_SPEC 4) - never tracked.
+*.db
+*.db-shm
+*.db-wal

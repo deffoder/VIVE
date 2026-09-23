@@ -11,6 +11,20 @@ os.environ.setdefault("VIVE_ENV", "development")
 os.environ.setdefault("VIVE_API_TOKENS", "")
 os.environ.setdefault("VIVE_WS_IDLE_TIMEOUT_SECONDS", "5")
 
+# Settings read `.env` from the working directory, so running pytest from
+# `backend/` silently inherits whatever a developer configured for their own
+# runs. That is not hypothetical: pointing a local .env at real model
+# directories made the suite load a 378 MB checkpoint and die with a native
+# access violation, and a store path would have had the tests writing into the
+# real database.
+#
+# setdefault rather than assignment, so an explicitly EXPORTED variable still
+# wins - a deliberate `VIVE_ADAPTER_MODE=real pytest` is honoured, a stray
+# .env is not. Environment variables take precedence over .env in
+# pydantic-settings, so these two lines are what make the suite hermetic.
+os.environ.setdefault("VIVE_ADAPTER_MODE", "mock")
+os.environ.setdefault("VIVE_STORE_PATH", "")
+
 from app.core import ids  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.main import create_app  # noqa: E402

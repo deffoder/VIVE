@@ -1,0 +1,254 @@
+{
+  "experiment_id": "10J2_antispoof_replacement",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T14:56:48+00:00",
+  "question": "Phase J left two honest options - replace AASIST or drop the channel. Is there an ungated, openly-licensed anti-spoof model that transfers to VIVE's audio, where AASIST scores at chance?",
+  "hypothesis": "At least one wav2vec2-based detector will transfer better than AASIST, because a self-supervised speech backbone trained on thousands of hours of varied audio should be less brittle to channel change than a model trained only on ASVspoof.",
+  "method": "Score the SAME two corpora Phase J used - ASVspoof 2019 LA eval as an in-domain control and VIVE's synthesis probe as the off-domain test - with the same EER implementation, so every row sits directly beside AASIST's.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "deefdb89c2d139f57367d44ae8672802b8b89405",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "SpeechAntiSpoofingBenchmarks/ASVspoof2019_LA",
+      "source": "HuggingFace",
+      "license": "ODC-By-1.0",
+      "split": "test (LA eval)",
+      "samples": 240,
+      "role": "in-domain control"
+    },
+    {
+      "name": "VIVE synthesis probe (SpeechT5 + HiFiGAN vs FLEURS)",
+      "source": "in-repo",
+      "license": "MIT + CC-BY-4.0",
+      "split": "probe",
+      "samples": 120,
+      "role": "off-domain test"
+    }
+  ],
+  "models": [
+    {
+      "name": "mo-thecreator/Deepfake-audio-detection",
+      "revision": "mo-thecreator/Deepfake-audio-detection",
+      "license": "apache-2.0",
+      "id2label": {
+        "0": "fake",
+        "1": "real"
+      },
+      "spoof_index": 0,
+      "parameters_m": 94.6
+    },
+    {
+      "name": "MelodyMachine/Deepfake-audio-detection-V2",
+      "revision": "MelodyMachine/Deepfake-audio-detection-V2",
+      "license": "apache-2.0",
+      "id2label": {
+        "0": "fake",
+        "1": "real"
+      },
+      "spoof_index": 0,
+      "parameters_m": 94.6
+    },
+    {
+      "name": "Hemgg/Deepfake-audio-detection",
+      "revision": "Hemgg/Deepfake-audio-detection",
+      "license": "apache-2.0",
+      "id2label": {
+        "0": "AIVoice",
+        "1": "HumanVoice"
+      },
+      "spoof_index": 0,
+      "parameters_m": 94.6
+    }
+  ],
+  "results": {
+    "aasist_baseline": {
+      "in_domain_eer": 0.0133,
+      "probe_eer": 0.4333,
+      "probe_roc_auc": 0.56,
+      "source": "models/evaluation/phase9/10J_aasist_in_domain.json and 9B_aasist_early_window.json"
+    },
+    "candidates": {
+      "mo-thecreator/Deepfake-audio-detection": {
+        "id2label": {
+          "0": "fake",
+          "1": "real"
+        },
+        "spoof_index": 0,
+        "in_domain": {
+          "eer": 0.0,
+          "eer_threshold": 0.9999,
+          "roc_auc": 1.0,
+          "clips": {
+            "spoof": 120,
+            "bonafide": 120
+          },
+          "median_score": {
+            "spoof": 1.0,
+            "bonafide": 0.0
+          },
+          "eer_90pct_interval": {
+            "p05": 0.0,
+            "p95": 0.0,
+            "resamples": 400
+          }
+        },
+        "vive_probe": {
+          "eer": 0.1,
+          "eer_threshold": 0.9848,
+          "roc_auc": 0.9157,
+          "clips": {
+            "spoof": 60,
+            "bonafide": 60
+          },
+          "median_score": {
+            "spoof": 1.0,
+            "bonafide": 0.0
+          },
+          "eer_90pct_interval": {
+            "p05": 0.0667,
+            "p95": 0.1667,
+            "resamples": 400
+          }
+        },
+        "beats_aasist_off_domain": true,
+        "passes_in_domain_control": true
+      },
+      "MelodyMachine/Deepfake-audio-detection-V2": {
+        "id2label": {
+          "0": "fake",
+          "1": "real"
+        },
+        "spoof_index": 0,
+        "in_domain": {
+          "eer": 0.2083,
+          "eer_threshold": 0.0,
+          "roc_auc": 0.834,
+          "clips": {
+            "spoof": 120,
+            "bonafide": 120
+          },
+          "median_score": {
+            "spoof": 0.0001,
+            "bonafide": 0.0
+          },
+          "eer_90pct_interval": {
+            "p05": 0.15,
+            "p95": 0.2667,
+            "resamples": 400
+          }
+        },
+        "vive_probe": {
+          "eer": 0.4167,
+          "eer_threshold": 0.0,
+          "roc_auc": 0.5747,
+          "clips": {
+            "spoof": 60,
+            "bonafide": 60
+          },
+          "median_score": {
+            "spoof": 0.0,
+            "bonafide": 0.0
+          },
+          "eer_90pct_interval": {
+            "p05": 0.3333,
+            "p95": 0.4917,
+            "resamples": 400
+          }
+        },
+        "beats_aasist_off_domain": false,
+        "passes_in_domain_control": false
+      },
+      "Bisher/wav2vec2_ASV_deepfake_audio_detection": {
+        "error": "ConnectionError: (ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')), '(Request ID: 60be00b5-cc9b-4106"
+      },
+      "Hemgg/Deepfake-audio-detection": {
+        "id2label": {
+          "0": "AIVoice",
+          "1": "HumanVoice"
+        },
+        "spoof_index": 0,
+        "in_domain": {
+          "eer": 0.1333,
+          "eer_threshold": 0.5663,
+          "roc_auc": 0.9359,
+          "clips": {
+            "spoof": 120,
+            "bonafide": 120
+          },
+          "median_score": {
+            "spoof": 0.9628,
+            "bonafide": 0.1083
+          },
+          "eer_90pct_interval": {
+            "p05": 0.0917,
+            "p95": 0.1708,
+            "resamples": 400
+          }
+        },
+        "vive_probe": {
+          "eer": 0.3167,
+          "eer_threshold": 0.6076,
+          "roc_auc": 0.7139,
+          "clips": {
+            "spoof": 60,
+            "bonafide": 60
+          },
+          "median_score": {
+            "spoof": 0.7565,
+            "bonafide": 0.0636
+          },
+          "eer_90pct_interval": {
+            "p05": 0.25,
+            "p95": 0.4,
+            "resamples": 400
+          }
+        },
+        "beats_aasist_off_domain": true,
+        "passes_in_domain_control": true
+      }
+    },
+    "viable_replacements": [
+      "mo-thecreator/Deepfake-audio-detection",
+      "Hemgg/Deepfake-audio-detection"
+    ]
+  },
+  "interpretation": "2 candidate(s) beat AASIST off-domain while passing the in-domain control: ['mo-thecreator/Deepfake-audio-detection', 'Hemgg/Deepfake-audio-detection']. The replacement option is therefore live rather than hypothetical.",
+  "limitations": [
+    "The off-domain test is ONE synthesis family (SpeechT5 + HiFiGAN) in one language against FLEURS bonafide. A candidate that beat AASIST here would still need evaluating on handset-captured audio and on generators outside this probe before shipping (P2).",
+    "All four candidates share a wav2vec2 backbone. Common failure across them is evidence about that approach on this probe, not proof that no anti-spoof model transfers.",
+    "Training data for these checkpoints is not documented in their cards. If any was trained on ASVspoof, its in-domain row is a training-set score and not a measurement - which is why in-domain is used only as a sanity control and never as a reason to adopt.",
+    "Scores are the softmax over a two-class head, read through each model's own id2label. No calibration is claimed and these are not probabilities of fraud (P3).",
+    "120 clips per class in-domain and whatever the probe holds. EER differences of a few points should not be read as real."
+  ],
+  "conclusion": "A replacement exists and should be integrated behind the existing anti-spoof interface, then re-measured on handset-captured audio before any detection claim is made. Until that measurement exists the channel stays bounded by SYNTHETIC_ONLY_CEILING and is not presented to a user as synthetic-voice evidence.",
+  "configuration": {
+    "per_class": 120,
+    "max_seconds": 4.0,
+    "sample_rate": 16000,
+    "adoption_rule": "adopt only if probe EER is decisively better than AASIST's 0.4333"
+  },
+  "runtime_sec": 396.2
+}
