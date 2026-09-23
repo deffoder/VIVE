@@ -888,7 +888,13 @@ diverge from the design references.
   labelled calls. Until it exists, thresholds and fusion weights stay
   provisional (O6) and are presented as such.
 
-### O16 — End-to-end language coverage is Hindi only · `OPEN`
+### O16 — End-to-end language coverage is Hindi only · `OPEN (English implemented, off by default)`
+
+> **Option 1 built 2026-09-23 (Phase G).** English ASR now exists as a
+> language-routed second backend and transcribes real English speech through
+> the live adapter path. It is **disabled by default**, because enabling it
+> costs more than the real-time budget has. Both facts are below; neither is
+> presented without the other.
 
 - **Blocker:** the ASR and the text heads support almost disjoint language
   sets, so the only language VIVE can both transcribe AND understand is Hindi.
@@ -921,22 +927,85 @@ diverge from the design references.
   that stays at its floor. Before this was diagnosed the ASR reported the
   condition as `INFERENCE_ERROR`, so it looked like a crash rather than an
   unsupported language - fixed, and it now reports `UNSUPPORTED_LANGUAGE`.
-- **Attempted fixes:** none yet; this is a model-coverage gap, not a defect.
-  Options, none of them free:
-  1. **Add an English ASR.** `whisper-large-v3-turbo` is already acquired
-     (MIT) and covers English, but Phase 7 measured it as worse on Hindi and
-     Tamil and **5.5x over the per-window budget** (`ML_SPEC.md` §2.1), so it
-     would have to run as a second, language-routed model rather than a
-     replacement - and there is no language-ID model to route with
-     (`PHASE8_PREREQUISITES.md` §6).
-  2. **Train Indic-language text heads** so the text side matches the ASR's
+- **Built (2026-09-23, Phase G): a language-routed English backend.**
+  `app/adapters/real/asr_whisper.py` and `app/adapters/real/asr_router.py`.
+  The router gives each language to the one backend measured to handle it and
+  declines the rest; there is deliberately **no fallback chain**, because
+  falling back would replace a missing transcript with a wrong one, and a
+  wrong transcript feeds the intent head and becomes risk.
+
+  Model chosen on the Phase 10A measurement, not on coverage claims:
+
+  | Model | en WER | hi WER | ta WER |
+  |---|---:|---:|---:|
+  | `whisper-base` (Apache-2.0) | **0.1209** | 1.1640 | 0.9084 |
+  | `indic-conformer-600m` | none | 0.1164 | 0.2833 |
+
+  So Whisper is registered for **English only**. Its Hindi failure is a script
+  failure - only 7.4% of its Hindi output is in Devanagari, the rest Urdu
+  script or romanised - and registering it for Hindi would look like a
+  coverage improvement while destroying a good transcript.
+
+  Verified end to end against a real FLEURS English clip through the adapter:
+  status `AVAILABLE`, transcript "However, due to the slow" against the
+  reference "however due to the slow communication channels...", decoder
+  confidence 0.8152, and a Hindi window through the same router correctly
+  returning `UNSUPPORTED_LANGUAGE`. 11 routing tests pin the contract,
+  including that one backend failing to load cannot disable the other.
+
+  **`whisper-large-v3-turbo` was not used.** Phase 7 measured it 5.5x over
+  budget; `whisper-base` is 11x smaller and was measured better at English.
+- **And it is off by default, because of what it costs.** Whisper pads every
+  input to 30 s, so a 2.0 s window costs the same as a 30 s one. Measured on
+  real FLEURS English speech on this machine:
+
+  | Stage | Median | Note |
+  |---|---:|---|
+  | `indic-conformer` (replaced) | 265 ms | current ASR stage |
+  | `whisper-tiny` | 546 ms | en WER 0.1657 |
+  | `whisper-base` | 869 ms | en WER 0.1209 |
+
+  The packet budget is 1000 ms and the current p95 already sits at ~1000 ms
+  (O13). Substituting into the 812 ms sum of stage medians:
+
+  | Configuration | English packet |
+  |---|---:|
+  | today, Hindi | 812 ms |
+  | + `whisper-tiny` | 1093 ms - **over** |
+  | + `whisper-base` | 1416 ms - **over** |
+  | + `whisper-tiny`, anti-spoof dropped | **727 ms - inside** |
+  | + `whisper-base`, anti-spoof dropped | 1050 ms - marginal |
+
+  **The two open problems are coupled.** Anti-spoofing costs 366 ms and Phase
+  J measured it carrying no usable signal on VIVE's audio (O12). Dropping the
+  stage that contributes nothing is what makes the stage that contributes
+  English affordable. That is one decision, not two, and it belongs to the
+  product.
+- **`asr_english_model_dir` is empty unless a deployment sets it**, and an
+  unconfigured router behaves exactly as before: English reaches
+  `UNSUPPORTED_LANGUAGE` and nothing else changes. Shipping a stage enabled by
+  default that misses real time would be a worse failure than the gap it
+  closes, because it would degrade silently.
+- **Remaining options for the other two languages:**
+  1. **Train Indic-language text heads** so the text side matches the ASR's
      22 languages. Blocked by the same data problem as O11.
-  3. **Scope the product to Hindi** and say so everywhere.
-- **Current status:** measured and documented. **VIVE must not be described as
-  supporting English end to end.** The honest claim is Hindi end to end, Tamil
-  transcription only.
-- **Required external action:** a product decision between the three options
-  above. Option 1 additionally needs a language-ID model.
+  2. **Scope the product to Hindi** and say so everywhere.
+- **Still no language-ID model** (`PHASE8_PREREQUISITES.md` §6). The router
+  dispatches on the language the SESSION declares, not on one detected from
+  audio, so a caller who switches language mid-call is routed on the
+  declaration and not on what they are speaking. Routing did not create that
+  gap - the CTC decoder always needed the language as an input - but it makes
+  the gap reach further, because now a wrong declaration selects a whole
+  different model rather than a vocabulary mask.
+- **Current status:** English is **implemented and verified, and disabled by
+  default**. Until a deployment enables it and accepts the latency, the honest
+  claim is unchanged: **Hindi end to end, Tamil transcription only, English
+  not supported end to end.** With it enabled, the claim becomes Hindi and
+  English end to end, at a packet latency that exceeds the 1 s stride unless
+  the anti-spoof stage is dropped.
+- **Required external action:** a product decision - enable English and pay
+  the latency, drop anti-spoofing (O12) and get English inside budget, or
+  scope to Hindi. Tamil still needs the text data in O11.
 
 ### O17 — No on-device inference; the phone needs the backend · `OPEN`
 

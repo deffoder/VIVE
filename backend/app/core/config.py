@@ -75,6 +75,22 @@ class Settings(BaseSettings):
     served the graph, not the one requested.
     """
 
+    asr_english_model_dir: str = ""
+    """Whisper checkpoint directory serving ENGLISH only, or empty to disable.
+
+    IndicConformer is IN-22 and has no English mask, so without this English
+    reaches `UNSUPPORTED_LANGUAGE` at the ASR and the whole downstream chain
+    stops - which is `BLOCKERS.md` O16.
+
+    Empty by DEFAULT, and deliberately. Whisper pads every input to 30 s, so a
+    2 s window costs 869 ms on `whisper-base` (546 ms on `whisper-tiny`)
+    against the 265 ms IndicConformer stage it replaces, and the packet budget
+    is 1000 ms with a p95 already at ~1000 ms (O13). Enabling English buys
+    coverage and spends the real-time budget, and that trade has to be made
+    deliberately rather than inherited from a default. The arithmetic,
+    including how dropping the anti-spoof stage changes it, is in O16.
+    """
+
     vad_model_dir: str = ""
     """Directory containing `silero_vad.jit`."""
 

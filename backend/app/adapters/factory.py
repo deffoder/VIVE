@@ -37,6 +37,8 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
     """Real where implemented, mock elsewhere, honest about which is which."""
     # Imported here so `mock` mode never touches the real package.
     from app.adapters.real.asr_conformer import IndicConformerAsrAdapter
+    from app.adapters.real.asr_router import RoutingAsrAdapter
+    from app.adapters.real.asr_whisper import WhisperAsrAdapter
     from app.adapters.real.audio_models import (
         AasistAntiSpoofAdapter,
         EcapaSpeakerAdapter,
@@ -44,10 +46,17 @@ def _build_real_bundle(settings: Settings) -> AdapterBundle:
     )
     from app.adapters.real.text_classifiers import RealBehaviorAdapter, RealIntentAdapter
 
-    asr = IndicConformerAsrAdapter(
+    # IndicConformer first: it owns the Indic languages, and the router gives
+    # a language to the FIRST backend that declares it. Whisper covers only
+    # English here (Phase 10A measured it at WER 1.16 on Hindi), so the two
+    # never compete for a language - the order documents the intent rather
+    # than resolving a conflict.
+    conformer = IndicConformerAsrAdapter(
         settings.asr_model_dir,
         prefer_gpu=settings.asr_prefer_gpu,
     )
+    english = WhisperAsrAdapter(settings.asr_english_model_dir)
+    asr = RoutingAsrAdapter(conformer, english)
     asr.set_default_language(settings.asr_default_language)
     intent = RealIntentAdapter(settings.intent_model_dir)
     behavior = RealBehaviorAdapter(settings.behavior_model_dir)
