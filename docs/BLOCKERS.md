@@ -410,6 +410,12 @@ diverge from the design references.
 
 ### O12 — AASIST shows no measured discrimination · `OPEN`
 
+> **2026-09-24, on the phone.** The Phase J2 replacement was measured on
+> handset-captured audio against a criterion fixed beforehand (en EER <= 0.20,
+> <= 10% of genuine windows flagged) and failed: EER 0.7168, 62% of genuine
+> windows flagged (`models/evaluation/mobile/antispoof_handset_eval.json`).
+> The phone excludes anti-spoofing from risk and says so in the model list.
+
 > **Diagnosed 2026-09-23 (Phase J).** The integration is proven correct
 > against ASVspoof 2019 LA eval and the cause is isolated as transfer failure.
 > See the Phase J block below; the required action changed from "investigate"
@@ -1007,7 +1013,19 @@ diverge from the design references.
   the latency, drop anti-spoofing (O12) and get English inside budget, or
   scope to Hindi. Tamil still needs the text data in O11.
 
-### O17 — No on-device inference; the phone needs the backend · `OPEN`
+### O17 — No on-device inference; the phone needs the backend · `RESOLVED (with limits)`
+
+> **Resolved 2026-09-24.** The whole pipeline runs on the phone with no
+> backend (`docs/AUTONOMOUS_PROGRESS.md`): Silero VAD, one wav2vec2-CTC ASR
+> per language (hi/ta/en, int8, 122 MB each - not IndicConformer), the two
+> DistilBERT heads (int8 embeddings, 265 MB each), ECAPA, fusion/temporal/
+> policy (parity-tested against this backend), SQLite persistence and
+> Android notifications. Measured on the phone: ASR 142-156 ms per 2 s
+> window; phone WER hi 0.152, ta 0.424, en 0.223 (FLEURS); app PSS ~1.0 GB
+> during a call. Limits that remain are model quality, not deployment:
+> English and Tamil ASR degrade badly through a handset; the text heads miss
+> spoken scams (O18), partly covered by measured keyword rules.
+> The history below is kept as written.
 
 - **Blocker:** the Android app captures and transports audio. Every model runs
   on the backend, so the phone cannot analyse anything on its own.
