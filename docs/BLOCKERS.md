@@ -383,6 +383,29 @@ diverge from the design references.
 - **Cost of keeping it:** AASIST is the single largest latency contributor at
   ~366-374 ms, roughly 45% of the packet budget (O13). The most expensive
   stage is the one with no measured discrimination.
+- **Observed on real device audio (2026-09-23, Phase 10 acceptance run).**
+  Speech captured acoustically by the phone's own microphone - genuine
+  recorded human speech, played from a speaker, picked up over the air on a
+  OnePlus CPH2661 - was scored:
+
+  | Packet | AASIST score | Packet risk |
+  |---|---:|---:|
+  | P029 | 0.9998 | 57 |
+  | P031 | 0.9997 | 57 |
+  | P034 | 0.9896 | 57 |
+  | P035 | 0.8897 | 53 |
+
+  Every one of those is real human speech, and the content was entirely
+  benign (`intent=NORMAL_CONVERSATION`). The anti-spoof channel alone lifted
+  packet risk from the ~22 it would otherwise sit at to **57**, which is
+  MEDIUM.
+
+  This is the first observation of O12 on **device-captured** audio rather
+  than on files, and it is worse here than on FLEURS. It is a handful of
+  packets from one session, so it is an observation and not a rate - but it
+  is consistent with the measured chance-level discrimination, and it is why
+  the UI reports this signal as inconclusive and why the
+  `SYNTHETIC_ONLY_CEILING` guard is load-bearing rather than theoretical.
 
 - **Original blocker (retained):** the pretrained AASIST checkpoint produces
   scores on out-of-domain audio that do not track reality, so its output must

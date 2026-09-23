@@ -1,0 +1,108 @@
+{
+  "device": {
+    "serial": "e8a7e1bf",
+    "model": "CPH2661",
+    "android": "16"
+  },
+  "backend": {
+    "api_version": "v1",
+    "app_version": "0.1.0",
+    "adapter_mode": "real"
+  },
+  "session_id": "VS-013",
+  "packets": 42,
+  "steps": [
+    {
+      "step": "a physical device is attached",
+      "result": "PASS",
+      "evidence": "List of devices attached | e8a7e1bf\tdevice"
+    },
+    {
+      "step": "backend is reachable",
+      "result": "PASS",
+      "evidence": "{'api_version': 'v1', 'app_version': '0.1.0', 'adapter_mode': 'real'}"
+    },
+    {
+      "step": "backend is in REAL mode",
+      "result": "PASS",
+      "evidence": "adapter_mode=real"
+    },
+    {
+      "step": "every adapter reports real mode",
+      "result": "PASS",
+      "evidence": "{\"vad\": \"AVAILABLE\", \"antispoof\": \"AVAILABLE\", \"speaker\": \"NO_REFERENCE\", \"asr\": \"AVAILABLE\", \"intent\": \"AVAILABLE\", \"behavior\": \"AVAILABLE\"}"
+    },
+    {
+      "step": "screen is unlocked",
+      "result": "PASS",
+      "evidence": "unlocked"
+    },
+    {
+      "step": "APK installed",
+      "result": "PASS",
+      "evidence": "Performing Streamed Install\nSuccess"
+    },
+    {
+      "step": "app is in the foreground",
+      "result": "PASS",
+      "evidence": "com.vive present in resumed activities"
+    },
+    {
+      "step": "live analysis entry point is reachable",
+      "result": "PASS",
+      "evidence": "tapped 'Start live analysis'"
+    },
+    {
+      "step": "a REAL backend session was created by the app",
+      "result": "PASS",
+      "evidence": "new session id(s): ['VS-013']"
+    },
+    {
+      "step": "RECORD_AUDIO granted at runtime",
+      "result": "PASS",
+      "evidence": "granted"
+    },
+    {
+      "step": "capture is running",
+      "result": "PASS",
+      "evidence": "the capture card reads 'Capturing'"
+    },
+    {
+      "step": "AudioRecord captured on-device",
+      "result": "PASS",
+      "evidence": "capturing 16 kHz mono, buffer 25600B, inputSource=1"
+    },
+    {
+      "step": "the backend produced analysis packets from device audio",
+      "result": "PASS",
+      "evidence": "42 packets for VS-013 (this run's session)"
+    },
+    {
+      "step": "packets carry real adapter output",
+      "result": "PASS",
+      "evidence": "adapter_mode=real asr=AVAILABLE aasist=AVAILABLE"
+    },
+    {
+      "step": "ASR transcribed the captured audio",
+      "result": "PASS",
+      "evidence": "24 non-empty transcripts; last=ऐसी कोई"
+    },
+    {
+      "step": "risk was computed per packet",
+      "result": "PASS",
+      "evidence": "scores=[53, 57, 15, 57, 15, 15, 15, 41]"
+    },
+    {
+      "step": "the packetizer produced analysis windows",
+      "result": "PASS",
+      "evidence": "0 windows reached the silence gate; 42 were analysed by the backend"
+    },
+    {
+      "step": "at least one window contained speech",
+      "result": "PASS",
+      "evidence": "6 of 42 packets had quality GOOD"
+    }
+  ],
+  "passed": 18,
+  "failed": 0
+}

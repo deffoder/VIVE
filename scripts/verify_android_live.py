@@ -119,6 +119,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seconds", type=int, default=15,
                         help="how long to capture for")
+    parser.add_argument("--play-wav", default="",
+                        help="WAV played on THIS machine's speakers during "
+                             "capture, so the phone hears it acoustically. "
+                             "Without it the room is usually silent, and the "
+                             "run then proves transport but not transcription.")
     args = parser.parse_args()
     report = Report()
 
@@ -186,7 +191,13 @@ def main() -> int:
                 f"{PACKAGE} present in resumed activities"
                 if PACKAGE in focused else "app not resumed")
 
-    sessions_before = get_json("/api/v1/sessions") or []
+    # Identify the new session by SET DIFFERENCE, not by list position.
+    # Taking sessions_after[-1] picked an unrelated old session, and every
+    # downstream check then validated stale packets from a previous run -
+    # reporting transcripts and risk scores as evidence of microphone capture
+    # when they came from a FLEURS test hours earlier. A verification script
+    # that can pass on the wrong data is worse than no script.
+    ids_before = {s["session_id"] for s in (get_json("/api/v1/sessions") or [])}
 
     print("\n=== live analysis ===")
     # Navigate to the live entry point. The app may open on onboarding, so
@@ -200,15 +211,35 @@ def main() -> int:
                 "tapped 'Start live analysis'" if started
                 else "control not found on screen")
 
-    sessions_after = get_json("/api/v1/sessions") or []
-    created = len(sessions_after) > len(sessions_before)
-    session_id = sessions_after[-1]["session_id"] if sessions_after else None
-    report.step("a REAL backend session was created", created,
-                f"session_id={session_id}, sessions "
-                f"{len(sessions_before)} -> {len(sessions_after)}")
+    ids_after = {s["session_id"] for s in (get_json("/api/v1/sessions") or [])}
+    new_ids = sorted(ids_after - ids_before)
+    session_id = new_ids[0] if len(new_ids) == 1 else None
+    report.step(
+        "a REAL backend session was created by the app", session_id is not None,
+        f"new session id(s): {new_ids or 'none'}"
+        + ("" if len(new_ids) <= 1 else "  (ambiguous - more than one appeared)"))
+    if session_id is None:
+        print("  Without an unambiguous new session there is nothing to "
+              "attribute captured audio to. Stopping rather than reporting "
+              "another session's packets as evidence.")
+        return 1
 
-    # Microphone permission, then capture.
-    tap_text("Start microphone analysis")
+    # Microphone permission, then capture. The control can sit below the fold
+    # on a short screen, so scroll before giving up - an ignored tap failure
+    # previously let the run continue and report "no capture" as if the code
+    # were broken, when nothing had ever been pressed.
+    started = False
+    for attempt in range(3):
+        if tap_text("Start microphone analysis", attempts=1):
+            started = True
+            break
+        shell("input", "swipe", "540", "1500", "540", "900", "250")
+        time.sleep(2)
+    if not started:
+        report.step("microphone control was reachable", False,
+                    f"'Start microphone analysis' not found after "
+                    f"{attempt + 1} attempts including scrolling")
+
     for allow in ("While using the app", "Allow", "ALLOW"):
         if find_node(ui_dump(), allow):
             tap_text(allow)
@@ -219,14 +250,53 @@ def main() -> int:
     report.step("RECORD_AUDIO granted at runtime", granted,
                 "granted" if granted else "still denied - approve the dialog")
 
-    print(f"\n  capturing for {args.seconds}s - SPEAK INTO THE PHONE NOW\n")
+    # Confirm from the UI that capture is actually running before timing
+    # anything. Playing audio at a screen that never started recording proves
+    # nothing and looks exactly like a broken capture path.
+    time.sleep(2)
+    capturing = "Capturing" in ui_dump()
+    report.step("capture is running", capturing,
+                "the capture card reads 'Capturing'" if capturing
+                else "capture did not start - the control was not pressed")
+
+    # Sample the capture log NOW, not at the end. This ROM is chatty enough
+    # that a 30 s wait rotates the start line out of the ring buffer, and
+    # reading it late reported "no capture log line found" while AudioRecord
+    # was demonstrably running.
+    pid_now = shell("pidof", PACKAGE).strip().split(" ")[0]
+    start_logs = adb("logcat", "-d", f"--pid={pid_now}", timeout=120) if pid_now else ""
+    started_line = "capturing 16 kHz mono" in start_logs
+    source = ""
+    for line in start_logs.splitlines():
+        if "capturing 16 kHz mono" in line:
+            source = line.split("MicrophoneAudioSource:")[-1].strip()
+            break
+    report.step("AudioRecord captured on-device", started_line,
+                source or "no capture log line found")
+
+    if args.play_wav and os.path.isfile(args.play_wav):
+        # Played through THIS machine's speakers. The sound travels through
+        # the air into the phone's microphone, so the capture path is
+        # exercised for real - nothing is injected into the device, and the
+        # run is repeatable without a person in the room.
+        print(f"  playing {os.path.basename(args.play_wav)} for "
+              f"{args.seconds}s - the phone should hear it")
+        try:
+            import winsound
+            winsound.PlaySound(args.play_wav,
+                               winsound.SND_FILENAME | winsound.SND_ASYNC)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  could not play audio ({type(exc).__name__}); "
+                  f"speak into the phone instead")
+    else:
+        print(f"  capturing for {args.seconds}s - SPEAK INTO THE PHONE NOW")
     time.sleep(args.seconds)
 
     print("=== evidence ===")
-    packets = get_json(f"/api/v1/sessions/{session_id}/packets") or [] if session_id else []
+    packets = get_json(f"/api/v1/sessions/{session_id}/packets") or []
     report.step("the backend produced analysis packets from device audio",
                 len(packets) > 0,
-                f"{len(packets)} packets for {session_id}")
+                f"{len(packets)} packets for {session_id} (this run's session)")
 
     if packets:
         last = packets[-1]
@@ -244,13 +314,25 @@ def main() -> int:
         report.step("risk was computed per packet", bool(risks),
                     f"scores={risks[-8:]}")
 
-    logs = adb("logcat", "-d", "-s", "MicrophoneAudioSource:*",
-               "CaptureController:*", "SessionDetailViewModel:*", "VIVE:*",
-               timeout=120)
-    captured = "capturing 16 kHz mono" in logs
-    report.step("AudioRecord actually captured on-device", captured,
-                "MicrophoneAudioSource logged capture start" if captured
-                else "no capture log line found")
+    # Filter by PID, not by tag. `logcat -s TAG:*` did not match these tags and
+    # reported a capture failure while AudioRecord was demonstrably running -
+    # the platform's own log showed `start() return status 0`. A check that can
+    # report failure on working code is worse than no check.
+    pid = shell("pidof", PACKAGE).strip().split(" ")[0] if shell(
+        "pidof", PACKAGE).strip() else ""
+    logs = adb("logcat", "-d", f"--pid={pid}", timeout=120) if pid else ""
+
+    windows = logs.count("skipping silent window")
+    report.step("the packetizer produced analysis windows", windows > 0
+                or any(p.get("quality") for p in packets),
+                f"{windows} windows reached the silence gate; "
+                f"{len(packets)} were analysed by the backend")
+
+    speech = [p for p in packets if p.get("quality") == "GOOD"]
+    report.step("at least one window contained speech", bool(speech),
+                f"{len(speech)} of {len(packets)} packets had quality GOOD"
+                + ("" if speech else
+                   " - the room was silent, so nothing was said to analyse"))
 
     print("\n=== summary ===")
     for step in report.steps:

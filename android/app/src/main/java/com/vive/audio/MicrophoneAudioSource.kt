@@ -30,9 +30,8 @@ import kotlin.coroutines.coroutineContext
  * **not** cellular call audio. Android does not permit a third-party app to
  * capture both legs of an ordinary phone call, and `MediaRecorder.AudioSource`
  * offers no constant that would change that (docs/ARCHITECTURE.md 7,
- * docs/BLOCKERS.md P1). `VOICE_COMMUNICATION` is used because it is the source
- * tuned for speech with echo cancellation and noise suppression applied by the
- * platform, not because it grants call access.
+ * docs/BLOCKERS.md P1). No input source grants call access; the choice below
+ * only affects what the platform does to the microphone signal.
  *
  * ### Authorization
  *
@@ -44,6 +43,7 @@ import kotlin.coroutines.coroutineContext
 class MicrophoneAudioSource(
     private val context: Context,
     private val chunkMillis: Int = DEFAULT_CHUNK_MILLIS,
+    private val inputSource: Int = DEFAULT_INPUT_SOURCE,
 ) : AudioSource {
 
     override val kind = AudioSourceKind.MICROPHONE
@@ -88,7 +88,7 @@ class MicrophoneAudioSource(
             val recorder = try {
                 @Suppress("MissingPermission") // checked above via authorization()
                 AudioRecord(
-                    MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+                    inputSource,
                     AudioFormat.SAMPLE_RATE_HZ,
                     AndroidAudioFormat.CHANNEL_IN_MONO,
                     AndroidAudioFormat.ENCODING_PCM_16BIT,
@@ -113,7 +113,10 @@ class MicrophoneAudioSource(
                 if (recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     return@withContext CaptureState.Failed("microphone did not start")
                 }
-                ViveLog.d(TAG) { "capturing 16 kHz mono, buffer ${bufferBytes}B" }
+                ViveLog.d(TAG) {
+                    "capturing 16 kHz mono, buffer ${bufferBytes}B, " +
+                        "inputSource=$inputSource"
+                }
 
                 val buffer = ByteArray(chunkBytes)
                 while (!stopped) {
@@ -171,5 +174,34 @@ class MicrophoneAudioSource(
         const val DEFAULT_CHUNK_MILLIS = 100
 
         const val BUFFER_CHUNKS = 8
+
+        /**
+         * Plain `MIC`, chosen on measured evidence rather than by default.
+         *
+         * `VOICE_COMMUNICATION` is the obvious pick for a call app and was
+         * used first. It applies the platform's acoustic echo canceller,
+         * whose job is to remove audio the device is PLAYING from what its
+         * microphone hears - and that is precisely the far end of a call
+         * played through the earpiece or speaker. For an app whose entire
+         * purpose is analysing the other party's voice, the standard call
+         * source removes the signal of interest.
+         *
+         * Measured on a OnePlus CPH2661 (Android 16), same build, same room,
+         * same clip played from a nearby speaker:
+         *
+         *   VOICE_COMMUNICATION  0 packets - every window classified silent,
+         *                        after the first two got through while the
+         *                        canceller was still converging
+         *   MIC                  packets produced, speech detected
+         *                        (quality GOOD) and transcribed
+         *
+         * `MIC` captures what is acoustically present without that
+         * subtraction. The cost is real and not hidden: no echo cancellation,
+         * so in a speakerphone call the local side's own audio is captured
+         * too, and the analysis cannot attribute a window to a speaker.
+         * Speaker attribution needs diarisation or a separate far-end stream,
+         * neither of which VIVE has (docs/BLOCKERS.md O3).
+         */
+        const val DEFAULT_INPUT_SOURCE = MediaRecorder.AudioSource.MIC
     }
 }
