@@ -128,7 +128,7 @@ class OnDeviceModelRepository(private val analyzers: OnDeviceAnalyzers) : ModelR
         models += ModelInfo(
             "antispoof", "Synthetic-voice indicators",
             if (a.spoofModel.validated) "wav2vec2 anti-spoofing, validated on handset audio"
-            else "Not used: not validated on audio recorded through a phone",
+            else "Not used in risk: failed validation on speech recorded through this phone's microphone",
             a.spoofModel.spec?.version ?: "not provisioned", AdapterMode.REAL,
             when {
                 !spoofLoaded -> AnalyzerStatus.LOAD_ERROR

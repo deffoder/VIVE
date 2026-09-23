@@ -44,6 +44,8 @@ def files_named_by(manifest: dict) -> list[tuple[str, int | None, str | None]]:
         if isinstance(value, dict) and "file" in value:
             out.append((value["file"], value.get("bytes"), value.get("sha256")))
     for spec in manifest.get("models", {}).values():
+        if spec.get("validated") is False:
+            continue   # the phone never runs an unvalidated model; don't ship it
         out.append((spec["file"], spec.get("bytes"), spec.get("sha256")))
     return out
 

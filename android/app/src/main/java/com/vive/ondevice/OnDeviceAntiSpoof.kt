@@ -58,10 +58,12 @@ class OnDeviceAntiSpoof(private val modelDir: File) {
         val s = runCatching { json.decodeFromString(AntiSpoofManifest.serializer(), f.readText()) }
             .getOrElse { loadError = "anti-spoof manifest unreadable"; return false }
             .models["antispoof"] ?: run { loadError = "manifest has no antispoof model"; return false }
+        // Not validated: known, deliberately never run, so the weights need
+        // not be on the phone at all.
+        if (!s.validated) { spec = s; loadError = null; return true }
         val model = File(modelDir, s.file)
         if (!model.isFile || model.length() != s.bytes) { loadError = "${s.file} missing or truncated"; return false }
         spec = s
-        if (!s.validated) { loadError = null; return true }   // known, deliberately not run
         return runCatching {
             session = OnDeviceRuntime.session(model)
             loadError = null
