@@ -1,0 +1,188 @@
+{
+  "experiment_id": "10A_mobile_asr_candidates",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T07:37:48+00:00",
+  "question": "Can a phone-sized multilingual ASR cover Hindi, Tamil and English, and how much accuracy does it cost against the 2.4 GB model VIVE ships?",
+  "hypothesis": "Whisper tiny and base will transcribe all three languages, so they close the English gap that O16 describes, but will be materially worse than IndicConformer on Hindi and Tamil - the question is how much worse, not whether.",
+  "method": "Decode FLEURS with the language supplied, using the same normaliser and metric as every earlier VIVE ASR measurement, so rows are directly comparable.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "7d86702d7720a50cb15a69ab407f0bddc5226c15",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "google/fleurs hi_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "hi"
+    },
+    {
+      "name": "google/fleurs ta_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "ta"
+    },
+    {
+      "name": "google/fleurs en_us",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "en"
+    },
+    {
+      "name": "google/fleurs hi_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "hi"
+    },
+    {
+      "name": "google/fleurs ta_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "ta"
+    },
+    {
+      "name": "google/fleurs en_us",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 30,
+      "language": "en"
+    }
+  ],
+  "models": [
+    {
+      "name": "whisper-tiny",
+      "revision": "openai/whisper-tiny",
+      "license": "Apache-2.0",
+      "params_m": 39,
+      "size_mb": 155.4
+    },
+    {
+      "name": "whisper-base",
+      "revision": "openai/whisper-base",
+      "license": "Apache-2.0",
+      "params_m": 74,
+      "size_mb": 294.8
+    }
+  ],
+  "results": {
+    "reference_model": {
+      "indic-conformer-600m": {
+        "hi": {
+          "wer": 0.1164,
+          "cer": 0.046
+        },
+        "ta": {
+          "wer": 0.2833,
+          "cer": 0.1107
+        },
+        "en": null,
+        "size_mb": 2381,
+        "note": "IN-22, no English mask at all (BLOCKERS O16)"
+      }
+    },
+    "candidates": {
+      "whisper-tiny": {
+        "size_mb": 155.4,
+        "params_m": 39,
+        "hi": {
+          "wer": 1.2954,
+          "cer": 1.1481,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        },
+        "ta": {
+          "wer": 1.1718,
+          "cer": 0.743,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        },
+        "en": {
+          "wer": 0.1657,
+          "cer": 0.076,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        }
+      },
+      "whisper-base": {
+        "size_mb": 294.8,
+        "params_m": 74,
+        "hi": {
+          "wer": 1.164,
+          "cer": 0.9858,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        },
+        "ta": {
+          "wer": 0.9084,
+          "cer": 0.4337,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        },
+        "en": {
+          "wer": 0.1209,
+          "cer": 0.0542,
+          "utterances": 30,
+          "empty_hypotheses": 0
+        }
+      }
+    }
+  },
+  "interpretation": "The table states the trade directly: a phone-sized model that covers all three priority languages, against a 2.4 GB model that is more accurate on two of them and cannot transcribe the third at all.",
+  "limitations": [
+    "FLEURS is clean read speech. These are upper bounds for every model in the table, not telephone accuracy.",
+    "30 utterances per language. Differences of a few points should not be read as real.",
+    "Accuracy and size only. On-device latency is NOT measured: these run as PyTorch here, and an Android deployment would be a quantised ONNX or TFLite export whose speed has to be measured on the phone.",
+    "Greedy decoding with the language supplied. Whisper's own language detection is not used, because VIVE has no language-ID model and supplies the language as an input either way.",
+    "Whisper pads every input to 30 s, which Phase 7 measured as 5.5 s per 2 s window for large-v3-turbo. The smaller variants pay the same structural cost at a smaller constant, and that cost is not measured here."
+  ],
+  "conclusion": "Whether to adopt one is a product decision about which error rate is acceptable in which language, and it cannot be settled from clean-speech WER alone. What this removes is the excuse that no phone-sized option existed.",
+  "configuration": {
+    "clips_per_language": 30,
+    "decoding": "greedy",
+    "normalisation": [
+      "Unicode NFC",
+      "lowercase",
+      "strip punctuation including Devanagari danda U+0964 and double danda U+0965",
+      "collapse whitespace"
+    ],
+    "sample_rate": 16000,
+    "languages": [
+      "en",
+      "hi",
+      "ta"
+    ]
+  },
+  "runtime_sec": 891.7
+}

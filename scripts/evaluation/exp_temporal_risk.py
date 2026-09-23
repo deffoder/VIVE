@@ -194,13 +194,11 @@ def main() -> int:
         "processing latency, so wall-clock time to a warning in a live call "
         "is strictly later than the figures here.")
     exp.limitation(
-        "The smoothing constant cuts both ways and only one side was "
-        "hypothesised. The `intermittent` sequence - a score of ~80 every "
-        "third packet, which is the shape social engineering actually takes - "
-        "never leaves MEDIUM, so the same damping that suppresses a false "
-        "spike also suppresses genuine periodic evidence. EMA_ALPHA was not "
-        "tuned here because tuning it needs labelled call sequences that do "
-        "not exist.")
+        "The persistence counter added in Phase 10 uses thresholds chosen by "
+        "reasoning, not measurement: 3 elevated windows within 12, at least "
+        "one in the last 4. Three is the smallest count a single spike or one "
+        "two-packet event cannot reach. Tuning them properly needs labelled "
+        "call sequences, which do not exist (docs/BLOCKERS.md O15).")
 
     exp.finish(
         interpretation=(
@@ -214,16 +212,21 @@ def main() -> int:
             f"{findings['burst_recovery_packets_to_low']} packets, so "
             f"hysteresis delays release rather than latching it."),
         conclusion=(
-            "The temporal layer resists the single-window false positive that "
-            "O12 makes likely, which is the property it most needed to have. "
-            "The cost is symmetric and was not anticipated: intermittent "
-            f"risk peaking at "
-            f"{findings['intermittent_peak_packet_score']} per packet never "
-            f"leaves MEDIUM, so a real scam that is risky only every third "
-            f"window would not raise an alert. That is a detection gap, not a "
-            f"tuning preference, and it needs labelled call sequences to "
-            f"resolve. Escalation timings are historical markers and must be "
-            f"presented as 'first reached' rather than as the current state."))
+            f"The temporal layer resists the single-window false positive that "
+            f"O12 makes likely - a lone 95 reaches MEDIUM and stops - and now "
+            f"also escalates recurring evidence: the intermittent sequence, "
+            f"peaking at only {findings['intermittent_peak_packet_score']} per "
+            f"packet, reaches "
+            f"{findings['intermittent_final_level']}. Both hold at once "
+            f"because recurrence is counted separately from the average; a "
+            f"single number cannot distinguish a spike from a pattern, since "
+            f"the difference is not magnitude but repetition. Recovery is "
+            f"preserved: after a burst ends the level returns to LOW in "
+            f"{findings['burst_recovery_packets_to_low']} packets, because "
+            f"escalation additionally requires recent evidence rather than "
+            f"merely evidence still inside the memory window. Escalation "
+            f"timings remain historical markers and must be presented as "
+            f"'first reached', never as the current state."))
     return 0
 
 

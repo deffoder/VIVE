@@ -8,7 +8,7 @@ from __future__ import annotations
 from app.adapters.interfaces import AudioWindow
 from app.adapters.mock import build_mock_bundle
 from app.risk.fusion import WEIGHTS, FusionInput, fuse
-from app.risk.temporal import TemporalState
+from app.risk.temporal import PERSISTENCE_WINDOW, TemporalState
 from app.schemas.models import AnalyzerStatus, AudioQuality, Behavior, Intent, RiskLevel
 
 
@@ -257,3 +257,68 @@ def test_not_reached_timings_stay_null() -> None:
     for _ in range(3):
         state.update(5, 0.9, at_sec=2)
     assert state.timings.first_critical_sec is None, "null means not reached"
+
+
+# ------------------------------------- temporal persistence (BLOCKERS O14)
+
+def _levels(scores: list[int]) -> tuple[list[str], TemporalState]:
+    state = TemporalState()
+    out = []
+    for at, score in enumerate(scores):
+        _current, overall = state.update(score, 0.8, at)
+        out.append(overall.level.value)
+    return out, state
+
+
+def test_intermittent_evidence_escalates() -> None:
+    """O14: recurring risk must not be damped into silence.
+
+    A score of ~80 every third packet is the shape social engineering takes -
+    the incriminating sentence is one window in several. The EMA averaged it
+    away, so the call peaked at MEDIUM and never raised an alert.
+    """
+    levels, state = _levels([10, 8, 80, 9, 10, 78, 8, 9, 82, 10, 9, 79])
+
+    assert "HIGH" in levels, "recurring elevated evidence must escalate"
+    assert state.elevated_recently >= 3
+    assert "elevated windows" in state.escalation_reason, (
+        "the UI has to be able to say WHY risk changed"
+    )
+
+
+def test_a_single_spike_still_cannot_escalate() -> None:
+    """The property persistence must not break.
+
+    O12 makes a lone anomalous packet likely - AASIST scored genuine human
+    speech at 0.9998 on device. One such packet must not drive a call to HIGH.
+    """
+    levels, _state = _levels([8, 9, 7, 95, 8, 7, 9, 8, 7, 8])
+
+    assert "HIGH" not in levels and "CRITICAL" not in levels
+    assert levels[-1] == "LOW"
+
+
+def test_two_adjacent_spikes_still_cannot_escalate() -> None:
+    """Two packets of the same anomaly are one event, not a recurrence."""
+    levels, _state = _levels([8, 9, 95, 93, 8, 7, 9, 8, 7, 8])
+
+    assert "HIGH" not in levels and "CRITICAL" not in levels
+
+
+def test_risk_recovers_after_a_burst_ends() -> None:
+    """Recurrence must not latch the level once the evidence has passed.
+
+    Counting elevated packets alone held the call at HIGH for the whole memory
+    window after a burst finished. Requiring one of them to be recent lets the
+    level come down while still catching intermittent patterns.
+    """
+    levels, _state = _levels([8, 9, 90, 92, 91, 89, 8, 7, 6, 5, 6, 7, 5, 6])
+
+    assert "HIGH" in levels, "a sustained burst must escalate"
+    assert levels[-1] == "LOW", "and must recover once it is over"
+
+
+def test_persistence_memory_is_bounded() -> None:
+    """Memory per session stays constant however long the call runs."""
+    _levels_out, state = _levels([50] * 500)
+    assert len(state.recent) == PERSISTENCE_WINDOW

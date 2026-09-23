@@ -600,7 +600,7 @@ diverge from the design references.
   `DATA_SPEC.md` §8.2 identifies a verified Apache-2.0 conversational corpus
   for this. Re-calibrate fusion afterwards.
 
-### O14 — Intermittent risk never escalates · `OPEN`
+### O14 — Intermittent risk never escalates · `RESOLVED`
 
 - **Blocker:** the temporal layer damps periodic evidence as hard as it damps
   a spurious spike, so a scam that is risky only intermittently never raises
@@ -623,11 +623,41 @@ diverge from the design references.
   preference. Time-to-warning figures (`first_warning_sec` and friends) are
   historical markers recording when a raw score first crossed a threshold and
   must be presented as "first reached", never as the current level.
-- **Phase 10 review:** deliberately **not** acted on. Changing `EMA_ALPHA`
-  would improve a demo sequence and invalidate the Phase 9 measurement in the
-  same edit, with no labelled data to say which direction is correct. Stays
-  OPEN with the consequence stated: a scam whose incriminating evidence
-  appears only intermittently may never raise an alert.
+- **Resolved (2026-09-23)** by counting recurrence separately from the
+  average, rather than by retuning the average.
+
+  A single number could never provide both behaviours, because the difference
+  between a spike and an intermittent pattern is not magnitude - it is
+  repetition. `EMA_ALPHA` was therefore left alone, and a bounded persistence
+  counter added beside it: 3 elevated windows (>=65) within the last 12, with
+  at least one in the last 4, escalates to HIGH regardless of the smoothed
+  score.
+
+  The recency half is what keeps recovery working. Counting elevated packets
+  alone held a finished burst at HIGH for the whole memory window; requiring
+  one of them to be recent distinguishes evidence still arriving from evidence
+  that has passed.
+
+  Measured on the same sequences as the Phase 9 run
+  (`models/evaluation/phase9/9G_temporal_risk.json`):
+
+  | Sequence | Before | After |
+  |---|---|---|
+  | intermittent (~80 every third packet) | never left MEDIUM | **HIGH** |
+  | single spike (one 95) | MEDIUM, never HIGH | MEDIUM, never HIGH |
+  | two adjacent spikes (95, 93) | never HIGH | never HIGH |
+  | burst then clear | recovered to LOW in 4 | recovers to LOW in 5 |
+  | benign | LOW | LOW |
+  | rising scam | CRITICAL | CRITICAL |
+
+  `TemporalState.escalation_reason` now carries the cause - for example
+  "4 elevated windows in the last 12" - so the UI can say why risk changed
+  rather than only that it did. Memory is bounded: the counter keeps at most
+  `PERSISTENCE_WINDOW` scores however long the call runs.
+- **What is NOT measured:** the thresholds (3 within 12, one within 4) were
+  chosen by reasoning about which shapes must and must not escalate, not
+  fitted to data. Tuning them properly needs labelled call sequences, which
+  do not exist (O15).
 - **Required external action:** labelled call sequences, then re-tune the
   smoothing against a measured operating point.
 

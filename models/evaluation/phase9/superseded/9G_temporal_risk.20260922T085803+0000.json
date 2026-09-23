@@ -1,13 +1,13 @@
 {
   "experiment_id": "9G_temporal_risk",
   "phase": 9,
-  "run_at_utc": "2026-09-23T07:51:14+00:00",
+  "run_at_utc": "2026-09-22T08:58:03+00:00",
   "question": "How quickly does the temporal layer warn, how far can a single anomalous packet push a call, and does the level recover once the evidence stops?",
   "hypothesis": "The two-packet minimum and the EMA together will stop a single spike from reaching HIGH, and hysteresis will delay de-escalation by a few packets rather than permanently.",
   "method": "Drive TemporalState with synthetic score sequences, each isolating one behaviour. Record the full per-packet trace so every timing is traceable to the packet that caused it.",
   "seed": 20260922,
   "environment": {
-    "git_commit": "7d86702d7720a50cb15a69ab407f0bddc5226c15",
+    "git_commit": "b11cf0ec6f0077611ea0c476bccaf4e1510e84f7",
     "python": "3.11.9",
     "platform": "Windows-10-10.0.28120-SP0",
     "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
@@ -16,7 +16,7 @@
       "torch": "2.14.0+cpu",
       "onnxruntime": "1.30.0",
       "transformers": "5.17.0",
-      "datasets": "5.0.1",
+      "datasets": "not installed",
       "numpy": "2.4.6",
       "scipy": "1.17.1",
       "sklearn": "not installed",
@@ -460,7 +460,7 @@
             "at_sec": 6,
             "packet_score": 8,
             "smoothed": 51,
-            "level": "HIGH",
+            "level": "MEDIUM",
             "current_level": "LOW"
           },
           {
@@ -468,7 +468,7 @@
             "at_sec": 7,
             "packet_score": 7,
             "smoothed": 33,
-            "level": "HIGH",
+            "level": "MEDIUM",
             "current_level": "LOW"
           },
           {
@@ -476,7 +476,7 @@
             "at_sec": 8,
             "packet_score": 6,
             "smoothed": 22,
-            "level": "HIGH",
+            "level": "LOW",
             "current_level": "LOW"
           },
           {
@@ -599,7 +599,7 @@
             "at_sec": 8,
             "packet_score": 82,
             "smoothed": 45,
-            "level": "HIGH",
+            "level": "MEDIUM",
             "current_level": "HIGH"
           },
           {
@@ -607,7 +607,7 @@
             "at_sec": 9,
             "packet_score": 10,
             "smoothed": 31,
-            "level": "HIGH",
+            "level": "MEDIUM",
             "current_level": "LOW"
           },
           {
@@ -615,7 +615,7 @@
             "at_sec": 10,
             "packet_score": 9,
             "smoothed": 22,
-            "level": "HIGH",
+            "level": "LOW",
             "current_level": "LOW"
           },
           {
@@ -623,11 +623,11 @@
             "at_sec": 11,
             "packet_score": 79,
             "smoothed": 45,
-            "level": "HIGH",
+            "level": "MEDIUM",
             "current_level": "HIGH"
           }
         ],
-        "final_level": "HIGH",
+        "final_level": "MEDIUM",
         "peak_packet_score": 82,
         "first_anomaly_sec": 2,
         "first_warning_sec": 2,
@@ -770,26 +770,26 @@
       "double_spike_reached_high": false,
       "single_packet_stays_low": true,
       "benign_call_final_level": "LOW",
-      "intermittent_final_level": "HIGH",
-      "intermittent_ever_reached_high": true,
+      "intermittent_final_level": "MEDIUM",
+      "intermittent_ever_reached_high": false,
       "intermittent_peak_packet_score": 82,
       "slow_creep_first_warning_sec": 3,
-      "burst_recovery_packets_to_low": 5,
+      "burst_recovery_packets_to_low": 4,
       "burst_final_level": "LOW",
       "timings_are_historical_not_current": true
     }
   },
-  "interpretation": "A single anomalous packet does not drive the call to HIGH, and a lone first packet stays LOW as the minimum-evidence gate intends. On a rising scam the engine warns at 3s and reaches HIGH at 4s in packet time. After a burst ends the level returns to LOW in 5 packets, so hysteresis delays release rather than latching it.",
+  "interpretation": "A single anomalous packet does not drive the call to HIGH, and a lone first packet stays LOW as the minimum-evidence gate intends. On a rising scam the engine warns at 3s and reaches HIGH at 4s in packet time. After a burst ends the level returns to LOW in 4 packets, so hysteresis delays release rather than latching it.",
   "limitations": [
     "Sequences are SYNTHETIC and each isolates one behaviour. They characterise the temporal engine, not real calls. No corpus of real calls with per-window risk labels exists, so the frequency of these patterns in practice is unknown.",
     "Confidence is held constant at 0.8. In the live pipeline confidence varies per packet and gates policy escalation separately (policy.py MIN_CONFIDENCE_FOR_ESCALATION), so an alert may not fire even where this shows a HIGH level.",
     "Timings are in packets at a 1.0 s stride. They exclude the ~4 s before anti-spoof evidence becomes available and the per-packet processing latency, so wall-clock time to a warning in a live call is strictly later than the figures here.",
-    "The persistence counter added in Phase 10 uses thresholds chosen by reasoning, not measurement: 3 elevated windows within 12, at least one in the last 4. Three is the smallest count a single spike or one two-packet event cannot reach. Tuning them properly needs labelled call sequences, which do not exist (docs/BLOCKERS.md O15)."
+    "The smoothing constant cuts both ways and only one side was hypothesised. The `intermittent` sequence - a score of ~80 every third packet, which is the shape social engineering actually takes - never leaves MEDIUM, so the same damping that suppresses a false spike also suppresses genuine periodic evidence. EMA_ALPHA was not tuned here because tuning it needs labelled call sequences that do not exist."
   ],
-  "conclusion": "The temporal layer resists the single-window false positive that O12 makes likely - a lone 95 reaches MEDIUM and stops - and now also escalates recurring evidence: the intermittent sequence, peaking at only 82 per packet, reaches HIGH. Both hold at once because recurrence is counted separately from the average; a single number cannot distinguish a spike from a pattern, since the difference is not magnitude but repetition. Recovery is preserved: after a burst ends the level returns to LOW in 5 packets, because escalation additionally requires recent evidence rather than merely evidence still inside the memory window. Escalation timings remain historical markers and must be presented as 'first reached', never as the current state.",
+  "conclusion": "The temporal layer resists the single-window false positive that O12 makes likely, which is the property it most needed to have. The cost is symmetric and was not anticipated: intermittent risk peaking at 82 per packet never leaves MEDIUM, so a real scam that is risky only every third window would not raise an alert. That is a detection gap, not a tuning preference, and it needs labelled call sequences to resolve. Escalation timings are historical markers and must be presented as 'first reached' rather than as the current state.",
   "configuration": {
     "stride_sec": 1.0,
     "levels": "LOW<35, MEDIUM>=35, HIGH>=65, CRITICAL>=85"
   },
-  "runtime_sec": 6.0
+  "runtime_sec": 8.8
 }
