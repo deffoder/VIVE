@@ -1,0 +1,132 @@
+{
+ "source": "mo-thecreator/Deepfake-audio-detection",
+ "spoof_index": 0,
+ "labels": {
+  "0": "fake",
+  "1": "real"
+ },
+ "shipped": "int8-matmul",
+ "results": {
+  "vive_probe@2s/torch": {
+   "eer": 0.15,
+   "threshold": 0.9991,
+   "bonafide_flagged_at_0.5": 0.2167,
+   "spoof_caught_at_0.5": 0.8833,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "vive_probe@2s/onnx_fp32": {
+   "eer": 0.15,
+   "threshold": 0.9991,
+   "bonafide_flagged_at_0.5": 0.2167,
+   "spoof_caught_at_0.5": 0.8833,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "vive_probe@2s/onnx_int8": {
+   "eer": 0.15,
+   "threshold": 0.9995,
+   "bonafide_flagged_at_0.5": 0.2167,
+   "spoof_caught_at_0.5": 0.8833,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "vive_probe@4s/torch": {
+   "eer": 0.1,
+   "threshold": 0.9848,
+   "bonafide_flagged_at_0.5": 0.1167,
+   "spoof_caught_at_0.5": 0.9333,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "vive_probe@4s/onnx_fp32": {
+   "eer": 0.1,
+   "threshold": 0.9848,
+   "bonafide_flagged_at_0.5": 0.1167,
+   "spoof_caught_at_0.5": 0.9333,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "vive_probe@4s/onnx_int8": {
+   "eer": 0.1167,
+   "threshold": 0.9923,
+   "bonafide_flagged_at_0.5": 0.1333,
+   "spoof_caught_at_0.5": 0.9333,
+   "n": [
+    60,
+    60
+   ]
+  },
+  "asvspoof_la@2s/torch": {
+   "eer": 0.0105,
+   "threshold": 0.9595,
+   "bonafide_flagged_at_0.5": 0.0085,
+   "spoof_caught_at_0.5": 0.9875,
+   "n": [
+    80,
+    117
+   ]
+  },
+  "asvspoof_la@2s/onnx_fp32": {
+   "eer": 0.0105,
+   "threshold": 0.9595,
+   "bonafide_flagged_at_0.5": 0.0085,
+   "spoof_caught_at_0.5": 0.9875,
+   "n": [
+    80,
+    117
+   ]
+  },
+  "asvspoof_la@2s/onnx_int8": {
+   "eer": 0.0105,
+   "threshold": 0.9743,
+   "bonafide_flagged_at_0.5": 0.0085,
+   "spoof_caught_at_0.5": 0.9875,
+   "n": [
+    80,
+    117
+   ]
+  },
+  "asvspoof_la@4s/torch": {
+   "eer": 0.0,
+   "threshold": 1.0,
+   "bonafide_flagged_at_0.5": 0.0,
+   "spoof_caught_at_0.5": 1.0,
+   "n": [
+    24,
+    28
+   ]
+  },
+  "asvspoof_la@4s/onnx_fp32": {
+   "eer": 0.0,
+   "threshold": 1.0,
+   "bonafide_flagged_at_0.5": 0.0,
+   "spoof_caught_at_0.5": 1.0,
+   "n": [
+    24,
+    28
+   ]
+  },
+  "asvspoof_la@4s/onnx_int8": {
+   "eer": 0.0,
+   "threshold": 0.9999,
+   "bonafide_flagged_at_0.5": 0.0,
+   "spoof_caught_at_0.5": 1.0,
+   "n": [
+    24,
+    28
+   ]
+  }
+ },
+ "confound": "probe spoof is English SpeechT5, bonafide is Hindi/Tamil FLEURS"
+}

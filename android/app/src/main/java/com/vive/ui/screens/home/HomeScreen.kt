@@ -165,10 +165,49 @@ private fun StartAnalysisCard(
                 modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
             )
         }
+        if (com.vive.core.ServiceLocator.onDevice) LanguagePicker()
         PrimaryButton(
             text = if (starting) "Starting…" else "Start live analysis",
             onClick = onStart,
             modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+        )
+    }
+}
+
+/**
+ * The language the caller will speak. The phone runs one speech model per
+ * language and cannot detect language from audio, so it is declared here.
+ * Tamil is transcribed but the intent and behaviour models were never
+ * trained on Tamil, and the screen says so before the call starts.
+ */
+@Composable
+private fun LanguagePicker() {
+    var selected by remember { mutableStateOf(com.vive.core.ServiceLocator.analysisLanguage) }
+    Text(
+        text = "Caller's language",
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+    )
+    androidx.compose.foundation.layout.Row(
+        horizontalArrangement = Arrangement.spacedBy(ViveThemeTokens.spacing.sm),
+    ) {
+        listOf("hi" to "Hindi", "ta" to "Tamil", "en" to "English").forEach { (code, name) ->
+            androidx.compose.material3.FilterChip(
+                selected = selected == code,
+                onClick = {
+                    selected = code
+                    com.vive.core.ServiceLocator.analysisLanguage = code
+                },
+                label = { Text(name) },
+            )
+        }
+    }
+    if (selected == "ta") {
+        Text(
+            text = "Tamil speech is transcribed, but request and behaviour " +
+                "analysis is not available in Tamil yet.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

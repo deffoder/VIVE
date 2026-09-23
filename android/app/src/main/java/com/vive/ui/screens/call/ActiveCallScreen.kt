@@ -484,14 +484,24 @@ private fun AlertDeliveryCard(viewModel: SessionDetailViewModel) {
     val delivered by viewModel.alertsDelivered.collectAsStateWithLifecycle()
 
     var askedAndDenied by remember { mutableStateOf(false) }
-    // Read on every recomposition rather than remembered: the user can change
-    // this in system settings while the screen is open, and a cached "denied"
-    // would keep nagging after they had already said yes.
-    val canPost = AlertNotifier.canPost(context)
+    // State, re-read when the permission result arrives and whenever the
+    // screen resumes (the user may change it in system settings). It used to
+    // be a plain read during composition, and granting the permission changed
+    // no state - so nothing recomposed and the card kept saying
+    // "Notifications are off" after the user had just turned them on
+    // (observed on the target phone).
+    var canPost by remember { mutableStateOf(AlertNotifier.canPost(context)) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        canPost = AlertNotifier.canPost(context)
+        onPauseOrDispose { }
+    }
 
     val requestPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { allowed -> askedAndDenied = !allowed }
+    ) { allowed ->
+        askedAndDenied = !allowed
+        canPost = AlertNotifier.canPost(context)
+    }
 
     if (alerts.isEmpty() && canPost) return
 
