@@ -1,0 +1,74 @@
+{
+ "sample": 800,
+ "results": {
+  "intent": {
+   "matmul": {
+    "top1_agreement": 0.9625,
+    "macro_f1_fp32": 0.9747,
+    "macro_f1_q": 0.9146,
+    "size_mb": 412.3,
+    "max_abs_logit_diff": 7.5741
+   },
+   "matmul_pc": {
+    "top1_agreement": 0.6325,
+    "macro_f1_fp32": 0.9747,
+    "macro_f1_q": 0.128,
+    "size_mb": 412.6,
+    "max_abs_logit_diff": 8.0669
+   },
+   "gather": {
+    "top1_agreement": 1.0,
+    "macro_f1_fp32": 0.9747,
+    "macro_f1_q": 0.9747,
+    "size_mb": 264.9,
+    "max_abs_logit_diff": 0.2166
+   },
+   "gather_pc": {
+    "top1_agreement": 1.0,
+    "macro_f1_fp32": 0.9747,
+    "macro_f1_q": 0.9747,
+    "size_mb": 264.9,
+    "max_abs_logit_diff": 0.2166
+   },
+   "matmul_pc+gather_pc": {
+    "top1_agreement": 0.6325,
+    "macro_f1_fp32": 0.9747,
+    "macro_f1_q": 0.128,
+    "size_mb": 135.9,
+    "max_abs_logit_diff": 8.0646
+   }
+  },
+  "behavior": {
+   "matmul": {
+    "per_label_agreement": 0.9784,
+    "exact_set_agreement": 0.8888,
+    "size_mb": 412.3,
+    "max_abs_logit_diff": 8.6886
+   },
+   "matmul_pc": {
+    "per_label_agreement": 0.8623,
+    "exact_set_agreement": 0.005,
+    "size_mb": 412.6,
+    "max_abs_logit_diff": 7.7795
+   },
+   "gather": {
+    "per_label_agreement": 1.0,
+    "exact_set_agreement": 1.0,
+    "size_mb": 264.9,
+    "max_abs_logit_diff": 0.3686
+   },
+   "gather_pc": {
+    "per_label_agreement": 1.0,
+    "exact_set_agreement": 1.0,
+    "size_mb": 264.9,
+    "max_abs_logit_diff": 0.3686
+   },
+   "matmul_pc+gather_pc": {
+    "per_label_agreement": 0.8623,
+    "exact_set_agreement": 0.005,
+    "size_mb": 135.9,
+    "max_abs_logit_diff": 7.7895
+   }
+  }
+ }
+}

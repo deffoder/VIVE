@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)
     implementation(libs.okhttp)
+    implementation(libs.onnxruntime.android)
     debugImplementation(libs.okhttp.logging)
 
     val composeBom = platform(libs.androidx.compose.bom)

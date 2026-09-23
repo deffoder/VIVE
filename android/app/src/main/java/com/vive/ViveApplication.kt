@@ -5,6 +5,7 @@ import com.vive.alerts.AlertNotifier
 import com.vive.core.ServiceLocator
 import com.vive.core.ViveLog
 import com.vive.core.ViveResult
+import com.vive.ondevice.OnDeviceRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +31,10 @@ class ViveApplication : Application() {
         // ViewModel cannot hold this, and a Composable collector stops when
         // its screen stops.
         ServiceLocator.attachAlertDelivery(this)
+        // The model directory must be created by the app itself: on Android
+        // 11+ a directory adb creates under Android/data is not readable by
+        // the app, so provisioning pushes into the one made here.
+        OnDeviceRuntime.modelDir(this).mkdirs()
         resolveAdapterMode()
     }
 
