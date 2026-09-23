@@ -19,6 +19,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import com.vive.telephony.RoleStatus
+import com.vive.telephony.CallScreeningRole
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import com.vive.ui.screens.SessionListViewModel
 import com.vive.data.model.SessionStatus
 import com.vive.core.UiState
@@ -204,6 +212,7 @@ fun SettingsScreen(
 ) {
     ViveScreenScaffold(title = "Settings", onBack = onBack, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
+            CallScreeningCard()
             ViveCard {
                 NavigationRow(Icons.Filled.Person, "Account", subtitle = "Manage your account") {
                     onNavigate(ViveDestination.Profile)
@@ -228,6 +237,70 @@ fun SettingsScreen(
 }
 
 /** Connected services (docs/UI_SPEC.md 4.18). */
+/**
+ * Cellular call screening - PATH A setup.
+ *
+ * `CallScreeningService` only runs once the user grants `ROLE_CALL_SCREENING`
+ * in a system dialog; it cannot be granted programmatically. VIVE implemented
+ * the service and the role helper but never offered the dialog, so the role
+ * could never be held and the service never ran - the whole cellular path was
+ * unreachable.
+ *
+ * The wording here is deliberate. Screening sees the number, presentation and
+ * direction of an incoming call and **no audio**: Android does not expose
+ * either leg of a cellular call to a third-party app, so nothing on this path
+ * can analyse speech (docs/BLOCKERS.md P1). Saying that next to the button is
+ * the difference between a feature and a false claim.
+ */
+@Composable
+private fun CallScreeningCard() {
+    val context = LocalContext.current
+    var status by remember { mutableStateOf(CallScreeningRole.status(context)) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { status = CallScreeningRole.status(context) }
+
+    ViveCard {
+        SectionHeader(title = "Cellular call screening")
+        Text(
+            text = when (status) {
+                is RoleStatus.Held ->
+                    "Active. VIVE sees the number and whether it is withheld, " +
+                        "and can flag or silence a call. It never rejects one."
+                is RoleStatus.NotHeld ->
+                    "Not active. Grant the call-screening role to let VIVE " +
+                        "screen incoming cellular calls."
+                is RoleStatus.Unsupported ->
+                    "This Android version does not offer the call-screening role."
+                is RoleStatus.Unavailable ->
+                    "This device does not offer the call-screening role."
+                else -> "Call-screening status is unknown on this device."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "Screening reads call metadata only. Android does not give " +
+                "any third-party app the audio of an ordinary cellular call, " +
+                "so speech analysis is not possible on this path - it runs on " +
+                "authorized in-app audio instead.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+        )
+        if (status is RoleStatus.NotHeld) {
+            PrimaryButton(
+                text = "Enable call screening",
+                onClick = {
+                    CallScreeningRole.requestIntent(context)?.let(launcher::launch)
+                },
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+            )
+        }
+    }
+}
+
+
 @Composable
 fun ConnectedServicesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     ViveScreenScaffold(title = "Connected services", onBack = onBack, modifier = modifier) { padding ->
