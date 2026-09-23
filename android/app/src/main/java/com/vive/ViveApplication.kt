@@ -1,6 +1,7 @@
 package com.vive
 
 import android.app.Application
+import com.vive.alerts.AlertNotifier
 import com.vive.core.ServiceLocator
 import com.vive.core.ViveLog
 import com.vive.core.ViveResult
@@ -21,6 +22,14 @@ class ViveApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ViveLog.i(TAG, "VIVE ${BuildConfig.VERSION_NAME} starting")
+        // Channels must exist before the first notify(), and creating them is
+        // idempotent, so start-up is the one place that cannot get it wrong.
+        AlertNotifier.ensureChannels(this)
+        // The application context, so a raised alert can be delivered while
+        // the user is in another app - which is the case an alert is for. A
+        // ViewModel cannot hold this, and a Composable collector stops when
+        // its screen stops.
+        ServiceLocator.attachAlertDelivery(this)
         resolveAdapterMode()
     }
 

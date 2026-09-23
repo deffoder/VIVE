@@ -1,7 +1,10 @@
 package com.vive.core
 
+import android.content.Context
 import com.vive.BuildConfig
+import com.vive.alerts.AlertNotifier
 import com.vive.data.demo.DemoAlertRepository
+import com.vive.data.model.Alert
 import com.vive.data.demo.DemoModelRepository
 import com.vive.data.demo.DemoSessionRepository
 import com.vive.data.remote.NetworkModule
@@ -106,6 +109,35 @@ object ServiceLocator {
      */
     fun observeAdapterMode(isMock: Boolean) {
         lastAdapterModeWasMock = isMock
+    }
+
+    // --- alert delivery -------------------------------------------------
+
+    private var appContext: Context? = null
+
+    /**
+     * Supplies the application context used to post alert notifications.
+     *
+     * Held as the APPLICATION context, never an Activity: an alert has to
+     * survive the user leaving the app, which is the situation that makes a
+     * notification worth posting at all. An Activity reference here would
+     * both leak and be gone exactly when it is needed.
+     */
+    fun attachAlertDelivery(context: Context) {
+        appContext = context.applicationContext
+    }
+
+    /**
+     * Posts [alert] to the system, returning whether it was actually
+     * delivered.
+     *
+     * False is a real answer, not an error: LOW alerts never interrupt, and
+     * the user may have denied notifications. A caller that assumed delivery
+     * would be claiming the user was warned when they were not.
+     */
+    fun deliverAlert(alert: Alert): Boolean {
+        val context = appContext ?: return false
+        return AlertNotifier.notify(context, alert)
     }
 
     /** True specifically because the backend could not be reached. */

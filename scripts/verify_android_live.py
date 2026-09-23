@@ -191,6 +191,20 @@ def main() -> int:
                 f"{PACKAGE} present in resumed activities"
                 if PACKAGE in focused else "app not resumed")
 
+    # Alert notification channels. The app declared POST_NOTIFICATIONS from
+    # the start and used nothing, so an alert raised while the user was in
+    # another app produced no notification at all. The channels are created at
+    # start-up, which means their presence on the device is proof the delivery
+    # path was wired rather than merely written - and their absence is proof
+    # it was not, which no unit test can establish.
+    channels = shell("dumpsys", "notification", "--noredact")
+    have = [name for name in ("vive_risk_high", "vive_risk_info")
+            if name in channels]
+    report.step("alert notification channels exist on the device",
+                len(have) == 2,
+                f"found {have or 'none'}; both are created at application "
+                "start-up, so a missing one means delivery is not wired")
+
     # Identify the new session by SET DIFFERENCE, not by list position.
     # Taking sessions_after[-1] picked an unrelated old session, and every
     # downstream check then validated stale packets from a previous run -

@@ -143,6 +143,21 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
     private val _windowsDropped = MutableStateFlow(0)
     val windowsDropped: StateFlow<Int> = _windowsDropped.asStateFlow()
 
+    /** Alerts raised during this session, newest last. */
+    private val _alerts = MutableStateFlow<List<Alert>>(emptyList())
+    val alerts: StateFlow<List<Alert>> = _alerts.asStateFlow()
+
+    /**
+     * How many of those actually reached the system as a notification.
+     *
+     * Separate from the alert count on purpose. LOW alerts never interrupt
+     * and the user can deny notifications, so the two numbers legitimately
+     * differ - and the screen must be able to say "raised but not delivered"
+     * rather than implying the user was warned.
+     */
+    private val _alertsDelivered = MutableStateFlow(0)
+    val alertsDelivered: StateFlow<Int> = _alertsDelivered.asStateFlow()
+
     init {
         refresh()
         observeStream()
@@ -194,7 +209,18 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
 
                     is ViveEvent.SessionEnded -> _session.value = UiState.Success(event.session)
 
-                    is ViveEvent.AlertRaised -> Unit
+                    is ViveEvent.AlertRaised -> {
+                        // Was `Unit`. An alert raised while the user is in
+                        // another app produced nothing at all, which is the
+                        // one case an alert exists for. Delivery reports
+                        // whether it actually reached the system, because a
+                        // LOW alert never interrupts and notifications may be
+                        // denied - and "we warned them" must not be assumed.
+                        _alerts.value = _alerts.value + event.alert
+                        if (ServiceLocator.deliverAlert(event.alert)) {
+                            _alertsDelivered.value += 1
+                        }
+                    }
 
                     is ViveEvent.Failure -> _session.value = UiState.Error(event.error)
                 }

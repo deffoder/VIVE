@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.vive.alerts.AlertNotifier
 import com.vive.audio.CaptureState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vive.core.UiState
@@ -73,6 +75,7 @@ fun ActiveCallScreen(
     ViveScreenScaffold(title = "Call analysis", onBack = onBack, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
             LiveCaptureCard(viewModel)
+            AlertDeliveryCard(viewModel)
             StateHost(sessionState, onRetry = viewModel::refresh) { session ->
                 val packets = (packetState as? UiState.Success)?.data.orEmpty()
                 ActiveCallContent(
@@ -461,3 +464,72 @@ internal fun severityFor(value: Double): RiskLevel = when {
 internal fun formatDuration(seconds: Int): String =
     "%02d:%02d".format(seconds / 60, seconds % 60)
 
+/**
+ * Alerts raised during this session, and whether they reached the user.
+ *
+ * The two counts are deliberately separate. An alert that was raised but not
+ * delivered is the failure mode worth surfacing: the analysis worked and the
+ * warning went nowhere, because notifications were denied. Showing only the
+ * raised count would let the screen imply the user had been warned when the
+ * system never told them.
+ *
+ * LOW alerts never interrupt by design, so a gap between the two numbers is
+ * not necessarily a fault - which is why the card explains the gap rather
+ * than flagging it as an error.
+ */
+@Composable
+private fun AlertDeliveryCard(viewModel: SessionDetailViewModel) {
+    val context = LocalContext.current
+    val alerts by viewModel.alerts.collectAsStateWithLifecycle()
+    val delivered by viewModel.alertsDelivered.collectAsStateWithLifecycle()
+
+    var askedAndDenied by remember { mutableStateOf(false) }
+    // Read on every recomposition rather than remembered: the user can change
+    // this in system settings while the screen is open, and a cached "denied"
+    // would keep nagging after they had already said yes.
+    val canPost = AlertNotifier.canPost(context)
+
+    val requestPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { allowed -> askedAndDenied = !allowed }
+
+    if (alerts.isEmpty() && canPost) return
+
+    ViveCard {
+        SectionHeader(title = "Alerts")
+        Text(
+            text = when {
+                alerts.isEmpty() ->
+                    "No alerts raised. Notifications are off, so any alert " +
+                        "raised during this call would not reach you."
+                delivered == alerts.size ->
+                    "${alerts.size} raised, all delivered as notifications."
+                !canPost ->
+                    "${alerts.size} raised, none delivered. Notifications are " +
+                        "turned off for VIVE."
+                else ->
+                    "${alerts.size} raised, $delivered delivered as " +
+                        "notifications. Low-risk alerts are recorded here " +
+                        "without interrupting."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (!canPost && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            SecondaryButton(
+                text = "Allow notifications",
+                onClick = {
+                    requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                },
+            )
+        }
+        if (askedAndDenied) {
+            Text(
+                text = "Notifications stay off. Alerts are still recorded in " +
+                    "this session and on the Alerts screen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
