@@ -228,6 +228,10 @@ def main() -> int:
     # on a short screen, so scroll before giving up - an ignored tap failure
     # previously let the run continue and report "no capture" as if the code
     # were broken, when nothing had ever been pressed.
+    # Clear the buffer immediately before capture starts. This ROM logs
+    # heavily enough that the capture line rotates out within seconds
+    # otherwise, and the check then reports a failure on working code.
+    adb("logcat", "-c")
     started = False
     for attempt in range(3):
         if tap_text("Start microphone analysis", attempts=1):

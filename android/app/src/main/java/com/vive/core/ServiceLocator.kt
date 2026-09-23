@@ -126,9 +126,8 @@ object ServiceLocator {
      * results that look like analysis of what the user just said, which is the
      * one outcome this project must never produce.
      */
-    suspend fun sendAudio(sessionId: String, pcm: ByteArray) {
+    suspend fun sendAudio(sessionId: String, pcm: ByteArray): Boolean =
         remoteSessions.sendAudio(sessionId, pcm)
-    }
 
     /** Enrols a reference voice so speaker comparison can run at all (O3). */
     suspend fun enrolSpeaker(sessionId: String, pcm: ByteArray, label: String? = null) =

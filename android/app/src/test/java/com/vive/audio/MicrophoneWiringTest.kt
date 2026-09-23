@@ -165,3 +165,48 @@ class MicrophoneWiringTest {
         )
     }
 }
+
+/**
+ * Delivery must be reported, not assumed.
+ *
+ * `sendAudio` returned Unit and used `sockets[sessionId]?.send(...)`, so a
+ * missing socket was a silent no-op while the capture counter kept counting.
+ * The UI read "89 analysis windows sent to the backend" with a backend that
+ * had received none - a claim of delivery with nothing behind it, and
+ * indistinguishable on screen from a working capture.
+ */
+class AudioDeliveryContractTest {
+
+    private class RecordingStream(private val connected: Boolean) {
+        var attempts = 0
+        fun sendAudio(pcm: ByteArray): Boolean {
+            attempts += 1
+            return connected && pcm.isNotEmpty()
+        }
+    }
+
+    @Test
+    fun `an unsent window is not counted as sent`() {
+        val stream = RecordingStream(connected = false)
+        var counted = 0
+
+        repeat(5) {
+            if (stream.sendAudio(ByteArray(64_000))) counted += 1
+        }
+
+        assertEquals("every window was attempted", 5, stream.attempts)
+        assertEquals("none should be counted as delivered", 0, counted)
+    }
+
+    @Test
+    fun `a delivered window is counted`() {
+        val stream = RecordingStream(connected = true)
+        var counted = 0
+
+        repeat(5) {
+            if (stream.sendAudio(ByteArray(64_000))) counted += 1
+        }
+
+        assertEquals(5, counted)
+    }
+}

@@ -23,8 +23,12 @@ interface ViveEventStream {
     /**
      * Sends a captured audio chunk upstream.
      * Expected format: 16 kHz mono pcm_s16le (docs/ML_SPEC.md 5).
+     *
+     * Returns false when the window did NOT leave the device - no open socket
+     * for the session, or a full send buffer. The caller must not count an
+     * unsent window as sent.
      */
-    suspend fun sendAudio(sessionId: String, pcm: ByteArray)
+    suspend fun sendAudio(sessionId: String, pcm: ByteArray): Boolean
 
     suspend fun pause(sessionId: String)
 

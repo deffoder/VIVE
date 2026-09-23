@@ -84,7 +84,7 @@ class RemoteSessionRepository(
      * Nothing about the packet is decided here - the client captures and
      * transports, the backend analyses (docs/ARCHITECTURE.md 1, decision 8).
      */
-    suspend fun sendAudio(sessionId: String, pcm: ByteArray) =
+    suspend fun sendAudio(sessionId: String, pcm: ByteArray): Boolean =
         stream.sendAudio(sessionId, pcm)
 
     /**

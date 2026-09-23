@@ -104,6 +104,7 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
     val context = LocalContext.current
     val captureState by viewModel.captureState.collectAsStateWithLifecycle()
     val windowsSent by viewModel.windowsSent.collectAsStateWithLifecycle()
+    val windowsDropped by viewModel.windowsDropped.collectAsStateWithLifecycle()
 
     var permissionDenied by remember { mutableStateOf(false) }
     val granted = ContextCompat.checkSelfPermission(
@@ -126,8 +127,14 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
             text = when (val state = captureState) {
                 is CaptureState.Idle -> "Not capturing."
                 is CaptureState.Starting -> "Starting microphone..."
-                is CaptureState.Capturing ->
-                    "Capturing. $windowsSent analysis windows sent to the backend."
+                is CaptureState.Capturing -> if (windowsDropped >= 3) {
+                    // Capture running while nothing reaches the backend looks
+                    // exactly like capture working. Say which it is.
+                    "Capturing, but $windowsDropped windows could not be sent. " +
+                        "Check the connection to the analysis backend."
+                } else {
+                    "Capturing. $windowsSent analysis windows reached the backend."
+                }
                 is CaptureState.Stopping -> "Stopping..."
                 is CaptureState.Completed ->
                     "Capture ended. $windowsSent windows were sent."

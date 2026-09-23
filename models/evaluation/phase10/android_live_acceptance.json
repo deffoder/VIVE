@@ -9,8 +9,8 @@
     "app_version": "0.1.0",
     "adapter_mode": "real"
   },
-  "session_id": "VS-013",
-  "packets": 42,
+  "session_id": "VS-016",
+  "packets": 27,
   "steps": [
     {
       "step": "a physical device is attached",
@@ -55,7 +55,7 @@
     {
       "step": "a REAL backend session was created by the app",
       "result": "PASS",
-      "evidence": "new session id(s): ['VS-013']"
+      "evidence": "new session id(s): ['VS-016']"
     },
     {
       "step": "RECORD_AUDIO granted at runtime",
@@ -75,7 +75,7 @@
     {
       "step": "the backend produced analysis packets from device audio",
       "result": "PASS",
-      "evidence": "42 packets for VS-013 (this run's session)"
+      "evidence": "27 packets for VS-016 (this run's session)"
     },
     {
       "step": "packets carry real adapter output",
@@ -85,22 +85,22 @@
     {
       "step": "ASR transcribed the captured audio",
       "result": "PASS",
-      "evidence": "24 non-empty transcripts; last=ऐसी कोई"
+      "evidence": "13 non-empty transcripts; last=ब"
     },
     {
       "step": "risk was computed per packet",
       "result": "PASS",
-      "evidence": "scores=[53, 57, 15, 57, 15, 15, 15, 41]"
+      "evidence": "scores=[15, 15, 15, 15, 15, 57, 57, 57]"
     },
     {
       "step": "the packetizer produced analysis windows",
       "result": "PASS",
-      "evidence": "0 windows reached the silence gate; 42 were analysed by the backend"
+      "evidence": "0 windows reached the silence gate; 27 were analysed by the backend"
     },
     {
       "step": "at least one window contained speech",
       "result": "PASS",
-      "evidence": "6 of 42 packets had quality GOOD"
+      "evidence": "1 of 27 packets had quality GOOD"
     }
   ],
   "passed": 18,

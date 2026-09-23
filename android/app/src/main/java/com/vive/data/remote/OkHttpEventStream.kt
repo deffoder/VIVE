@@ -168,8 +168,19 @@ class OkHttpEventStream(
         null
     }
 
-    override suspend fun sendAudio(sessionId: String, pcm: ByteArray) {
-        sockets[sessionId]?.send(pcm.toByteString(0, pcm.size))
+    /**
+     * Sends one window, reporting whether it actually left the device.
+     *
+     * This returned Unit and used `sockets[sessionId]?.send(...)`, so a
+     * missing socket was a silent no-op. The capture counter incremented
+     * regardless, and the UI read "89 analysis windows sent to the backend"
+     * while the backend had received none - a claim of delivery with nothing
+     * behind it. `WebSocket.send` also returns false when the outgoing buffer
+     * is full, which was discarded the same way.
+     */
+    override suspend fun sendAudio(sessionId: String, pcm: ByteArray): Boolean {
+        val socket = sockets[sessionId] ?: return false
+        return socket.send(pcm.toByteString(0, pcm.size))
     }
 
     /** Demo/replay: drives the pipeline with a scripted line instead of audio. */

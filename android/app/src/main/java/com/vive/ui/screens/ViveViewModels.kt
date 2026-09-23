@@ -129,9 +129,19 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
     private val _captureState = MutableStateFlow<CaptureState>(CaptureState.Idle)
     val captureState: StateFlow<CaptureState> = _captureState.asStateFlow()
 
-    /** Analysis windows actually sent upstream. Drives the live UI counter. */
+    /** Analysis windows the backend actually accepted. Drives the UI counter. */
     private val _windowsSent = MutableStateFlow(0)
     val windowsSent: StateFlow<Int> = _windowsSent.asStateFlow()
+
+    /**
+     * Consecutive windows that did NOT leave the device.
+     *
+     * Surfaced rather than swallowed: capture running while nothing reaches
+     * the backend looks identical to capture working, and that is precisely
+     * the state a user must be able to see.
+     */
+    private val _windowsDropped = MutableStateFlow(0)
+    val windowsDropped: StateFlow<Int> = _windowsDropped.asStateFlow()
 
     init {
         refresh()
@@ -231,14 +241,27 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
         capture = controller
 
         viewModelScope.launch { controller.state.collect { _captureState.value = it } }
-        viewModelScope.launch { controller.packetsSent.collect { _windowsSent.value = it } }
 
         controller.start { packet ->
-            // A failed send must not kill capture. The stream reconnects on its
-            // own, and a window lost in the gap is recovered by the same
+            // A failed send must not kill capture. The stream reconnects on
+            // its own, and a window lost in the gap is recovered by the same
             // `since_seq` backfill that covers any other disconnect.
-            runCatching { ServiceLocator.sendAudio(sessionId, packet.pcm) }
-                .onFailure { ViveLog.e(TAG, "window ${packet.packetId} not sent") }
+            //
+            // But it must not be COUNTED as sent either. The counter used to
+            // track windows the packetizer emitted, which is not the same
+            // thing: with no open socket the UI read "89 analysis windows
+            // sent to the backend" while the backend had received none.
+            val delivered = runCatching {
+                ServiceLocator.sendAudio(sessionId, packet.pcm)
+            }.getOrDefault(false)
+
+            if (delivered) {
+                _windowsSent.value = _windowsSent.value + 1
+                _windowsDropped.value = 0
+            } else {
+                _windowsDropped.value = _windowsDropped.value + 1
+                ViveLog.e(TAG, "window ${packet.packetId} did not leave the device")
+            }
         }
     }
 
