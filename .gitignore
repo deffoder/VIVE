@@ -1,99 +1,109 @@
-# --- Secrets / local config ---
+# ==============================
+# SECRETS / ENVIRONMENT
+# ==============================
 .env
 .env.*
 !.env.example
+**/.env
+**/.env.*
+!.env.example
+
+# API keys / credentials
 *.pem
 *.key
-local.properties
-secrets.properties
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+secrets.json
 
-# --- Python (backend/) ---
+# ==============================
+# CLAUDE / AI AGENT FILES
+# ==============================
+CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.md
+**/CLAUDE.local.md
+
+.claude/
+**/.claude/
+
+# Agent state / progress / local context
+AGENTS.md
+**/AGENTS.md
+AUTONOMOUS_PROGRESS.md
+**/AUTONOMOUS_PROGRESS.md
+
+# ==============================
+# IDE / LOCAL CONFIG
+# ==============================
+.idea/
+.vscode/
+*.iml
+
+# ==============================
+# PYTHON
+# ==============================
 __pycache__/
 *.py[cod]
-*.so
-.Python
-venv/
-.venv/
-env/
-*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
+.venv/
+venv/
+env/
 
-# --- Node (frontend/) ---
-node_modules/
-dist/
-build/
-.vite/
-npm-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# --- Android / Gradle ---
+# ==============================
+# ANDROID
+# ==============================
 .gradle/
-.kotlin/
-android/build/
-android/app/build/
-android/.cxx/
-*.apk
-*.aab
-*.aar
-*.jks
-*.keystore
-captures/
+**/build/
+local.properties
+.cxx/
 
-# --- Model checkpoints (large binaries) ---
-# Structure under models/ is tracked; weights are not.
-models/artifacts/**
-!models/artifacts/.gitkeep
+# ==============================
+# LOGS / TEMPORARY FILES
+# ==============================
+*.log
+*.tmp
+*.temp
+
+logs/
+tmp/
+temp/
+
+# ==============================
+# AUDIO / RUNTIME DATA
+# ==============================
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.flac
+*.ogg
+
+data/runtime/
+data/output/
+
+# ==============================
+# LARGE ML MODEL FILES
+# ==============================
 *.pth
 *.pt
 *.onnx
-*.bin
 *.safetensors
 *.ckpt
+*.bin
 
-# --- Datasets ---
-# Structure, manifest INDEXES and README are tracked; corpora are not.
-data/raw/**
-!data/raw/.gitkeep
-data/processed/**
-!data/processed/.gitkeep
+# ==============================
+# MODEL / DATA CACHES
+# ==============================
+models/artifacts/
+models/cache/
+datasets/cache/
 
-# Full manifests carry the message bodies: ~76 MB, and the text contains
-# PII-shaped content (phone numbers, URLs, OTP digits). Only the *.index.jsonl
-# files, which replace the body with a hash, are tracked.
-data/manifests/*.jsonl
-!data/manifests/*.index.jsonl
-data/manifests/eval/*.jsonl
-!data/manifests/eval/*.index.jsonl
-
-# --- Audio ---
-*.wav
-*.mp3
-*.flac
-*.m4a
-*.ogg
-!tests/fixtures/**
-
-# --- Notebooks ---
-models/notebooks/**/.ipynb_checkpoints/
-
-# --- IDE ---
-.idea/
-*.iml
-.vscode/
-!.vscode/extensions.json
-
-# --- OS ---
+# ==============================
+# OS
+# ==============================
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Runtime SQLite store. Holds session transcripts, which are sensitive
-# (SECURITY_SPEC 4) - never tracked.
-*.db
-*.db-shm
-*.db-wal
