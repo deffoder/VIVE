@@ -56,6 +56,20 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _policy_intent(packet: Packet, rule: Intent | None) -> Intent | None:
+    """The request policy should act on.
+
+    The model's label when it names a sensitive request; otherwise what the
+    sensitive-request rule found. Without this, a request only the rule
+    caught reached policy as NORMAL_CONVERSATION: the alert said "HIGH risk"
+    without saying the caller asked for a password (seen on the phone).
+    """
+    model = packet.intent.label if packet.intent.status == AnalyzerStatus.AVAILABLE else None
+    if model is not None and model in policy.SENSITIVE_INTENTS:
+        return model
+    return rule or model
+
+
 def _next_alert_id() -> str:
     with _alert_lock:
         return f"AL-{next(_alert_counter):03d}"
@@ -275,6 +289,7 @@ class SessionManager:
         current_text = asr.transcript if asr.status == AnalyzerStatus.AVAILABLE else None
         rule = sensitive.detect_in_context(current_text, record.last_transcript)
         record.last_transcript = current_text
+        record.last_rule = Intent(rule.label) if rule else None
 
         ctx = record.session.context
         fused = fuse(
@@ -382,15 +397,14 @@ class SessionManager:
         return packet, alert
 
     def _maybe_alert(self, record: SessionRecord, packet: Packet) -> Alert | None:
+        acted_on = _policy_intent(packet, record.last_rule)
         decision = policy.evaluate(
             PolicyEvaluateRequest(
                 session_id=record.session.session_id,
                 risk_score=packet.risk.score,
                 risk_level=packet.risk.level,
                 confidence=packet.risk.confidence,
-                intent=packet.intent.label
-                if packet.intent.status == AnalyzerStatus.AVAILABLE
-                else None,
+                intent=acted_on,
                 caller_verified=record.session.context.caller_verified,
             )
         )
@@ -404,7 +418,7 @@ class SessionManager:
             raised_at=_now_iso(),
             reason="; ".join(decision.reasons),
             packet_id=packet.packet_id,
-            intent=packet.intent.label,
+            intent=acted_on or packet.intent.label,
             recommended_action=decision.recommended_action,
         )
         self._store.append_alert(record.session.session_id, alert)

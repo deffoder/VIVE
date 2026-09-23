@@ -85,6 +85,7 @@ def report(session_id=None):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("lang", choices=list(LANG_CHIP))
+    ap.add_argument("--script", default="call", choices=["call", "direct"])
     ap.add_argument("--no-end", action="store_true")
     ap.add_argument("--screenshot")
     args = ap.parse_args()
@@ -99,7 +100,7 @@ def main() -> int:
     # First use: the system asks for the microphone.
     tap("While using the app", timeout=2) or tap("Allow", timeout=1)
     time.sleep(4)   # models warm up when the session is created
-    play(os.path.join(CALLS, f"{args.lang}_call.wav"))
+    play(os.path.join(CALLS, f"{args.lang}_{args.script}.wav"))
     time.sleep(4)
     if args.screenshot:
         with open(args.screenshot, "wb") as fh:

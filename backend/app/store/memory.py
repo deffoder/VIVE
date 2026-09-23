@@ -53,6 +53,9 @@ class SessionRecord:
     """Previous window's transcript, the context app.risk.sensitive reads
     alongside the current one. In memory only."""
 
+    last_rule: object | None = None
+    """The sensitive-request rule's finding on the latest window, if any."""
+
 
 class EventStore(Protocol):
     def create(self, record: SessionRecord) -> None: ...

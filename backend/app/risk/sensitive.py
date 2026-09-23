@@ -56,6 +56,54 @@ def _contains(text: str, term: str) -> bool:
     return term in text
 
 
+FUZZY_MIN_LEN = 6
+"""Single-word secret terms at least this long also match at edit distance 1.
+
+Phone ASR renders secret words with one-character slips ("पासपर्ड" for
+पासवर्ड, measured through the handset). A single edit is the generic ASR
+tolerance; it applies to SECRET terms only - request and negation cues stay
+exact - and its cost in false positives is measured by
+exp_sensitive_rules.py on the same independent negatives as the exact rules.
+
+Measured, which is why the bounds are what they are: at 4 characters "mpin"
+matched "min" and multi-word "send money" matched "spend money" in benign
+SMS. Six characters and single words only removed both.
+"""
+
+
+def _lev1(a: str, b: str) -> bool:
+    """True when the edit distance between a and b is at most 1."""
+    if a == b:
+        return True
+    la, lb = len(a), len(b)
+    if abs(la - lb) > 1:
+        return False
+    if la > lb:
+        a, b, la, lb = b, a, lb, la
+    i = 0
+    while i < la and a[i] == b[i]:
+        i += 1
+    if la == lb:
+        return a[i + 1:] == b[i + 1:]
+    return a[i:] == b[i + 1:]
+
+
+def _fuzzy_contains(text: str, term: str) -> bool:
+    if len(term) < FUZZY_MIN_LEN or " " in term:
+        return False
+    if _is_latin(term):
+        return any(_lev1(w, term) for w in re.findall(r"[a-z0-9]+", text))
+    for size in (len(term) - 1, len(term), len(term) + 1):
+        for i in range(0, len(text) - size + 1):
+            if _lev1(text[i:i + size], term):
+                return True
+    return False
+
+
+def _secret_in(text: str, term: str) -> bool:
+    return _contains(text, term) or _fuzzy_contains(text, term)
+
+
 @lru_cache(maxsize=1)
 def load(path: str = CONFIG) -> dict:
     with open(os.path.abspath(path), encoding="utf-8") as fh:
@@ -74,7 +122,7 @@ def detect(text: str | None, config: dict | None = None) -> Detection | None:
         rule = cfg["rules"].get(label)
         if not rule:
             continue
-        secret = next((s for s in rule["secret"] if _contains(t, s)), None)
+        secret = next((s for s in rule["secret"] if _secret_in(t, s)), None)
         if secret is None:
             continue
         request = next((r for r in rule["request"] if _contains(t, r)), None)
@@ -88,15 +136,15 @@ def detect_in_context(current: str | None, previous: str | None,
     """Detection over the previous and current window's transcripts.
 
     A request often straddles two 2 s windows ("...an OTP has come" | "tell
-    it now"), so the pair is read together. It fires only when the CURRENT
-    window supplies the secret or the request term, so one sentence is not
-    counted again in every later window that still has it as context - that
-    would fake the recurrence temporal risk treats as escalation.
+    it now"), so the pair is read together. It fires only when the previous
+    window did NOT already fire on its own: windows overlap by 1 s, so one
+    spoken sentence appears in two of them, and counting it twice raised two
+    alerts for one request on the phone - and would fake the recurrence that
+    temporal risk treats as escalation.
     """
     if not current or not current.strip():
         return None
     found = detect(f"{previous or ''} {current}", config)
-    if found is None:
+    if found is None or detect(previous, config) is not None:
         return None
-    t = " ".join(current.lower().split())
-    return found if (_contains(t, found.secret) or _contains(t, found.request)) else None
+    return found

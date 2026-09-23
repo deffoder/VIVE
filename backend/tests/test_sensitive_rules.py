@@ -29,6 +29,8 @@ def test_context_needs_new_evidence_in_the_current_window():
     assert detect_in_context("please tell me now", prev).label == "OTP_REQUEST"
     # The next window still has the request in context but adds nothing new.
     assert detect_in_context("have a nice day", "an OTP please tell me now") is None
+    # Overlapping windows: the sentence already fired in the previous window.
+    assert detect_in_context("बताइए", "अपना पासवर्ड बताइए") is None
 
 
 def _fuse(rule):
@@ -50,3 +52,17 @@ def test_rule_raises_risk_on_its_own_channel_without_rewriting_intent():
     assert otp.risk.contributions["intent"] == 0.05          # model label untouched
     assert otp.risk.score >= 65 > none.risk.score
     assert any("keyword rule" in r for r in otp.risk.reasons)
+
+
+def test_policy_acts_on_the_rule_when_the_model_saw_nothing_sensitive():
+    from app.core.session_manager import _policy_intent
+    from app.schemas.models import IntentEvidence
+
+    class P:  # minimal packet stand-in
+        def __init__(self, label, status=AnalyzerStatus.AVAILABLE):
+            self.intent = IntentEvidence(label=label, status=status)
+
+    assert _policy_intent(P(Intent.NORMAL_CONVERSATION), Intent.PASSWORD_REQUEST) == Intent.PASSWORD_REQUEST
+    assert _policy_intent(P(Intent.OTP_REQUEST), Intent.PASSWORD_REQUEST) == Intent.OTP_REQUEST
+    assert _policy_intent(P(Intent.NORMAL_CONVERSATION), None) == Intent.NORMAL_CONVERSATION
+    assert _policy_intent(P(Intent.UNKNOWN, AnalyzerStatus.UNSUPPORTED_LANGUAGE), Intent.OTP_REQUEST) == Intent.OTP_REQUEST

@@ -12,9 +12,15 @@ Android 16 (SDK 36), 7.5 GB RAM, ~1.5 GB available.
 
 ## CURRENT_STATUS
 
-M2 (on-device ASR) measured on the phone and committed. Kotlin on-device
-components for M3 (text), M4 (VAD + ECAPA) and M6 (risk) are written and
-unit-tested on the JVM; not yet measured on the phone or wired into the app.
+Phone-only pipeline works end to end on the device (no backend, no adb
+reverse): real mic -> Silero -> per-language ASR -> text heads + sensitive-
+request rules -> fusion/temporal/policy -> SQLite -> alert -> visible Android
+notification. M2-M8 verified on the phone. Next: M9 UI, then M10 acceptance
+runs for hi/ta/en and the final report.
+
+Live test setup: the phone must sit ~10-20 cm from the laptop speaker (laptop
+volume is already 100%); `python scripts/mobile/drive_call.py <hi|en|ta>
+[--script call|direct]` drives the app and prints what the phone stored.
 
 ## COMPLETED
 
@@ -48,6 +54,24 @@ unit-tested on the JVM; not yet measured on the phone or wired into the app.
   fusion, 300 temporal (step by step) and 800 policy golden cases generated
   by the backend code itself (`scripts/mobile/make_risk_golden.py`).
 
+- M5 anti-spoof: J2 model exported (2 s: ASVspoof EER 0.0105, probe 0.15)
+  and FAILED the pre-registered handset criterion (en EER 0.7168, 62% of
+  genuine windows flagged). validated=false; excluded from risk; weights not
+  shipped. `models/evaluation/mobile/antispoof_handset_eval.json`.
+- Semantic gap: the SMS-trained heads miss spoken scams even from reference
+  text (`text_heads_spoken_check.md`). Added a rule-based sensitive-request
+  channel (`models/configs/sensitive_requests.json`, shared by backend and
+  phone; edit-distance-1 on single-word secrets >= 6 chars). Independent
+  negatives: 0/1200 FLEURS (hi/ta/en); benign-SMS FPs are mostly mislabelled
+  scams. Recall on SMS positives ~5% (phishing links, not spoken requests).
+- M6 fusion/temporal/policy on the phone, parity-tested; policy acts on the
+  rule's finding when the model's label is not sensitive; overlapping windows
+  no longer fire the rule twice.
+- M7 alerts: live Hindi "अपना पासवर्ड बताइए" through the phone mic ->
+  R74 HIGH -> AL-004 SECONDARY_VERIFICATION -> notification visible in the
+  shade (channel vive_risk_high, lock-screen PRIVATE).
+- M8 persistence: sessions survive force-stop + relaunch (Sessions screen).
+
 ## IN_PROGRESS
 
 - Wiring an on-device analysis engine + SQLite session store behind the
@@ -56,7 +80,10 @@ unit-tested on the JVM; not yet measured on the phone or wired into the app.
 
 ## BLOCKED
 
-(none)
+(none). Known limits, not blockers: English phone ASR (LibriSpeech wav2vec2)
+fails on Indian-accented speech through a loudspeaker; "OTP" is not rendered
+by the Hindi/English phone ASR through the air, so the OTP scripts do not
+alert - the password/PIN scripts do.
 
 ## NEXT_TASK
 

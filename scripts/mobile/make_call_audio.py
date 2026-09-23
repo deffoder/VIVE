@@ -58,6 +58,27 @@ CALLS = {
     ]),
 }
 
+# A short direct request per language, built from common words ("password",
+# "ATM PIN") rather than "OTP", which neither the Hindi nor the English phone
+# ASR renders reliably through a loudspeaker (measured: "ओटी भी", "ME GOOD ME").
+# Only the caller's words differ; no rule or model was changed for them.
+DIRECT = {
+    "hi": ("hi-IN-MadhurNeural", [
+        ("scam", "मैं आपके बैंक से बोल रहा हूँ।"),
+        ("scam", "अपना पासवर्ड बताइए।"),
+        ("scam", "अपना एटीएम पिन अभी बताइए।"),
+    ]),
+    "en": ("en-IN-PrabhatNeural", [
+        ("scam", "This is your bank calling."),
+        ("scam", "Tell me your password."),
+        ("scam", "Tell me your ATM pin now."),
+    ]),
+    "ta": ("ta-IN-ValluvarNeural", [
+        ("scam", "நான் உங்கள் வங்கியிலிருந்து பேசுகிறேன்."),
+        ("scam", "உங்கள் கடவுச்சொல் சொல்லுங்கள்."),
+    ]),
+}
+
 
 async def speak(voice: str, text: str) -> np.ndarray:
     import edge_tts
@@ -86,7 +107,8 @@ async def main_async() -> int:
     os.makedirs(OUT, exist_ok=True)
     meta = {"note": "Synthetic TTS speech (edge-tts). Fictional scripts written for this test.",
             "calls": {}}
-    for lang, (voice, lines) in CALLS.items():
+    jobs = [(f"{lang}_call", v) for lang, v in CALLS.items()] +            [(f"{lang}_direct", v) for lang, v in DIRECT.items()]
+    for name, (voice, lines) in jobs:
         parts, segments, t = [], [], 0.0
         for kind, text in lines:
             wave = await speak(voice, text)
@@ -99,9 +121,9 @@ async def main_async() -> int:
         for s in segments:
             s["start_sec"] += 1.0
             s["end_sec"] += 1.0
-        sf.write(os.path.join(OUT, f"{lang}_call.wav"), full, SR, subtype="PCM_16")
-        meta["calls"][lang] = {"voice": voice, "seconds": round(len(full) / SR, 1), "segments": segments}
-        print(lang, meta["calls"][lang]["seconds"], "s")
+        sf.write(os.path.join(OUT, f"{name}.wav"), full, SR, subtype="PCM_16")
+        meta["calls"][name] = {"voice": voice, "seconds": round(len(full) / SR, 1), "segments": segments}
+        print(name, meta["calls"][name]["seconds"], "s")
     with io.open(os.path.join(OUT, "calls.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)
     return 0

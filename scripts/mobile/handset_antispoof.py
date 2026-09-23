@@ -68,8 +68,11 @@ def make() -> int:
         w, _ = sf.read(os.path.join(PROBE, "spoof", name), dtype="float32")
         items.append(("synthetic", "en", "speecht5", w))
     calls = json.load(io.open(os.path.join(MOBILE, "calls", "calls.json"), encoding="utf-8"))["calls"]
-    for lang, call in calls.items():
-        w, _ = sf.read(os.path.join(MOBILE, "calls", f"{lang}_call.wav"), dtype="float32")
+    for name, call in calls.items():
+        if not name.endswith("_call"):
+            continue
+        lang = name.split("_")[0]
+        w, _ = sf.read(os.path.join(MOBILE, "calls", f"{name}.wav"), dtype="float32")
         for seg in call["segments"]:
             items.append(("synthetic", lang, "edge-tts",
                           w[int(seg["start_sec"] * SR):int(seg["end_sec"] * SR)]))

@@ -3,13 +3,19 @@
  "groups": {
   "positive/BANKING_CREDENTIAL_REQUEST": {
    "n": 160,
-   "fired": 6,
-   "rate": 0.0375,
+   "fired": 7,
+   "rate": 0.0437,
    "by_rule": {
-    "MONEY_TRANSFER_REQUEST": 1,
+    "MONEY_TRANSFER_REQUEST": 2,
     "OTP_REQUEST": 5
    },
    "examples": [
+    {
+     "text": "hello   subscriber id    as per our records  your tata sky subscriber id is deactive from th jun  recharge your tata sky now  get back to quality tv viewing   s",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
     {
      "text": "PAYTM Dear PAY TM customer your KYC have be suspend To Verified PAYTM KYC call XXXXXX immediately Your account will be block within XX hour",
      "rule": "MONEY_TRANSFER_REQUEST",
@@ -124,10 +130,10 @@
   },
   "positive/all_sensitive": {
    "n": 319,
-   "fired": 16,
-   "rate": 0.0502,
+   "fired": 17,
+   "rate": 0.0533,
    "by_rule": {
-    "MONEY_TRANSFER_REQUEST": 10,
+    "MONEY_TRANSFER_REQUEST": 11,
     "OTP_REQUEST": 6
    },
    "examples": [
@@ -135,6 +141,12 @@
      "text": "this august use payzapp to pay your utility bills or recharge your mobile dth connection and get  cashback download payzapp now from app payzapp in t c",
      "rule": "MONEY_TRANSFER_REQUEST",
      "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "hello   subscriber id    as per our records  your tata sky subscriber id is deactive from th jun  recharge your tata sky now  get back to quality tv viewing   s",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
      "request": "now"
     },
     {
@@ -172,12 +184,6 @@
      "rule": "MONEY_TRANSFER_REQUEST",
      "secret": "payment",
      "request": "immediately"
-    },
-    {
-     "text": "9028XXXX45 receive payment of Rs 3500.00 by PAYTM Txn ID 9908XX25X Download now and Register to Receive your amount TnC http://i3fq.com/MOrdC",
-     "rule": "MONEY_TRANSFER_REQUEST",
-     "secret": "payment",
-     "request": "now"
     }
    ]
   },

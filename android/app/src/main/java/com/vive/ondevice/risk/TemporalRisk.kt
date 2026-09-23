@@ -95,7 +95,7 @@ object RiskPolicy {
     const val VERSION = "policy-demo-1"
     const val MIN_CONFIDENCE_FOR_ESCALATION = 0.5
 
-    private val SENSITIVE = setOf(
+    val SENSITIVE = setOf(
         Intent.OTP_REQUEST, Intent.PASSWORD_REQUEST, Intent.CARD_DETAILS_REQUEST,
         Intent.BANKING_CREDENTIAL_REQUEST, Intent.MONEY_TRANSFER_REQUEST, Intent.REMOTE_ACCESS_REQUEST,
     )

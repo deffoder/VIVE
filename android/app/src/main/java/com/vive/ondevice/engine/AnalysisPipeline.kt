@@ -185,7 +185,13 @@ class AnalysisPipeline(
             score = fused.risk.score,
             level = fused.risk.level,
             confidence = fused.risk.confidence,
-            intent = intent.label.takeIf { intent.status == AnalyzerStatus.AVAILABLE },
+            // The model's label when it names a sensitive request, else the
+            // rule's finding (as the backend's _policy_intent). Otherwise an
+            // alert raised by the rule said "HIGH risk" but not what the
+            // caller asked for - seen on the phone.
+            intent = intent.label.takeIf { intent.status == AnalyzerStatus.AVAILABLE }
+                .let { model -> if (model != null && model in RiskPolicy.SENSITIVE) model
+                    else rule?.let { Intent.valueOf(it.label) } ?: model },
             callerVerified = ctx.callerVerified,
         )
         val alert = if (!decision.shouldAlert) null else AlertDto(
@@ -195,7 +201,7 @@ class AnalysisPipeline(
             raisedAt = now,
             reason = decision.reasons.joinToString("; "),
             packetId = packetId,
-            intent = intent.label.name,
+            intent = (rule?.label?.takeIf { intent.label !in RiskPolicy.SENSITIVE } ?: intent.label.name),
             recommendedAction = decision.action.name,
         )
         return WindowOutcome(packet, rt.session, line, alert)

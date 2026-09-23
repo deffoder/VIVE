@@ -134,6 +134,8 @@ SENSITIVE_TEXTS = [
     "मुझे अपना पासवर्ड बताइए", "CVV number bata do", "never share your pin",
     "OTP", "tell", "", "the otp", "hello how are you",
     "नमस्ते कैसे हैं आप", "transfer karo abhi", "कार्ड नंबर दीजिए",
+    "अपना पासपर्ड", "अपना पासपर्ट बताए", "please tell me your pasword",
+    "give me min now", "why spend money tell", "passwords tell",
 ]
 
 
