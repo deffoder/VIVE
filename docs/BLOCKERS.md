@@ -137,17 +137,33 @@ diverge from the design references.
 - **Required external action:** decision on enrolment source, with its consent
   and retention obligations (`SECURITY_SPEC.md` §4).
 
-### O4 — Backend persistence engine not chosen · `OPEN`
+### O4 — Backend persistence engine · `RESOLVED`
 
 - **Blocker:** `ARCHITECTURE.md` §5 names a `store/` layer with no backing engine.
 - **Cause:** deferred deliberately; the choice does not affect the API contract.
 - **Attempted fixes:** `store/` is defined as an interface so the engine can be
   swapped without touching routes or fusion.
-- **Current status:** an in-memory store is now implemented behind an
-  `EventStore` interface, so the engine choice is a constructor change. Still
-  sufficient; not blocking. Data is lost on restart by design for now.
-- **Required external action:** choose an engine before Phase 10, so retention
-  (`SECURITY_SPEC.md` §4) can actually be enforced.
+- **Resolved (2026-09-23):** SQLite, via `app/store/sqlite.py`.
+  `SqliteEventStore` subclasses the in-memory store so reads stay in memory -
+  a database round trip inside the packet path would cost a query per second
+  per session - and every mutation writes through. Sessions, packets,
+  transcripts, alerts and the temporal state are restored at start-up.
+  `sqlite3` is in the standard library, so durability added no dependency.
+- **Raw audio is still never written.** `reference_audio` is skipped, and a
+  test asserts a marker placed in it does not appear in the database file.
+  Deletion cascades to packets, transcripts and alerts, so retention
+  (`SECURITY_SPEC.md` §4) is now actually enforceable.
+- **Defect found while building it:** `INSERT OR REPLACE` on the sessions row
+  is DELETE + INSERT in SQLite, which fired `ON DELETE CASCADE` and wiped
+  every packet, transcript line and alert for that session. The write reported
+  success and the session row looked correct, so it only surfaced on restart.
+  Fixed with `ON CONFLICT ... DO UPDATE`, which updates in place.
+- **Current status:** opt-in. `VIVE_STORE_PATH` empty keeps everything in
+  memory, which stays the default because nothing should reach disk unless an
+  operator asks for it. Set a path and sessions survive a restart.
+- **Remaining:** single-node SQLite. Multi-node deployment would need a
+  different engine, and the `EventStore` interface still makes that a
+  constructor change.
 
 ### O5 — Audio corpora for anti-spoofing and speaker evaluation not acquired · `OPEN`
 

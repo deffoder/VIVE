@@ -91,11 +91,25 @@ class SessionManager:
             raise session_not_found(session_id)
         return record
 
+    def _persist(self, session_id: str) -> None:
+        """Flushes a session whose own fields changed.
+
+        Packets and alerts persist as they are appended, but status, language
+        and ended_at are mutated in place on the record. Without this a
+        durable store would restore an ended call as STREAMING - the store
+        would be holding the session as it looked when it was created.
+        No-op on the in-memory store.
+        """
+        touch = getattr(self._store, "touch_session", None)
+        if touch is not None:
+            touch(session_id)
+
     def mark_streaming(self, session_id: str) -> Session:
         record = self.require_record(session_id)
         if record.session.status == SessionStatus.ENDED:
             raise session_already_ended(session_id)
         record.session.status = SessionStatus.STREAMING
+        self._persist(session_id)
         return record.session
 
     def end(self, session_id: str) -> Session:
@@ -105,6 +119,7 @@ class SessionManager:
         record.session.status = SessionStatus.ENDED
         record.session.ended_at = _now_iso()
         self._release_adapter_state(session_id)
+        self._persist(session_id)
         return record.session
 
     def set_context(self, session_id: str, context: SessionContext) -> Session:
@@ -112,6 +127,7 @@ class SessionManager:
         if record.session.status == SessionStatus.ENDED:
             raise session_already_ended(session_id)
         record.session.context = context
+        self._persist(session_id)
         return record.session
 
     def delete(self, session_id: str) -> bool:

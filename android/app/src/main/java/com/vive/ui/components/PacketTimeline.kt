@@ -110,7 +110,17 @@ fun PacketRow(
             )
         }
 
-        RiskPill(level = packet.risk.level)
+        // Score first, level second. In a list of packets the number is what
+        // the reader is comparing; a column of identical coloured pills is
+        // noise that hides the one packet that differs.
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = packet.risk.score.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            RiskMarker(level = packet.risk.level)
+        }
     }
 }
 

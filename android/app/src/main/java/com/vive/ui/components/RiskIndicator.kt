@@ -47,6 +47,41 @@ fun RiskLevel.label(): String = when (this) {
 }
 
 /**
+ * Restrained inline severity marker.
+ *
+ * A filled, coloured pill is a strong visual claim, and the active-call screen
+ * was making it six or seven times at once - once per evidence row, once per
+ * packet in the timeline - beside a gauge that had already stated the risk.
+ * Repeating it that often flattens the hierarchy: everything looks urgent, so
+ * nothing does, and the screen reads like a status board rather than an
+ * analysis.
+ *
+ * This renders the word in the level's colour with no filled container, so a
+ * row's severity is legible without competing with the primary reading. LOW
+ * and MEDIUM deliberately use the muted on-surface colour: only HIGH and
+ * CRITICAL earn a colour, because only they are exceptional. The text is
+ * always present, so nothing depends on colour alone (UI_SPEC 2.1).
+ */
+@Composable
+fun RiskMarker(
+    level: RiskLevel,
+    modifier: Modifier = Modifier,
+    text: String = level.shortLabel(),
+) {
+    val color = when (level) {
+        RiskLevel.LOW, RiskLevel.MEDIUM -> MaterialTheme.colorScheme.onSurfaceVariant
+        RiskLevel.HIGH -> RiskHigh
+        RiskLevel.CRITICAL -> RiskCritical
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = color,
+        modifier = modifier.semantics { contentDescription = text },
+    )
+}
+
+/**
  * Compact risk pill.
  *
  * Always renders the level's text label alongside its colour, for accessibility

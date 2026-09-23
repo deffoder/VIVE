@@ -138,7 +138,10 @@ fun EvidenceRow(
             )
         }
         when {
-            severity != null -> RiskPill(
+            // A marker, not a filled pill: five of these sit under a gauge
+            // that has already stated the call's risk, and five coloured
+            // blocks compete with it instead of supporting it.
+            severity != null -> RiskMarker(
                 level = severity,
                 text = severityText ?: severity.shortLabel(),
             )

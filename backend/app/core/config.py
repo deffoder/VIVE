@@ -114,6 +114,16 @@ class Settings(BaseSettings):
     session_retention_seconds: int = Field(default=3600, ge=60, le=604_800)
     """How long an ended session's evidence is kept before deletion."""
 
+    store_path: str = ""
+    """SQLite file for durable sessions. Empty keeps everything in memory.
+
+    Empty is still the default because in-memory is the stronger privacy
+    position and is what the tests assume: nothing reaches disk unless an
+    operator asks for it. Setting a path makes sessions, packets, transcripts
+    and alerts survive a restart (docs/BLOCKERS.md O4). Raw audio is never
+    written either way.
+    """
+
     # --- rate limiting (per-node; see security.RateLimiter) ---
     rate_limit_requests: int = Field(default=120, ge=1)
     rate_limit_window_seconds: int = Field(default=60, ge=1)

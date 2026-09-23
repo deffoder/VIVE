@@ -25,6 +25,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.security import RateLimiter, ReplayGuard
 from app.core.session_manager import SessionManager
 from app.store.memory import InMemoryEventStore
+from app.store.sqlite import SqliteEventStore
 from app.ws import stream as ws_stream
 from app.ws.manager import ConnectionManager
 
@@ -48,7 +49,14 @@ accuracy or detection capability. `GET /ready` reports the mode per adapter.
 
 
 def build_state(settings: Settings) -> AppState:
-    store = InMemoryEventStore(max_packets_per_session=settings.max_packets_per_session)
+    # A path means durable; empty means in-memory, which stays the default
+    # so nothing reaches disk unless an operator asks for it.
+    store = (
+        SqliteEventStore(settings.store_path,
+                         max_packets_per_session=settings.max_packets_per_session)
+        if settings.store_path
+        else InMemoryEventStore(max_packets_per_session=settings.max_packets_per_session)
+    )
     adapters = build_bundle(settings)
     return AppState(
         settings=settings,
