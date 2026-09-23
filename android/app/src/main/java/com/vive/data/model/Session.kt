@@ -17,7 +17,23 @@ data class Session(
     val currentRisk: RiskSummary? = null,
     val overallRisk: RiskSummary? = null,
     val timings: EscalationTimings = EscalationTimings(),
-)
+) {
+    /**
+     * Highest level any packet reached, from the escalation timings (packet
+     * score thresholds 35 / 65 / 85). [overallRisk] is a smoothed average and
+     * is the wrong headline for a finished call: a call where the caller asked
+     * for a password once scored 74 HIGH on that packet and averaged 23 LOW.
+     * Null when nothing was analysed.
+     */
+    val peakLevel: RiskLevel?
+        get() = when {
+            timings.firstCriticalSec != null -> RiskLevel.CRITICAL
+            timings.firstHighSec != null -> RiskLevel.HIGH
+            timings.firstWarningSec != null -> RiskLevel.MEDIUM
+            packetsProcessed > 0 -> RiskLevel.LOW
+            else -> null
+        }
+}
 
 /** Risk score, level and confidence as a unit. Score and confidence stay distinct. */
 data class RiskSummary(

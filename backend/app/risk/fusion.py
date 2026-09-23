@@ -100,6 +100,16 @@ BEHAVIOR_RISK: dict[Behavior, float] = {
 }
 
 
+REQUEST_PHRASE: dict[Intent, str] = {
+    Intent.OTP_REQUEST: "a one-time password (OTP)",
+    Intent.PASSWORD_REQUEST: "a password or PIN",
+    Intent.CARD_DETAILS_REQUEST: "card details",
+    Intent.REMOTE_ACCESS_REQUEST: "remote access to the phone",
+    Intent.MONEY_TRANSFER_REQUEST: "a money transfer",
+}
+"""How a rule finding reads to a person: 'Caller asked for a password or PIN'."""
+
+
 @dataclass(frozen=True)
 class FusionInput:
     vad: VadResult
@@ -179,7 +189,7 @@ def fuse(data: FusionInput) -> FusionOutput:
     if data.sensitive_request is not None:
         rule_risk = INTENT_RISK.get(data.sensitive_request, 0.10)
         contributions["sensitive_request"] = round(rule_risk, 4)
-        reasons.append(f"Caller asked for {_humanise(data.sensitive_request).lower()} "
+        reasons.append(f"Caller asked for {REQUEST_PHRASE.get(data.sensitive_request, 'sensitive information')} "
                        "(keyword rule)")
 
     # --- noisy-OR over AVAILABLE evidence only ---------------------------

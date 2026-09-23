@@ -34,6 +34,15 @@ object RiskFusion {
 
     const val SYNTHETIC_ONLY_CEILING = 64
 
+    /** How a rule finding reads to a person (fusion.py REQUEST_PHRASE). */
+    val REQUEST_PHRASE = mapOf(
+        Intent.OTP_REQUEST to "a one-time password (OTP)",
+        Intent.PASSWORD_REQUEST to "a password or PIN",
+        Intent.CARD_DETAILS_REQUEST to "card details",
+        Intent.REMOTE_ACCESS_REQUEST to "remote access to the phone",
+        Intent.MONEY_TRANSFER_REQUEST to "a money transfer",
+    )
+
     val INTENT_RISK = mapOf(
         Intent.NORMAL_CONVERSATION to 0.05, Intent.UNKNOWN to 0.10,
         Intent.URGENT_ACTION to 0.50, Intent.CONFIDENTIAL_INFORMATION to 0.60,
@@ -116,7 +125,7 @@ object RiskFusion {
         if (d.sensitiveRequest != null) {
             ruleRisk = INTENT_RISK[d.sensitiveRequest] ?: 0.10
             contributions["sensitive_request"] = round4(ruleRisk)
-            reasons += "Caller asked for ${humanise(d.sensitiveRequest.name).lowercase()} (keyword rule)"
+            reasons += "Caller asked for ${REQUEST_PHRASE[d.sensitiveRequest] ?: "sensitive information"} (keyword rule)"
         }
 
         val parts = linkedMapOf("context" to context)

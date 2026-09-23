@@ -34,7 +34,9 @@ fun SessionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val risk = session.overallRisk
+    // The highest level the call reached, not its smoothed average: a list
+    // entry reading "Low" for a call that raised a HIGH alert is wrong.
+    val peak = session.peakLevel
     ViveCard(modifier = modifier.clickable(onClick = onClick)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -43,9 +45,9 @@ fun SessionCard(
         ) {
             IconChip(
                 icon = Icons.Filled.Call,
-                tint = risk?.level?.let { riskColorsFor(it).content }
+                tint = peak?.let { riskColorsFor(it).content }
                     ?: MaterialTheme.colorScheme.primary,
-                container = risk?.level?.let { riskColorsFor(it).container }
+                container = peak?.let { riskColorsFor(it).container }
                     ?: MaterialTheme.colorScheme.primaryContainer,
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -56,9 +58,9 @@ fun SessionCard(
                 )
                 Text(
                     text = listOfNotNull(
-                        session.startedAt,
-                        session.language?.uppercase(),
-                        "${session.packetsProcessed} packets",
+                        com.vive.core.Formatting.whenLocal(session.startedAt),
+                        com.vive.core.Formatting.languageName(session.language),
+                        "${session.packetsProcessed} speech windows",
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -66,7 +68,7 @@ fun SessionCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            risk?.let { RiskPill(level = it.level) }
+            peak?.let { RiskPill(level = it) }
         }
     }
 }

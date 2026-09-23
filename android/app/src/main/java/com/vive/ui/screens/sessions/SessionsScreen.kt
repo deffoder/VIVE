@@ -46,7 +46,7 @@ fun SessionsScreen(
                 emptyDescription = "Analysed calls will appear here.",
             ) { sessions ->
                 val visible = sessions.filter { s ->
-                    filter == "All" || s.overallRisk?.level?.matches(filter) == true
+                    filter == "All" || s.peakLevel?.matches(filter) == true
                 }
                 if (visible.isEmpty()) {
                     EmptyState(
