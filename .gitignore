@@ -60,6 +60,8 @@ env/
 **/build/
 local.properties
 .cxx/
+.kotlin/
+*.salive
 
 # ==============================
 # LOGS / TEMPORARY FILES
@@ -103,7 +105,11 @@ models/cache/
 datasets/cache/
 
 # ==============================
-# OS
+# OS & DATABASES
 # ==============================
 .DS_Store
 Thumbs.db
+*.db
+*.db-shm
+*.db-wal
+backend/vive.db*
