@@ -12,15 +12,13 @@ Android 16 (SDK 36), 7.5 GB RAM, ~1.5 GB available.
 
 ## CURRENT_STATUS
 
-Phone-only pipeline works end to end on the device (no backend, no adb
-reverse): real mic -> Silero -> per-language ASR -> text heads + sensitive-
-request rules -> fusion/temporal/policy -> SQLite -> alert -> visible Android
-notification. M2-M8 verified on the phone. Next: M9 UI, then M10 acceptance
-runs for hi/ta/en and the final report.
+Phone-only VIVE is built, installed and accepted on the target phone (see
+FINAL_ACCEPTANCE_CHECKLIST). No backend, no adb reverse, no laptop in the
+analysis path; the laptop only plays the scripted caller's voice. Remaining
+gaps are model-quality limits, listed under BLOCKED with evidence.
 
-Live test setup: the phone must sit ~10-20 cm from the laptop speaker (laptop
-volume is already 100%); `python scripts/mobile/drive_call.py <hi|en|ta>
-[--script call|direct]` drives the app and prints what the phone stored.
+Live test setup: phone ~10-20 cm from the laptop speaker (laptop volume
+100%); `python scripts/mobile/drive_call.py <hi|en|ta> [--script call|direct]`.
 
 ## COMPLETED
 
@@ -87,20 +85,23 @@ alert - the password/PIN scripts do.
 
 ## NEXT_TASK
 
-1. ECAPA threshold: with EER 0 the export picks the minimum genuine score
-   (0.4121) - zero margin. Use the midpoint of the separating gap instead and
-   record max-impostor / min-genuine. Re-run `export_audio.py`.
-2. androidTest for text parity (eval/text_eval.json) and speaker protocol
-   (eval/speaker_eval.json) on the phone.
-3. OnDeviceEngine + OnDeviceSessionRepository + SessionStore (SQLite);
-   ServiceLocator on-device mode as default; language picker on Home.
-4. M5 anti-spoof decision (read `scripts/evaluation/exp_antispoof_replacement.py`
-   results first).
+1. English ASR for Indian-accented speech: the LibriSpeech wav2vec2 fails
+   through the handset. Candidate to measure on the phone: whisper-base int8
+   English (Phase H: 185 MB, en WER 0.10 desktop) - check ARM latency per
+   2 s window before adopting.
+2. Spoken-scam training data for the intent/behaviour heads (O18); the
+   rules are a stop-gap with measured precision, not a replacement.
+3. Tamil request detection: needs Tamil text data (O11) and a better Tamil
+   ASR (phone WER 0.42 clean).
+4. Update docs/BLOCKERS.md O17 (resolved for the pipeline, with these limits).
 
 ## TEST_RESULTS
 
 - 2026-09-23 baseline: Android `testDebugUnitTest` pass; backend pytest
   168 passed, 38 skipped.
+- 2026-09-24 final: Android unit tests 138/138; backend pytest 173 passed,
+  38 skipped. Parity goldens: fusion 1500, temporal 300, policy 800,
+  sensitive-rule 600 cases; WordPiece 199 cases.
 - 2026-09-23 after M2: Android unit tests 128/128 (incl. CtcDecoderTest 5,
   RiskParityTest 3 over 2,600 golden cases, WordPieceTokenizerTest 199 cases).
 
@@ -126,13 +127,28 @@ that directory (Android 11+ denies the app access to a dir adb created).
 
 ## FINAL_ACCEPTANCE_CHECKLIST
 
-- [ ] Phone-only: no backend, no adb reverse
-- [ ] Real microphone capture
-- [ ] On-device ASR: Hindi / Tamil / English
-- [ ] On-device intent + behaviour, agreement vs Python measured
-- [ ] On-device ECAPA enrolment + verification (same / different speaker)
-- [ ] Anti-spoof: deployed only if validated; otherwise excluded from risk
-- [ ] On-device risk fusion + temporal risk; unavailable evidence lowers confidence
-- [ ] Alert raised -> visible Android notification (POST_NOTIFICATIONS)
-- [ ] Session persists across app restart
-- [ ] Professional UI, no demo data
+Target: OnePlus CPH2661, Android 16, clean debug APK 51 MB (arm64-v8a only),
+models provisioned in app storage. adb reverse empty; no process on :8000.
+
+- [x] Phone-only: no backend, no adb reverse (checked before each run)
+- [x] Real microphone capture (app's MIC path; laptop speaker as the caller)
+- [x] On-device ASR: Hindi good through the air; Tamil and English run but
+      transcribe poorly through the handset (ASR ~150-290 ms per 2 s window)
+- [x] On-device intent + behaviour: 120/120 identical to desktop graphs; but
+      the SMS-trained heads miss spoken scams (O18)
+- [x] Sensitive-request rules on device: live Hindi password request ->
+      R74 HIGH alert in 3 of 4 runs (S-0012, S-0013, S-0014 yes; S-0016 no -
+      ASR heard "बात सवर्ण"). OTP/English/Tamil scripts did not alert: the
+      key word never reached the transcript.
+- [x] ECAPA enrolment + verification: device embeddings identical to
+      desktop; 40/40 genuine accepted, 760/760 impostors rejected (LibriSpeech)
+- [x] Anti-spoof: measured on handset audio, FAILED (EER 0.72) -> excluded
+      from risk, reported as such
+- [x] Risk fusion + temporal + policy on device, parity with backend; missing
+      evidence lowers confidence (anti-spoof absent: -0.15 on every packet)
+- [x] Alert -> visible Android notification (vive_risk_high, lock-screen
+      private), POST_NOTIFICATIONS requested in-app
+- [x] Sessions persist across force-stop + relaunch
+- [x] UI: no demo data on the on-device path; summary leads with peak risk
+      and findings; alerts say what the caller did and what to do
+- Memory: app PSS ~127 MB idle, ~1.0 GB with all models loaded during a call

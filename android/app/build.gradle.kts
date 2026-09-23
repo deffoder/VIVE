@@ -38,6 +38,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // ONNX Runtime ships a ~30 MB native library per ABI; all four made
+        // the APK 153 MB. The on-device models need a 64-bit ARM phone with
+        // gigabytes of RAM, so only arm64-v8a is packaged.
+        ndk { abiFilters += "arm64-v8a" }
+
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "ANALYSIS_MODE", "\"$analysisMode\"")
     }
