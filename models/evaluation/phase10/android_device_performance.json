@@ -1,0 +1,51 @@
+{
+  "measured_at_utc": "2026-09-23",
+  "what_this_is": "Measurements taken on the physical handset during the live microphone acceptance run. The phone captures and transports audio; inference runs on the backend, so the per-stage figures are backend cost for DEVICE-CAPTURED audio, not on-device inference. VIVE has no on-device inference (BLOCKERS O17).",
+  "device": {
+    "serial": "e8a7e1bf",
+    "model": "CPH2661",
+    "android": "16",
+    "abi": "arm64-v8a",
+    "ram_total_kb": 7494640,
+    "ram_available_kb": 2108188
+  },
+  "app": {
+    "cold_start_total_ms": 910,
+    "cold_start_wait_ms": 941,
+    "launch_state": "COLD",
+    "total_pss_kb": 95399,
+    "total_rss_kb": 112588,
+    "resident_mb_top": 130,
+    "idle_cpu_percent": 0.0
+  },
+  "capture": {
+    "input_source": "MIC",
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "bits_per_sample": 16,
+    "read_chunk_ms": 100,
+    "window_sec": 2.0,
+    "stride_sec": 1.0,
+    "transport": "raw binary WebSocket frames"
+  },
+  "backend_stage_latency_on_device_audio_ms": {
+    "packets": 200,
+    "asr": {"median": 251, "min": 212, "max": 644},
+    "aasist": {"median": 479, "min": 0, "max": 786},
+    "ecapa": {"median": 88, "min": 68, "max": 185},
+    "intent": {"median": 0, "min": 0, "max": 704},
+    "behavior": {"median": 0, "min": 0, "max": 670},
+    "note": "intent and behaviour median 0 ms because most windows were NO_SPEECH and carried no transcript to classify. AASIST is higher here than the 366 ms measured on FLEURS files."
+  },
+  "observed_distribution": {
+    "quality": {"NO_SPEECH": 187, "DEGRADED": 7, "GOOD": 6},
+    "risk_level": {"LOW": 187, "MEDIUM": 13},
+    "note": "A quiet room with a short period of played-back speech. The 13 MEDIUM packets are those where AASIST produced a high score on genuine human speech (BLOCKERS O12)."
+  },
+  "limitations": [
+    "The phone performs capture and transport only. No model runs on the device, so there is no on-device inference latency to report.",
+    "Per-stage figures are backend cost measured on one laptop; they do not transfer to other hardware.",
+    "Battery impact was not measured.",
+    "One session, one device, one room."
+  ]
+}

@@ -672,6 +672,44 @@ diverge from the design references.
 - **Required external action:** a product decision between the three options
   above. Option 1 additionally needs a language-ID model.
 
+### O17 — No on-device inference; the phone needs the backend · `OPEN`
+
+- **Blocker:** the Android app captures and transports audio. Every model runs
+  on the backend, so the phone cannot analyse anything on its own.
+- **Measured (2026-09-23)** on the target handset and against the artifacts:
+
+  | Component | Size | Fits the device? |
+  |---|---:|---|
+  | Silero VAD | 2.2 MB | yes, comfortably |
+  | AASIST | 1.2 MB | yes, comfortably |
+  | ECAPA-TDNN | ~80 MB | plausible |
+  | Intent head (fp32) | 520 MB | only with quantisation |
+  | Behaviour head (fp32) | 520 MB | only with quantisation |
+  | **IndicConformer CTC** | **2,381 MB** | **no** |
+
+  Device: OnePlus CPH2661, arm64-v8a, 7.5 GB RAM total with **2.1 GB
+  available**. The ASR alone exceeds available memory before any runtime
+  overhead.
+- **Cause:** the ASR was selected in Phase 7 on accuracy and per-window
+  latency for a server deployment (`ML_SPEC.md` §2.1). Mobile deployment was
+  not a criterion, and nothing in Phases 7-9 required it.
+- **Attempted fixes:** none implemented. Sizes and device capacity were
+  measured to establish what is and is not viable, rather than assuming.
+- **What would be involved**, roughly in increasing order of effort: int8
+  quantisation of the two text heads (~130 MB each, needs output agreement
+  measured against the fp32 reference); ONNX Runtime Mobile integration and
+  an Android inference layer that does not exist today; for the ASR, either a
+  substantially smaller Indic model - which is a different model and must be
+  evaluated as one, not swapped in silently - or streaming inference with the
+  weights memory-mapped from app-private storage rather than the APK.
+- **Current status:** the app requires a reachable backend. On the
+  development setup that is `adb reverse tcp:8000`; on a LAN it additionally
+  needs `network_security_config.xml` to permit that host, which today allows
+  cleartext only for `10.0.2.2`, `localhost` and `127.0.0.1`.
+- **Required external action:** a decision on whether phone-only operation is
+  in scope, and if so which ASR can meet the device's memory budget. Until
+  then VIVE must not be described as running offline or on-device.
+
 ---
 
 ## Deferred
