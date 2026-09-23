@@ -98,7 +98,7 @@ fun AlertCard(
                     verticalAlignment = Alignment.Top,
                 ) {
                     Text(
-                        text = alert.level.label(),
+                        text = alertHeadline(alert),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
@@ -113,24 +113,21 @@ fun AlertCard(
                         )
                     }
                 }
-                Text(
-                    text = alert.reason,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RiskPill(level = alert.level)
+                }
                 Text(
                     text = listOfNotNull(
+                        com.vive.core.Formatting.whenLocal(alert.raisedAt),
                         alert.sessionId,
                         alert.packetId,
-                        alert.intent?.name?.replace('_', ' '),
-                        alert.raisedAt,
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 alert.recommendedAction?.let {
                     Text(
-                        text = "Recommended: ${it.name.replace('_', ' ').lowercase()}",
+                        text = actionAdvice(it),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.content,
                         modifier = Modifier.padding(top = ViveThemeTokens.spacing.xs),
@@ -139,6 +136,29 @@ fun AlertCard(
             }
         }
     }
+}
+
+/** What the caller did, in words; the level alone says nothing actionable. */
+internal fun alertHeadline(alert: Alert): String = when (alert.intent) {
+    com.vive.data.model.Intent.OTP_REQUEST -> "Caller asked for an OTP"
+    com.vive.data.model.Intent.PASSWORD_REQUEST -> "Caller asked for a password or PIN"
+    com.vive.data.model.Intent.CARD_DETAILS_REQUEST -> "Caller asked for card details"
+    com.vive.data.model.Intent.BANKING_CREDENTIAL_REQUEST -> "Caller asked for banking credentials"
+    com.vive.data.model.Intent.MONEY_TRANSFER_REQUEST -> "Caller asked for a money transfer"
+    com.vive.data.model.Intent.REMOTE_ACCESS_REQUEST -> "Caller asked for remote access"
+    com.vive.data.model.Intent.THREAT_OR_INTIMIDATION -> "Threatening language"
+    else -> "${alert.level.label()} on this call"
+}
+
+/** Advisory only: VIVE never acts on an account (docs/PROJECT_SPEC.md 2). */
+internal fun actionAdvice(action: com.vive.data.model.RecommendedAction): String = when (action) {
+    com.vive.data.model.RecommendedAction.MONITOR -> "Keep listening"
+    com.vive.data.model.RecommendedAction.WARN_USER -> "Be cautious on this call"
+    com.vive.data.model.RecommendedAction.SECONDARY_VERIFICATION ->
+        "Verify the caller through a number you already trust before sharing anything"
+    com.vive.data.model.RecommendedAction.ESCALATE -> "Treat this call as suspicious"
+    com.vive.data.model.RecommendedAction.HOLD_SENSITIVE_ACTION ->
+        "Do not share codes or move money on this call"
 }
 
 /**

@@ -98,7 +98,10 @@ class OnDeviceAlertRepository(private val store: SessionStore) : AlertRepository
  * load must read LOAD_ERROR, not AVAILABLE. [ready] only checks
  * provisioning, because it runs at start-up and must stay cheap.
  */
-class OnDeviceModelRepository(private val analyzers: OnDeviceAnalyzers) : ModelRepository {
+class OnDeviceModelRepository(
+    private val analyzers: OnDeviceAnalyzers,
+    private val rulesVersion: String? = null,
+) : ModelRepository {
 
     override suspend fun listModels(): ViveResult<List<ModelInfo>> = withContext(Dispatchers.IO) {
         val a = analyzers
@@ -124,6 +127,12 @@ class OnDeviceModelRepository(private val analyzers: OnDeviceAnalyzers) : ModelR
             a.textModel.behaviorVersion ?: "not provisioned", AdapterMode.REAL, status(text))
         models += ModelInfo("ecapa-tdnn", "Speaker verification", "Consistency with an enrolled voice",
             a.speakerModel.version ?: "not provisioned", AdapterMode.REAL, status(a.speakerModel.load()))
+        // Not a model, and listed as such: it affects risk, so it belongs in
+        // the inventory that says what produces each result.
+        models += ModelInfo("sensitive-request-rules", "Sensitive-request rules",
+            "Rule-based, not a model: a caller asking for an OTP, password, PIN, card or remote access (hi, ta, en)",
+            rulesVersion ?: "not loaded", AdapterMode.REAL,
+            if (rulesVersion != null) AnalyzerStatus.AVAILABLE else AnalyzerStatus.LOAD_ERROR)
         val spoofLoaded = a.spoofModel.load()
         models += ModelInfo(
             "antispoof", "Synthetic-voice indicators",

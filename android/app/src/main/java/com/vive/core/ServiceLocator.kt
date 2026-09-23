@@ -72,7 +72,7 @@ object ServiceLocator {
         engine = e
         onDeviceSessions = OnDeviceSessionRepository(e, store) { analysisLanguage }
         onDeviceAlerts = OnDeviceAlertRepository(store)
-        onDeviceModels = OnDeviceModelRepository(a)
+        onDeviceModels = OnDeviceModelRepository(a, rules?.spec?.version)
         sessions = onDeviceSessions!!
         alerts = onDeviceAlerts!!
         models = onDeviceModels!!
