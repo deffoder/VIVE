@@ -115,8 +115,9 @@ fun ModelInformationScreen(
         ViveScreenBody(padding) {
             StateHost(state, onRetry = viewModel::refresh) { models ->
                 Text(
-                    text = "Accuracy is not shown because none has been measured. " +
-                        "Figures appear here only once they come from a recorded evaluation run.",
+                    text = "All models run on this phone. Accuracy is not shown: the " +
+                        "figures measured so far come from test recordings, not real " +
+                        "calls, and would overstate what to expect on a call.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -1,0 +1,23 @@
+{
+ "ecapa_fidelity_cosine_vs_speechbrain": {
+  "min": 1.0,
+  "n": 16
+ },
+ "speaker_protocol": {
+  "eer": 0.0,
+  "threshold": 0.4096,
+  "frr_at_threshold": 0.0,
+  "far_at_threshold": 0.0,
+  "max_impostor": 0.4071,
+  "min_genuine": 0.4121,
+  "genuine_pairs": 40,
+  "impostor_pairs": 760,
+  "genuine_median": 0.6659,
+  "impostor_median": 0.0693
+ },
+ "vad": {
+  "frames": 372,
+  "max_abs_prob_diff_vs_jit": 2e-06
+ },
+ "ecapa_size_mb": 84.2
+}

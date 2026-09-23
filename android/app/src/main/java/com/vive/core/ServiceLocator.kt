@@ -17,6 +17,14 @@ import com.vive.data.repository.RemoteAlertRepository
 import com.vive.data.repository.RemoteModelRepository
 import com.vive.data.repository.RemoteSessionRepository
 import com.vive.data.repository.SessionRepository
+import com.vive.audio.AudioPacket
+import com.vive.data.local.SessionStore
+import com.vive.data.repository.OnDeviceAlertRepository
+import com.vive.data.repository.OnDeviceModelRepository
+import com.vive.data.repository.OnDeviceSessionRepository
+import com.vive.ondevice.OnDeviceRuntime
+import com.vive.ondevice.engine.OnDeviceAnalyzers
+import com.vive.ondevice.engine.OnDeviceEngine
 
 /**
  * Minimal dependency provider.
@@ -31,6 +39,61 @@ import com.vive.data.repository.SessionRepository
  * always knows which source is on screen (docs/UI_SPEC.md 6).
  */
 object ServiceLocator {
+
+    /** True when every model runs on the phone and no network is used. */
+    val onDevice: Boolean get() = BuildConfig.ANALYSIS_MODE == "on-device"
+
+    private var engine: OnDeviceEngine? = null
+    var analyzers: OnDeviceAnalyzers? = null
+        private set
+    private var onDeviceSessions: SessionRepository? = null
+    private var onDeviceAlerts: AlertRepository? = null
+    private var onDeviceModels: ModelRepository? = null
+    private var prefs: android.content.SharedPreferences? = null
+
+    /**
+     * Builds the on-device stack. Called once from the Application. Model
+     * files are not loaded here - each loads on first use - so start-up
+     * stays fast and a missing model is reported where it is used.
+     */
+    fun initOnDevice(context: Context) {
+        if (!onDevice || engine != null) return
+        val app = context.applicationContext
+        prefs = app.getSharedPreferences("vive", Context.MODE_PRIVATE)
+        val store = SessionStore(app)
+        val a = OnDeviceAnalyzers(OnDeviceRuntime.modelDir(app))
+        val rules = runCatching {
+            com.vive.ondevice.risk.SensitiveRequests(
+                app.assets.open(com.vive.ondevice.risk.SensitiveRequests.ASSET).bufferedReader().readText(),
+            )
+        }.getOrNull()
+        val e = OnDeviceEngine(store, a, rules)
+        analyzers = a
+        engine = e
+        onDeviceSessions = OnDeviceSessionRepository(e, store) { analysisLanguage }
+        onDeviceAlerts = OnDeviceAlertRepository(store)
+        onDeviceModels = OnDeviceModelRepository(a, rules?.spec?.version)
+        sessions = onDeviceSessions!!
+        alerts = onDeviceAlerts!!
+        models = onDeviceModels!!
+        // Every packet on this path comes from real models on the phone.
+        observeAdapterMode(false)
+    }
+
+    /**
+     * The language the caller will speak. The phone runs one ASR model per
+     * language and has no language identification, so this is declared.
+     */
+    var analysisLanguage: String
+        get() = prefs?.getString("analysis_language", "hi") ?: "hi"
+        set(value) { prefs?.edit()?.putString("analysis_language", value)?.apply() }
+
+    fun speakerThreshold(): Double? = analyzers?.speakerModel?.let { it.load(); it.threshold }
+
+    fun isEnrolled(sessionId: String): Boolean = engine?.isEnrolled(sessionId) ?: false
+
+    /** Windows the on-device engine failed to analyse in this session. */
+    fun failedWindows(sessionId: String): Int = engine?.failedWindows(sessionId) ?: 0
 
     private val service: ViveService by lazy {
         NetworkModule.service(BuildConfig.API_BASE_URL)
@@ -161,15 +224,26 @@ object ServiceLocator {
     suspend fun sendAudio(sessionId: String, pcm: ByteArray): Boolean =
         remoteSessions.sendAudio(sessionId, pcm)
 
-    /** Enrols a reference voice so speaker comparison can run at all (O3). */
-    suspend fun enrolSpeaker(sessionId: String, pcm: ByteArray, label: String? = null) =
-        remoteSessions.enrolSpeaker(sessionId, pcm, label)
+    /**
+     * Hands one captured window to analysis: the on-device engine, or the
+     * backend. False means the window was not analysed and must not be
+     * counted as if it were.
+     */
+    suspend fun submitWindow(sessionId: String, packet: AudioPacket): Boolean =
+        engine?.submit(sessionId, packet) ?: sendAudio(sessionId, packet.pcm)
 
-    suspend fun clearEnrolment(sessionId: String) =
-        remoteSessions.clearEnrolment(sessionId)
+    /** Enrols a reference voice so speaker comparison can run at all (O3). */
+    suspend fun enrolSpeaker(sessionId: String, pcm: ByteArray, label: String? = null): ViveResult<String> {
+        val e = engine ?: return remoteSessions.enrolSpeaker(sessionId, pcm, label)
+        val speaker = analyzers!!.speakerModel
+        return e.enrol(sessionId, pcm) { speaker.enrol(it) }
+    }
+
+    suspend fun clearEnrolment(sessionId: String): ViveResult<String> =
+        engine?.clearEnrolment(sessionId) ?: remoteSessions.clearEnrolment(sessionId)
 
     suspend fun closeStream(sessionId: String) {
-        remoteSessions.closeStream(sessionId)
+        if (engine == null) remoteSessions.closeStream(sessionId)
     }
 
     /** Test seam: swap implementations, then call [reset]. */
@@ -184,9 +258,9 @@ object ServiceLocator {
     }
 
     fun reset() {
-        sessions = fallbackSessions
-        alerts = remoteAlerts
-        models = remoteModels
+        sessions = onDeviceSessions ?: fallbackSessions
+        alerts = onDeviceAlerts ?: remoteAlerts
+        models = onDeviceModels ?: remoteModels
     }
 
     /**

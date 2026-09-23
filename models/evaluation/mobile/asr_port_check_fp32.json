@@ -1,0 +1,6 @@
+{
+ "graph": "asr-hi fp32 (same export, unquantised)",
+ "clips": 20,
+ "exact_match": 20,
+ "max_abs_confidence_diff": 2.522317836151089e-06
+}

@@ -17,7 +17,12 @@ import kotlinx.coroutines.flow.Flow
  */
 interface SessionRepository {
 
-    suspend fun createSession(sourceType: SourceType): ViveResult<Session>
+    /**
+     * @param language ISO 639-1 the caller will speak, or null for "auto".
+     * The on-device ASR has one model per language and no language ID, so
+     * on-device sessions require it; the backend accepts "auto".
+     */
+    suspend fun createSession(sourceType: SourceType, language: String? = null): ViveResult<Session>
 
     suspend fun getSession(sessionId: String): ViveResult<Session>
 

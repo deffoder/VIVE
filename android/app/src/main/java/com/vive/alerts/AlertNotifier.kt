@@ -88,18 +88,17 @@ object AlertNotifier {
         if (alert.level !in INTERRUPTS) return false
         if (!canPost(context)) return false
 
-        val action = alert.recommendedAction?.let { humanise(it.name) }
-        val intent = alert.intent?.let { humanise(it.name) }
-        val body = buildString {
-            append(alert.reason)
-            if (intent != null) append("\nDetected intent: ").append(intent)
-            if (action != null) append("\nSuggested: ").append(action)
-        }
+        // Same words as the Alerts screen: what the caller did, then what to
+        // do. The raw policy reason ("Caller not independently verified; HIGH
+        // risk with sufficient confidence") told the user nothing to act on.
+        val headline = com.vive.ui.components.alertHeadline(alert)
+        val advice = alert.recommendedAction?.let { com.vive.ui.components.actionAdvice(it) }
+        val body = listOfNotNull(headline, advice).joinToString(". ")
 
         val notification = NotificationCompat.Builder(context, channelFor(alert.level))
             .setSmallIcon(android.R.drawable.stat_sys_warning)
             .setContentTitle("${humanise(alert.level.name)} voice-integrity risk")
-            .setContentText(alert.reason)
+            .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(

@@ -1,0 +1,45 @@
+{
+ "channel": "laptop loudspeaker -> room -> OnePlus CPH2661 MIC source (the app's capture path)",
+ "criterion": {
+  "en_eer_max": 0.2,
+  "genuine_flagged_max": 0.1
+ },
+ "en_vs_en_eer": 0.7168,
+ "en_eer_threshold": 0.5396,
+ "genuine_windows_flagged_at_0.5": 0.6222,
+ "per_class": {
+  "genuine/en": {
+   "windows": 42,
+   "median": 0.9885,
+   "share_ge_0.5": 0.7143
+  },
+  "genuine/hi": {
+   "windows": 24,
+   "median": 0.0227,
+   "share_ge_0.5": 0.3333
+  },
+  "genuine/ta": {
+   "windows": 24,
+   "median": 0.9999,
+   "share_ge_0.5": 0.75
+  },
+  "synthetic/en": {
+   "windows": 57,
+   "median": 0.0136,
+   "share_ge_0.5": 0.2807
+  },
+  "synthetic/hi": {
+   "windows": 15,
+   "median": 0.9839,
+   "share_ge_0.5": 0.7333
+  },
+  "synthetic/ta": {
+   "windows": 8,
+   "median": 0.9854,
+   "share_ge_0.5": 0.625
+  }
+ },
+ "passed": false,
+ "windows": 170,
+ "scored_with": "antispoof.onnx (desktop ONNX Runtime on the phone's recording)"
+}

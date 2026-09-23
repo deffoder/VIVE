@@ -48,6 +48,7 @@ INFLUENCE: dict[str, float] = {
     "behavior": 0.45,
     "context": 0.22,
     "speaker_consistency": 0.30,
+    "sensitive_request": 0.72,
 }
 """Maximum influence each signal can exert, used in a noisy-OR combination.
 
@@ -99,6 +100,16 @@ BEHAVIOR_RISK: dict[Behavior, float] = {
 }
 
 
+REQUEST_PHRASE: dict[Intent, str] = {
+    Intent.OTP_REQUEST: "a one-time password (OTP)",
+    Intent.PASSWORD_REQUEST: "a password or PIN",
+    Intent.CARD_DETAILS_REQUEST: "card details",
+    Intent.REMOTE_ACCESS_REQUEST: "remote access to the phone",
+    Intent.MONEY_TRANSFER_REQUEST: "a money transfer",
+}
+"""How a rule finding reads to a person: 'Caller asked for a password or PIN'."""
+
+
 @dataclass(frozen=True)
 class FusionInput:
     vad: VadResult
@@ -109,6 +120,14 @@ class FusionInput:
     behavior: BehaviorResult
     caller_verified: bool
     session_authenticated: bool
+    sensitive_request: Intent | None = None
+    """What the rule-based detector (app.risk.sensitive) found, if anything.
+
+    Its own channel, at the intent head's influence and severity table,
+    because it answers the same question from a different mechanism. It never
+    replaces the intent label: when both fire, noisy-OR counts both, which is
+    the point - two independent mechanisms agreeing is stronger evidence.
+    None (the default) leaves fusion exactly as before."""
 
 
 @dataclass(frozen=True)
@@ -165,6 +184,14 @@ def fuse(data: FusionInput) -> FusionOutput:
         speaker_risk = 1.0 - data.speaker.similarity
         contributions["speaker_consistency"] = round(data.speaker.similarity, 4)
 
+    # --- rule-based sensitive request -----------------------------------
+    rule_risk = 0.0
+    if data.sensitive_request is not None:
+        rule_risk = INTENT_RISK.get(data.sensitive_request, 0.10)
+        contributions["sensitive_request"] = round(rule_risk, 4)
+        reasons.append(f"Caller asked for {REQUEST_PHRASE.get(data.sensitive_request, 'sensitive information')} "
+                       "(keyword rule)")
+
     # --- noisy-OR over AVAILABLE evidence only ---------------------------
     #
     # Intent is included only when the head actually ran. It used to be added
@@ -186,6 +213,8 @@ def fuse(data: FusionInput) -> FusionOutput:
         parts["behavior"] = behavior_risk
     if speaker_risk:
         parts["speaker_consistency"] = speaker_risk
+    if rule_risk:
+        parts["sensitive_request"] = rule_risk
 
     survival = 1.0
     for key, value in parts.items():
@@ -196,7 +225,7 @@ def fuse(data: FusionInput) -> FusionOutput:
     # --- guard rails -----------------------------------------------------
     # Read from `parts` so an unavailable intent head cannot contribute
     # semantic pressure it never measured.
-    semantic_pressure = max(parts.get("intent", 0.0), behavior_risk)
+    semantic_pressure = max(parts.get("intent", 0.0), behavior_risk, rule_risk)
     if semantic_pressure < 0.4 and score > SYNTHETIC_ONLY_CEILING:
         # Synthetic evidence alone cannot reach CRITICAL.
         score = SYNTHETIC_ONLY_CEILING

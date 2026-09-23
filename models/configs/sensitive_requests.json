@@ -1,0 +1,28 @@
+{
+  "version": "sensitive-request-rules-v1",
+  "description": "Rule-based detector for a caller REQUESTING a secret or a money movement. Not a model. A rule fires when a secret term and a request cue occur in the same transcript context and no negation cue ('do not share') is present. Terms are canonical spellings; no ASR error variants were added from test audio.",
+  "match": "Lower-cased text; Latin terms match on word boundaries, Indic-script terms as substrings.",
+  "rules": {
+    "OTP_REQUEST": {
+      "secret": ["otp", "one time password", "one-time password", "verification code", "ओटीपी", "ओ टी पी", "ஓடிபி", "ஓ.டி.பி"],
+      "request": ["tell", "share", "give", "send", "read", "say", "provide", "forward", "bata", "batao", "bataiye", "batayiye", "bol", "bolo", "boliye", "de do", "dijiye", "bhej", "बता", "बोल", "दीजिए", "दे दो", "भेज", "शेयर", "சொல்", "அனுப்ப", "கொடு", "பகிர"]
+    },
+    "PASSWORD_REQUEST": {
+      "secret": ["password", "passcode", "pin", "mpin", "upi pin", "atm pin", "पासवर्ड", "पिन", "கடவுச்சொல்", "பின் நம்பர்"],
+      "request": ["tell", "share", "give", "send", "read", "say", "provide", "enter", "type", "bata", "batao", "bataiye", "bol", "boliye", "dijiye", "बता", "बोल", "दीजिए", "डाल", "शेयर", "சொல்", "அனுப்ப", "கொடு", "பகிர"]
+    },
+    "CARD_DETAILS_REQUEST": {
+      "secret": ["cvv", "card number", "expiry date", "debit card number", "credit card number", "सीवीवी", "कार्ड नंबर", "कार्ड का नंबर", "கார்டு எண்", "சிவிவி"],
+      "request": ["tell", "share", "give", "send", "read", "say", "provide", "bata", "batao", "bataiye", "bol", "boliye", "dijiye", "बता", "बोल", "दीजिए", "शेयर", "சொல்", "அனுப்ப", "கொடு"]
+    },
+    "REMOTE_ACCESS_REQUEST": {
+      "secret": ["anydesk", "any desk", "teamviewer", "team viewer", "quicksupport", "quick support", "rustdesk", "screen share", "screen sharing", "एनीडेस्क", "टीमव्यूअर", "ஏனிடெஸ்க்"],
+      "request": ["install", "download", "open", "share", "give", "tell", "code", "id", "इंस्टॉल", "डाउनलोड", "खोल", "बता", "நிறுவ", "திற", "சொல்"]
+    },
+    "MONEY_TRANSFER_REQUEST": {
+      "secret": ["transfer", "send money", "pay", "payment", "deposit", "upi", "ट्रांसफर", "पैसे भेज", "पेमेंट", "जमा", "பணம் அனுப்ப", "டிரான்ஸ்பர்"],
+      "request": ["now", "immediately", "urgent", "right now", "today", "quickly", "abhi", "turant", "jaldi", "अभी", "तुरंत", "जल्दी", "உடனே", "இப்போதே", "சீக்கிரம்"]
+    }
+  },
+  "negation": ["do not share", "don't share", "dont share", "never share", "not share", "do not disclose", "never disclose", "will never ask", "never ask", "never call", "is your otp", "your otp is", "is the otp", "otp for", "valid for", "किसी के साथ साझा न", "साझा न करें", "शेयर न करें", "शेयर ना करें", "कभी नहीं मांग", "यह ओटीपी", "பகிர வேண்டாம்", "யாருடனும் பகிர"]
+}

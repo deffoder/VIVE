@@ -249,10 +249,20 @@ fun LoginScreen(
     ViveScreenScaffold(title = "Sign in", showDemoBadge = false, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
             ViveCard {
-                SectionHeader(title = "Welcome back")
+                SectionHeader(title = "No account needed")
                 Text(
-                    text = "Authentication is not wired up in this build. Continuing opens " +
-                        "the app against demo data.",
+                    // States the real model rather than implying a sign-in
+                    // that does not exist. It used to say the app would open
+                    // "against demo data", which stopped being true when all
+                    // analysis moved onto the phone.
+                    text = if (com.vive.core.ServiceLocator.onDevice) {
+                        "VIVE analyses calls entirely on this phone. Sessions, " +
+                            "transcripts and alerts are stored only on this device; " +
+                            "nothing is sent to a server."
+                    } else {
+                        "Authentication is not wired up in this build. Analysis " +
+                            "runs on the configured VIVE backend."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

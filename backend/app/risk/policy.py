@@ -23,7 +23,7 @@ POLICY_VERSION = "policy-demo-1"
 MIN_CONFIDENCE_FOR_ESCALATION = 0.5
 """Below this, evidence is too thin to recommend anything stronger than verification."""
 
-_SENSITIVE_INTENTS = {
+SENSITIVE_INTENTS = {
     Intent.OTP_REQUEST,
     Intent.PASSWORD_REQUEST,
     Intent.CARD_DETAILS_REQUEST,
@@ -51,7 +51,7 @@ def evaluate(request: PolicyEvaluateRequest) -> PolicyEvaluateResponse:
             policy_version=POLICY_VERSION,
         )
 
-    sensitive = request.intent in _SENSITIVE_INTENTS
+    sensitive = request.intent in SENSITIVE_INTENTS
     if sensitive:
         reasons.append(f"Sensitive request: {request.intent.value.replace('_', ' ').lower()}")
     if not request.caller_verified:

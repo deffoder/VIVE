@@ -311,10 +311,37 @@ fun CallSummaryScreen(
     }
 }
 
+/**
+ * One finding, with when it first appeared and the worst packet it came from.
+ * Aggregated over the whole call: the last packet's reasons alone showed only
+ * "Caller not independently verified" for a call where the caller had asked
+ * for a password (seen on the phone).
+ */
+internal data class Finding(val text: String, val firstAt: String, val worst: Int)
+
+/** Context lines that are true of every packet, so they are not findings. */
+private val CONTEXT_ONLY = setOf("Caller not independently verified", "No notable risk indicators")
+
+internal fun findings(packets: List<Packet>): List<Finding> {
+    val seen = LinkedHashMap<String, Finding>()
+    for (p in packets) {
+        for (r in p.risk.reasons) {
+            if (r in CONTEXT_ONLY) continue
+            val prior = seen[r]
+            seen[r] = if (prior == null) Finding(r, p.timestamp, p.risk.score)
+            else prior.copy(worst = maxOf(prior.worst, p.risk.score))
+        }
+    }
+    return seen.values.sortedByDescending { it.worst }
+}
+
 @Composable
 private fun CallSummaryContent(session: Session, packets: List<Packet>) {
     val overall = session.overallRisk
-    val current = session.currentRisk
+    // Headline: the worst packet of the call. A finished call is judged by
+    // what happened in it; the smoothed average answers a different question
+    // and is shown underneath, labelled as what it is.
+    val peak = packets.maxByOrNull { it.risk.score }
 
     ViveCard {
         Column(
@@ -326,27 +353,40 @@ private fun CallSummaryContent(session: Session, packets: List<Packet>) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            session.startedAt?.let {
+            Text(
+                text = listOfNotNull(
+                    com.vive.core.Formatting.whenLocal(session.startedAt),
+                    com.vive.core.Formatting.languageName(session.language),
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "Peak risk",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
+            )
+            RiskGauge(
+                score = peak?.risk?.score ?: 0,
+                level = peak?.risk?.level ?: RiskLevel.LOW,
+                size = 150.dp,
+            )
+            ConfidenceIndicator(peak?.risk?.confidence)
+            peak?.let {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "at ${it.timestamp}, packet ${it.packetId}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            RiskGauge(
-                score = overall?.score ?: 0,
-                level = overall?.level ?: RiskLevel.LOW,
-                size = 150.dp,
-                modifier = Modifier.padding(top = ViveThemeTokens.spacing.md),
-            )
-            ConfidenceIndicator(overall?.confidence)
         }
     }
 
     MetricRow {
         MetricCard(
-            value = "${current?.score ?: 0}",
-            label = "Current risk",
+            value = "${overall?.score ?: 0}",
+            label = "Call average",
             modifier = Modifier.weight(1f),
         )
         MetricCard(
@@ -356,16 +396,56 @@ private fun CallSummaryContent(session: Session, packets: List<Packet>) {
         )
         MetricCard(
             value = "${session.packetsProcessed}",
-            label = "Packets",
+            label = "Speech windows",
             modifier = Modifier.weight(1f),
         )
+    }
+
+    val found = findings(packets)
+    ViveCard {
+        SectionHeader(title = "What was detected")
+        if (found.isEmpty()) {
+            Text(
+                text = if (packets.isEmpty()) "No speech was analysed in this call."
+                else "No risk indicators in any analysed window.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        found.forEach { f ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(ViveThemeTokens.spacing.md),
+            ) {
+                Text(
+                    text = f.firstAt,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = f.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                com.vive.ui.components.RiskPill(level = com.vive.ondevice.risk.RiskFusion.levelFor(f.worst))
+            }
+        }
+        if (packets.firstOrNull()?.context?.callerVerified == false) {
+            Text(
+                text = "The caller's identity was not independently verified.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+            )
+        }
     }
 
     ViveCard {
         SectionHeader(title = "Risk progression")
         RiskTimeline(
             scores = packets.map { it.risk.score },
-            level = overall?.level ?: RiskLevel.LOW,
+            level = peak?.risk?.level ?: RiskLevel.LOW,
         )
     }
 
@@ -377,21 +457,6 @@ private fun CallSummaryContent(session: Session, packets: List<Packet>) {
         InfoRow("First warning", session.timings.firstWarningSec?.let { "${it}s" } ?: "Not reached")
         InfoRow("First high", session.timings.firstHighSec?.let { "${it}s" } ?: "Not reached")
         InfoRow("Critical escalation", session.timings.firstCriticalSec?.let { "${it}s" } ?: "Not reached")
-    }
-
-    val reasons = packets.lastOrNull()?.risk?.reasons.orEmpty()
-    if (reasons.isNotEmpty()) {
-        ViveCard {
-            SectionHeader(title = "Evidence summary")
-            reasons.forEach {
-                Text(
-                    text = "• $it",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(vertical = 2.dp),
-                )
-            }
-        }
     }
 }
 

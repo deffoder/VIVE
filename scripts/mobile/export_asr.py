@@ -135,8 +135,41 @@ def ctc_greedy(logits, vocab: list[str], blank: int, delimiter: str) -> str:
         if index != previous and index != blank:
             pieces.append(vocab[index])
         previous = index
-    text = "".join(pieces).replace(delimiter, " ")
+    text = "".join(p for p in pieces if not is_special(p)).replace(delimiter, " ")
     return " ".join(text.split())
+
+
+def is_special(token: str) -> bool:
+    """`<s>`, `<pad>`, `</s>`, `<unk>`: never part of a transcript."""
+    return len(token) > 2 and token.startswith("<") and token.endswith(">")
+
+
+def measure_blank(path: str, clips, vocab: list[str], do_normalize: bool) -> tuple[int, float]:
+    """Finds the CTC blank from what the model actually emits.
+
+    The blank is not reliably the tokenizer's pad token. The two vakyansh
+    checkpoints were converted from fairseq, whose CTC blank is `<s>` (id 0),
+    while their HF config declares `<pad>` (id 1). Decoding with the declared
+    id printed `<s>` between every character - WER 8.05 Hindi, 10.2 Tamil -
+    and made int8 look worse than fp32 on noise. On real speech the blank is
+    by far the most frequent argmax, so it is measured here and required to
+    be a special token; anything else aborts rather than guessing.
+    """
+    import numpy as np
+    import onnxruntime as ort
+
+    session = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+    counts = np.zeros(len(vocab), dtype=np.int64)
+    for wave, _ in clips[:8]:
+        x = normalise_wave(wave) if do_normalize else wave
+        ids = session.run(None, {"input_values": x[None, :]})[0][0].argmax(axis=-1)
+        counts += np.bincount(ids, minlength=len(vocab))
+    blank = int(counts.argmax())
+    share = float(counts[blank] / counts.sum())
+    if not is_special(vocab[blank]):
+        raise SystemExit(f"dominant token {vocab[blank]!r} ({share:.0%}) is not a "
+                         "special token; refusing to guess the CTC blank")
+    return blank, share
 
 
 def export(lang: str, meta: dict) -> dict:
@@ -174,7 +207,7 @@ def export(lang: str, meta: dict) -> dict:
                      op_types_to_quantize=["MatMul"])
 
     return {
-        "vocab": vocab, "blank_id": vocab_map[pad],
+        "vocab": vocab, "declared_pad_id": vocab_map[pad],
         "delimiter": delimiter,
         "do_normalize": bool(extractor.get("do_normalize", True)),
         "fp32_path": fp32, "int8_path": int8,
@@ -230,6 +263,11 @@ def main() -> int:
         print(f"\n=== {lang}: {meta['source']} ===")
         spec = export(lang, meta)
         clips = fleurs(meta["fleurs"], args.clips)
+        blank, share = measure_blank(spec["fp32_path"], clips, spec["vocab"],
+                                     spec["do_normalize"])
+        spec["blank_id"] = blank
+        print(f"  blank {spec['vocab'][blank]!r} id {blank} ({share:.0%} of frames);"
+              f" config pad id {spec['declared_pad_id']}")
         fp32 = evaluate(spec["fp32_path"], clips, spec)
         int8 = evaluate(spec["int8_path"], clips, spec)
         print(f"  fp32  {fp32['size_mb']:>7} MB  WER {fp32['wer']:.4f}  "
@@ -259,6 +297,8 @@ def main() -> int:
             "source": meta["source"], "license": meta["license"],
             "sample_rate": SAMPLE_RATE, "do_normalize": spec["do_normalize"],
             "blank_id": spec["blank_id"], "delimiter": spec["delimiter"],
+            "blank_source": "measured dominant argmax; config pad id "
+                            f"{spec['declared_pad_id']}",
             "vocab": spec["vocab"],
             "measured": {"fleurs_config": meta["fleurs"], "fp32": fp32,
                          "int8": int8, "int8_tolerance": INT8_TOLERANCE,

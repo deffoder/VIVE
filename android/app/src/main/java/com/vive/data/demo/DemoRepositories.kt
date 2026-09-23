@@ -39,7 +39,7 @@ class DemoSessionRepository : SessionRepository {
 
     private val acknowledged = mutableSetOf<String>()
 
-    override suspend fun createSession(sourceType: SourceType): ViveResult<Session> {
+    override suspend fun createSession(sourceType: SourceType, language: String?): ViveResult<Session> {
         delay(LATENCY_MS)
         return ViveResult.Success(DemoData.activeSession)
     }

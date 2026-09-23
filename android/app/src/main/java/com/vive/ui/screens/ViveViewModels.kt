@@ -279,7 +279,7 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
             // thing: with no open socket the UI read "89 analysis windows
             // sent to the backend" while the backend had received none.
             val delivered = runCatching {
-                ServiceLocator.sendAudio(sessionId, packet.pcm)
+                ServiceLocator.submitWindow(sessionId, packet)
             }.getOrDefault(false)
 
             if (delivered) {
@@ -291,6 +291,12 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
             }
         }
     }
+
+    /**
+     * Windows the on-device engine failed to analyse. Read on each
+     * recomposition, which every accepted window triggers via [windowsSent].
+     */
+    fun analysisFailures(): Int = ServiceLocator.failedWindows(sessionId)
 
     private val _enrolment = MutableStateFlow<String?>(null)
     /** Last enrolment outcome, for the UI. Null means nothing attempted yet. */

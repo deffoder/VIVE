@@ -1,0 +1,68 @@
+{
+ "device": "OnePlus CPH2661 (arm64-v8a, Android 16)",
+ "languages": {
+  "en": {
+   "model": "facebook/wav2vec2-base-960h",
+   "license": "Apache-2.0",
+   "precision": "int8-matmul",
+   "size_mb": 121.9,
+   "utterances": 20,
+   "device_wer": 0.2227,
+   "device_cer": 0.0914,
+   "desktop_wer_same_clips": 0.2273,
+   "device_vs_desktop_exact_match": 0.25,
+   "device_vs_desktop_wer": 0.0771,
+   "load_ms": 364,
+   "window_2s_ms_median": 155.5,
+   "window_2s_ms_max": 174,
+   "rss_loaded_mb": 822.2,
+   "peak_rss_mb": 848.3,
+   "sample": {
+    "reference": "however due to the slow communication channels styles in the west could lag behind by 25 t",
+    "device": "however due to the slow communication channels styles in the west could lag behind by twen"
+   }
+  },
+  "hi": {
+   "model": "Harveenchadha/vakyansh-wav2vec2-hindi-him-4200",
+   "license": "MIT",
+   "precision": "int8-matmul",
+   "size_mb": 122.0,
+   "utterances": 20,
+   "device_wer": 0.1518,
+   "device_cer": 0.0457,
+   "desktop_wer_same_clips": 0.1689,
+   "device_vs_desktop_exact_match": 0.4,
+   "device_vs_desktop_wer": 0.046,
+   "load_ms": 483,
+   "window_2s_ms_median": 142.0,
+   "window_2s_ms_max": 154,
+   "rss_loaded_mb": 398.5,
+   "peak_rss_mb": 782.4,
+   "sample": {
+    "reference": "कुछ अणुओं में अस्थिर केंद्रक होता है जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से ",
+    "device": "कुछ अणुओं में अस्थिर केंद्रक होता है जिसका मतलब यहा कि उनमें थोड़े या बिना किसी झटके से टू"
+   }
+  },
+  "ta": {
+   "model": "Harveenchadha/vakyansh-wav2vec2-tamil-tam-250",
+   "license": "MIT",
+   "precision": "int8-matmul",
+   "size_mb": 121.9,
+   "utterances": 20,
+   "device_wer": 0.424,
+   "device_cer": 0.1616,
+   "desktop_wer_same_clips": 0.4269,
+   "device_vs_desktop_exact_match": 0.2,
+   "device_vs_desktop_wer": 0.1082,
+   "load_ms": 258,
+   "window_2s_ms_median": 154.0,
+   "window_2s_ms_max": 269,
+   "rss_loaded_mb": 800.8,
+   "peak_rss_mb": 848.3,
+   "sample": {
+    "reference": "இது வேதியியல் ph என அழைக்கப்படுகிறது நீங்கள் சிவப்பு முட்டைக்கோஸ் சாற்றைப் பயன்படுத்தி ஒரு",
+    "device": "இது வேதியில் பீகச் சென அழைக்கப்படுகிறது நீங்கள் சிவப்பு முட்டைகோ சாற்றைப் பயன்படுத்தி ஒரு "
+   }
+  }
+ }
+}

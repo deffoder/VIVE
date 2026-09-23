@@ -17,6 +17,14 @@ val apiBaseUrl: String = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }.getProperty("VIVE_API_BASE_URL") ?: "http://10.0.2.2:8000"
 
+/**
+ * Where analysis runs. "on-device" (default): every model runs on the phone
+ * and no network is used. "backend": audio is streamed to VIVE_API_BASE_URL.
+ */
+val analysisMode: String = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}.getProperty("VIVE_ANALYSIS_MODE") ?: "on-device"
+
 android {
     namespace = "com.vive"
     compileSdk = 34
@@ -30,7 +38,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // ONNX Runtime ships a ~30 MB native library per ABI; all four made
+        // the APK 153 MB. The on-device models need a 64-bit ARM phone with
+        // gigabytes of RAM, so only arm64-v8a is packaged.
+        ndk { abiFilters += "arm64-v8a" }
+
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "ANALYSIS_MODE", "\"$analysisMode\"")
     }
 
     buildTypes {
@@ -67,6 +81,11 @@ android {
         }
     }
 
+    // The sensitive-request rules are ONE file shared with the backend
+    // (models/configs/sensitive_requests.json), packaged as an asset rather
+    // than copied, so the two engines cannot drift apart.
+    sourceSets["main"].assets.srcDir("../../models/configs")
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
@@ -85,6 +104,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)
     implementation(libs.okhttp)
+    implementation(libs.onnxruntime.android)
     debugImplementation(libs.okhttp.logging)
 
     val composeBom = platform(libs.androidx.compose.bom)

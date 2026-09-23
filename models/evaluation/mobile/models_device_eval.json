@@ -1,0 +1,34 @@
+{
+ "device": "OnePlus CPH2661 (arm64-v8a, Android 16), ORT 1.30 CPU",
+ "text": {
+  "texts": 120,
+  "load_status": "AVAILABLE",
+  "load_ms": 2240,
+  "intent_top1_agreement_vs_desktop": 1.0,
+  "behavior_set_agreement_vs_desktop": 1.0,
+  "max_abs_logit_diff": 1e-05,
+  "both_heads_ms_median": 108.0,
+  "both_heads_ms_max": 321,
+  "rss_loaded_mb": 873.2,
+  "rss_increase_mb": 622.4
+ },
+ "speaker": {
+  "embedding_cosine_vs_desktop_min": 1.0,
+  "threshold": 0.4096,
+  "genuine_pairs": 40,
+  "impostor_pairs": 760,
+  "genuine_accept_rate": 1.0,
+  "impostor_reject_rate": 1.0,
+  "genuine_min": 0.4121,
+  "impostor_max": 0.4071,
+  "embed_2s_ms_median": 82.0
+ },
+ "vad": {
+  "clips": 60,
+  "max_speech_ratio_diff_vs_desktop": 0.0,
+  "quality_counts": {
+   "GOOD": 60
+  },
+  "vad_2s_ms_median": 31.0
+ }
+}

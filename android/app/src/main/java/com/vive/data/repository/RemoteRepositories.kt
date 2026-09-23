@@ -35,9 +35,9 @@ class RemoteSessionRepository(
     private val stream: OkHttpEventStream,
 ) : SessionRepository {
 
-    override suspend fun createSession(sourceType: SourceType): ViveResult<Session> {
+    override suspend fun createSession(sourceType: SourceType, language: String?): ViveResult<Session> {
         val created = apiCall {
-            service.createSession(CreateSessionRequestDto(sourceType = sourceType.name))
+            service.createSession(CreateSessionRequestDto(sourceType = sourceType.name, language = language ?: "auto"))
         }
         return when (created) {
             is ViveResult.Failure -> created
@@ -176,11 +176,11 @@ class FallbackSessionRepository(
         return if (unreachable) fallbackCall() else result
     }
 
-    override suspend fun createSession(sourceType: SourceType): ViveResult<Session> {
-        val result = primary.createSession(sourceType)
+    override suspend fun createSession(sourceType: SourceType, language: String?): ViveResult<Session> {
+        val result = primary.createSession(sourceType, language)
         val unreachable = result is ViveResult.Failure && result.error is ViveError.Offline
         usingFallback = unreachable
-        return if (unreachable) fallback.createSession(sourceType) else result
+        return if (unreachable) fallback.createSession(sourceType, language) else result
     }
 
     override suspend fun getSession(sessionId: String): ViveResult<Session> {

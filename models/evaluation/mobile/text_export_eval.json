@@ -1,0 +1,45 @@
+{
+ "split": "scamshield test (held out)",
+ "sample": 2000,
+ "heads": {
+  "intent": {
+   "labels": [
+    "NORMAL_CONVERSATION",
+    "OTP_REQUEST",
+    "PASSWORD_REQUEST",
+    "CARD_DETAILS_REQUEST",
+    "BANKING_CREDENTIAL_REQUEST",
+    "MONEY_TRANSFER_REQUEST",
+    "ACCOUNT_CHANGE_REQUEST",
+    "REMOTE_ACCESS_REQUEST",
+    "URGENT_ACTION",
+    "THREAT_OR_INTIMIDATION",
+    "CONFIDENTIAL_INFORMATION",
+    "UNKNOWN"
+   ],
+   "top1_agreement": 0.9995,
+   "macro_f1_fp32_torch": 0.9375,
+   "macro_f1_int8_onnx": 0.9853,
+   "desktop_ms_median": 18.37,
+   "shipped": "int8 embeddings (Gather), fp32 MatMul"
+  },
+  "behavior": {
+   "labels": [
+    "AUTHORITY_IMPERSONATION",
+    "URGENCY",
+    "THREAT",
+    "FEAR",
+    "SECRECY",
+    "PRESSURE",
+    "REWARD_PROMISE",
+    "NORMAL"
+   ],
+   "per_label_agreement": 0.9999,
+   "exact_set_agreement": 0.9995,
+   "micro_f1_fp32_torch": 0.9721,
+   "micro_f1_int8_onnx": 0.9723,
+   "desktop_ms_median": 18.4,
+   "shipped": "int8 embeddings (Gather), fp32 MatMul"
+  }
+ }
+}

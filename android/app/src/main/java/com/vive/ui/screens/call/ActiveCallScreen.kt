@@ -1,5 +1,7 @@
 package com.vive.ui.screens.call
 
+import com.vive.core.ServiceLocator
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -108,6 +110,7 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
     val captureState by viewModel.captureState.collectAsStateWithLifecycle()
     val windowsSent by viewModel.windowsSent.collectAsStateWithLifecycle()
     val windowsDropped by viewModel.windowsDropped.collectAsStateWithLifecycle()
+    val analysisFailed = viewModel.analysisFailures()
 
     var permissionDenied by remember { mutableStateOf(false) }
     val granted = ContextCompat.checkSelfPermission(
@@ -130,17 +133,26 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
             text = when (val state = captureState) {
                 is CaptureState.Idle -> "Not capturing."
                 is CaptureState.Starting -> "Starting microphone..."
-                is CaptureState.Capturing -> if (windowsDropped >= 3) {
-                    // Capture running while nothing reaches the backend looks
-                    // exactly like capture working. Say which it is.
-                    "Capturing, but $windowsDropped windows could not be sent. " +
-                        "Check the connection to the analysis backend."
-                } else {
-                    "Capturing. $windowsSent analysis windows reached the backend."
+                is CaptureState.Capturing -> when {
+                    analysisFailed > 0 ->
+                        "Capturing, but $analysisFailed windows failed analysis on this " +
+                            "phone. Results below are incomplete."
+                    // Capture running while nothing is analysed looks exactly
+                    // like capture working. Say which it is.
+                    windowsDropped >= 3 && ServiceLocator.onDevice ->
+                        "Capturing, but analysis is behind real time: $windowsDropped " +
+                            "windows in a row were skipped."
+                    windowsDropped >= 3 ->
+                        "Capturing, but $windowsDropped windows could not be sent. " +
+                            "Check the connection to the analysis backend."
+                    ServiceLocator.onDevice ->
+                        "Capturing. $windowsSent windows analysed on this phone."
+                    else -> "Capturing. $windowsSent analysis windows reached the backend."
                 }
                 is CaptureState.Stopping -> "Stopping..."
                 is CaptureState.Completed ->
-                    "Capture ended. $windowsSent windows were sent."
+                    "Capture ended. $windowsSent windows were " +
+                        (if (ServiceLocator.onDevice) "analysed." else "sent.")
                 is CaptureState.Failed -> state.reason
             },
             style = MaterialTheme.typography.bodyMedium,
@@ -484,14 +496,24 @@ private fun AlertDeliveryCard(viewModel: SessionDetailViewModel) {
     val delivered by viewModel.alertsDelivered.collectAsStateWithLifecycle()
 
     var askedAndDenied by remember { mutableStateOf(false) }
-    // Read on every recomposition rather than remembered: the user can change
-    // this in system settings while the screen is open, and a cached "denied"
-    // would keep nagging after they had already said yes.
-    val canPost = AlertNotifier.canPost(context)
+    // State, re-read when the permission result arrives and whenever the
+    // screen resumes (the user may change it in system settings). It used to
+    // be a plain read during composition, and granting the permission changed
+    // no state - so nothing recomposed and the card kept saying
+    // "Notifications are off" after the user had just turned them on
+    // (observed on the target phone).
+    var canPost by remember { mutableStateOf(AlertNotifier.canPost(context)) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        canPost = AlertNotifier.canPost(context)
+        onPauseOrDispose { }
+    }
 
     val requestPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { allowed -> askedAndDenied = !allowed }
+    ) { allowed ->
+        askedAndDenied = !allowed
+        canPost = AlertNotifier.canPost(context)
+    }
 
     if (alerts.isEmpty() && canPost) return
 

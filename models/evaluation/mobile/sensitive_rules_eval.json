@@ -1,0 +1,288 @@
+{
+ "rules": "models/configs/sensitive_requests.json",
+ "groups": {
+  "positive/BANKING_CREDENTIAL_REQUEST": {
+   "n": 160,
+   "fired": 7,
+   "rate": 0.0437,
+   "by_rule": {
+    "MONEY_TRANSFER_REQUEST": 2,
+    "OTP_REQUEST": 5
+   },
+   "examples": [
+    {
+     "text": "hello   subscriber id    as per our records  your tata sky subscriber id is deactive from th jun  recharge your tata sky now  get back to quality tv viewing   s",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
+    {
+     "text": "PAYTM Dear PAY TM customer your KYC have be suspend To Verified PAYTM KYC call XXXXXX immediately Your account will be block within XX hour",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "immediately"
+    },
+    {
+     "text": "Madam ek minute Aapka KYC pending hai. Account 2 ghante mein block ho jayega. OTP share kijiye.",
+     "rule": "OTP_REQUEST",
+     "secret": "otp",
+     "request": "share"
+    },
+    {
+     "text": "महत्वपूर्ण सूचना: पंजाब नेशनल बैंक उपभोक्ता, आपका डेबिट कार्ड व नेट बैंकिंग ब्लॉक कर दिया गया है। पुनः चालू करने हेतु बैंक हेल्पडेस्क 9863606628 पर तुरंत कॉल कर",
+     "rule": "OTP_REQUEST",
+     "secret": "ओटीपी",
+     "request": "बता"
+    },
+    {
+     "text": "महत्वपूर्ण सूचना: कोटक महिंद्रा बैंक उपभोक्ता, आपका डेबिट कार्ड व नेट बैंकिंग ब्लॉक कर दिया गया है। पुनः चालू करने हेतु बैंक हेल्पडेस्क 9839557077 पर तुरंत कॉल ",
+     "rule": "OTP_REQUEST",
+     "secret": "ओटीपी",
+     "request": "बता"
+    },
+    {
+     "text": "महत्वपूर्ण सूचना: केनरा बैंक उपभोक्ता, आपका डेबिट कार्ड व नेट बैंकिंग ब्लॉक कर दिया गया है। पुनः चालू करने हेतु बैंक हेल्पडेस्क 9817270733 पर तुरंत कॉल करें या ",
+     "rule": "OTP_REQUEST",
+     "secret": "ओटीपी",
+     "request": "बता"
+    },
+    {
+     "text": "Crime Branch se bol raha hoon. Aapka KYC pending hai. Account 2 ghante mein block ho jayega. OTP share kijiye.",
+     "rule": "OTP_REQUEST",
+     "secret": "otp",
+     "request": "share"
+    }
+   ]
+  },
+  "positive/MONEY_TRANSFER_REQUEST": {
+   "n": 151,
+   "fired": 9,
+   "rate": 0.0596,
+   "by_rule": {
+    "MONEY_TRANSFER_REQUEST": 9
+   },
+   "examples": [
+    {
+     "text": "this august use payzapp to pay your utility bills or recharge your mobile dth connection and get  cashback download payzapp now from app payzapp in t c",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "special offer now earn  cashbackupto rsmonth for  months on your vodafone bill payment to avail  download mpesa app at tinyurlcomgr pay bill",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "save this month do a vodafone prepaid recharge  dth recharge  self vodafone postpaid bill payment  utility bill payment with mpesa immediately and get  cashback",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    },
+    {
+     "text": "9028XXXX45 receive payment of Rs 3500.00 by PAYTM Txn ID 9908XX25X Download now and Register to Receive your amount TnC http://i3fq.com/MOrdC",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
+    {
+     "text": "7019XXXX16 receive payment of Rs 5500.00 by PAYTM Txn ID 9908XX25X Download now and Register to Receive your amount TnC http://m3fr.com/eky7evitL",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
+    {
+     "text": "9923XXXX26 receive payment of Rs 3500.00 by PAYTM Txn ID 9908XX25X Download now and Register to Receive your amount TnC http://i3fq.com/Q8f14",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
+    {
+     "text": "now book your irctc train tickets  get upto rs cashback when you book on irctc connect app  pay via mobikwik wallet getthewallet bitlymobikwik",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "good news now pay via paytm across all more stores in india download more savings coupon from paytm  get rs off on shopping of rs  abovetc",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    }
+   ]
+  },
+  "positive/OTP_REQUEST": {
+   "n": 8,
+   "fired": 1,
+   "rate": 0.125,
+   "by_rule": {
+    "OTP_REQUEST": 1
+   },
+   "examples": [
+    {
+     "text": "This OTP be for login DO N'T SHARE IT WITH ANYONE even to Gojek or they 'll be able to use your account OTP 1615. gojek.com/ safety 4PKeZqV9ubl",
+     "rule": "OTP_REQUEST",
+     "secret": "otp",
+     "request": "share"
+    }
+   ]
+  },
+  "positive/all_sensitive": {
+   "n": 319,
+   "fired": 17,
+   "rate": 0.0533,
+   "by_rule": {
+    "MONEY_TRANSFER_REQUEST": 11,
+    "OTP_REQUEST": 6
+   },
+   "examples": [
+    {
+     "text": "this august use payzapp to pay your utility bills or recharge your mobile dth connection and get  cashback download payzapp now from app payzapp in t c",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "hello   subscriber id    as per our records  your tata sky subscriber id is deactive from th jun  recharge your tata sky now  get back to quality tv viewing   s",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "now"
+    },
+    {
+     "text": "PAYTM Dear PAY TM customer your KYC have be suspend To Verified PAYTM KYC call XXXXXX immediately Your account will be block within XX hour",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "immediately"
+    },
+    {
+     "text": "Madam ek minute Aapka KYC pending hai. Account 2 ghante mein block ho jayega. OTP share kijiye.",
+     "rule": "OTP_REQUEST",
+     "secret": "otp",
+     "request": "share"
+    },
+    {
+     "text": "special offer now earn  cashbackupto rsmonth for  months on your vodafone bill payment to avail  download mpesa app at tinyurlcomgr pay bill",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "pay",
+     "request": "now"
+    },
+    {
+     "text": "महत्वपूर्ण सूचना: पंजाब नेशनल बैंक उपभोक्ता, आपका डेबिट कार्ड व नेट बैंकिंग ब्लॉक कर दिया गया है। पुनः चालू करने हेतु बैंक हेल्पडेस्क 9863606628 पर तुरंत कॉल कर",
+     "rule": "OTP_REQUEST",
+     "secret": "ओटीपी",
+     "request": "बता"
+    },
+    {
+     "text": "महत्वपूर्ण सूचना: कोटक महिंद्रा बैंक उपभोक्ता, आपका डेबिट कार्ड व नेट बैंकिंग ब्लॉक कर दिया गया है। पुनः चालू करने हेतु बैंक हेल्पडेस्क 9839557077 पर तुरंत कॉल ",
+     "rule": "OTP_REQUEST",
+     "secret": "ओटीपी",
+     "request": "बता"
+    },
+    {
+     "text": "save this month do a vodafone prepaid recharge  dth recharge  self vodafone postpaid bill payment  utility bill payment with mpesa immediately and get  cashback",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    }
+   ]
+  },
+  "negative/scamshield_normal_en": {
+   "n": 4780,
+   "fired": 5,
+   "rate": 0.001,
+   "by_rule": {
+    "MONEY_TRANSFER_REQUEST": 5
+   },
+   "examples": [
+    {
+     "text": "< [ I.R.S ] You will receive a tax refund of $573.00, but cannot process it due to incomplete personal information. Please confirm your information in the link.",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    },
+    {
+     "text": "! https://irs.gov.secure-fundhub.com In order to expedite the processing of your refund and avoid potential delays or penalties, please provide accurate persona",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    },
+    {
+     "text": "< [I.R.S ] You will receive a tax refund of $573.00, but cannot process it due to incomplete personal information. Please confirm your information in the link. ",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    },
+    {
+     "text": "[I.R.S] You will receive a tax refund of $573.00, but cannot process it due to incomplete personal information. In order to expedite the processing of your refu",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    },
+    {
+     "text": "In order to expedite the processing of your refund and avoid potential delays or penalties, please provide accurate personal information immediately to ensure p",
+     "rule": "MONEY_TRANSFER_REQUEST",
+     "secret": "payment",
+     "request": "immediately"
+    }
+   ]
+  },
+  "negative/scamshield_normal_hi": {
+   "n": 568,
+   "fired": 2,
+   "rate": 0.0035,
+   "by_rule": {
+    "PASSWORD_REQUEST": 2
+   },
+   "examples": [
+    {
+     "text": "जब आप सिर्फ + चिन्ह में डाल देते हैं, मेरे नंबर चुनें और पिन दिखाई देंगे.",
+     "rule": "PASSWORD_REQUEST",
+     "secret": "पिन",
+     "request": "डाल"
+    },
+    {
+     "text": "आगफ़ोक्स के साथ फिर से खोलें. जब यह लोड होता है सिर्फ उपयोगकर्ता नाम के स्थान में प्लस साइन डालता है, और यह आपको दो संख्या दिखाई देगा. निम्न संख्या मेरी संख्या ",
+     "rule": "PASSWORD_REQUEST",
+     "secret": "पिन",
+     "request": "डाल"
+    }
+   ]
+  },
+  "negative/scamshield_normal_hi-en": {
+   "n": 131,
+   "fired": 0,
+   "rate": 0.0,
+   "by_rule": {},
+   "examples": []
+  },
+  "negative/scamshield_unknown_benign": {
+   "n": 0,
+   "fired": 0,
+   "rate": 0.0,
+   "by_rule": {},
+   "examples": []
+  },
+  "negative/fleurs_hi": {
+   "n": 400,
+   "fired": 0,
+   "rate": 0.0,
+   "by_rule": {},
+   "examples": []
+  },
+  "negative/fleurs_ta": {
+   "n": 400,
+   "fired": 0,
+   "rate": 0.0,
+   "by_rule": {},
+   "examples": []
+  },
+  "negative/fleurs_en": {
+   "n": 400,
+   "fired": 0,
+   "rate": 0.0,
+   "by_rule": {},
+   "examples": []
+  }
+ }
+}
