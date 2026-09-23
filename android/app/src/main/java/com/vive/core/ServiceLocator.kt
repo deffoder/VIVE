@@ -130,6 +130,13 @@ object ServiceLocator {
         remoteSessions.sendAudio(sessionId, pcm)
     }
 
+    /** Enrols a reference voice so speaker comparison can run at all (O3). */
+    suspend fun enrolSpeaker(sessionId: String, pcm: ByteArray, label: String? = null) =
+        remoteSessions.enrolSpeaker(sessionId, pcm, label)
+
+    suspend fun clearEnrolment(sessionId: String) =
+        remoteSessions.clearEnrolment(sessionId)
+
     suspend fun closeStream(sessionId: String) {
         remoteSessions.closeStream(sessionId)
     }

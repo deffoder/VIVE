@@ -122,6 +122,39 @@ class SessionManager:
         self._persist(session_id)
         return record.session
 
+    def enrol_speaker(self, session_id: str, pcm: bytes,
+                      label: str | None = None) -> tuple[bool, str]:
+        """Enrols a reference voice for this session.
+
+        Returns (accepted, reason). The audio is embedded and then dropped -
+        only the embedding is kept, because a stored recording of someone's
+        voice serves no purpose the embedding does not already serve
+        (docs/SECURITY_SPEC.md 4).
+        """
+        record = self.require_record(session_id)
+        enrol = getattr(self._adapters.speaker, "enrol", None)
+        if enrol is None:
+            return False, "speaker model does not support enrolment"
+        embedding = enrol(pcm)
+        if embedding is None:
+            return False, (
+                "enrolment needs at least 3 seconds of clear speech; a shorter "
+                "reference would anchor every later comparison badly"
+            )
+        record.reference_embedding = embedding
+        record.enrolled_at = _now_iso()
+        record.enrolment_label = label
+        self._persist(session_id)
+        return True, "enrolled"
+
+    def clear_enrolment(self, session_id: str) -> None:
+        """Removes the enrolled reference. Comparison returns to NO_REFERENCE."""
+        record = self.require_record(session_id)
+        record.reference_embedding = None
+        record.enrolled_at = None
+        record.enrolment_label = None
+        self._persist(session_id)
+
     def set_context(self, session_id: str, context: SessionContext) -> Session:
         record = self.require_record(session_id)
         if record.session.status == SessionStatus.ENDED:
@@ -204,7 +237,16 @@ class SessionManager:
         # devices, which is a deployment question, not a code one.
         vad = a.vad.analyze(window)
         antispoof = a.antispoof.analyze(window)
-        speaker_result = a.speaker.analyze(window, record.reference_audio)
+        # Compare against the stored EMBEDDING when one is enrolled. The
+        # older path re-embedded reference AUDIO once per packet and required
+        # that audio to be retained; an embedding costs one forward pass at
+        # enrolment and 192 floats thereafter. Falls back to the audio path
+        # only for adapters that predate `compare` (docs/BLOCKERS.md O3).
+        compare = getattr(a.speaker, "compare", None)
+        speaker_result = (
+            compare(window, record.reference_embedding) if compare is not None
+            else a.speaker.analyze(window, record.reference_audio)
+        )
         asr = a.asr.analyze(window)
         # Which language the text heads are asked about decides whether they
         # run at all, so it has to be the most reliable value available - not

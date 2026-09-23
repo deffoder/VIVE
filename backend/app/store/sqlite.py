@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     started_at   TEXT,
     payload      TEXT NOT NULL,
     temporal     TEXT NOT NULL,
-    next_seq     INTEGER NOT NULL DEFAULT 1
+    next_seq     INTEGER NOT NULL DEFAULT 1,
+    enrolment    TEXT
 );
 CREATE TABLE IF NOT EXISTS packets (
     session_id   TEXT NOT NULL,
@@ -98,6 +99,32 @@ def _temporal_to_json(state: TemporalState) -> str:
             "first_critical_sec": state.timings.first_critical_sec,
         },
     })
+
+
+def _enrolment_to_json(record: SessionRecord) -> str | None:
+    """Serialises the enrolled voiceprint.
+
+    The EMBEDDING is stored, never the audio it came from. A voiceprint is
+    sensitive; keeping the recording as well would retain a copy of someone's
+    voice for no purpose the embedding does not already serve
+    (docs/SECURITY_SPEC.md 4).
+    """
+    if not record.reference_embedding:
+        return None
+    return json.dumps({
+        "embedding": record.reference_embedding,
+        "enrolled_at": record.enrolled_at,
+        "label": record.enrolment_label,
+    })
+
+
+def _enrolment_from_json(record: SessionRecord, raw: str | None) -> None:
+    if not raw:
+        return
+    data = json.loads(raw)
+    record.reference_embedding = data.get("embedding")
+    record.enrolled_at = data.get("enrolled_at")
+    record.enrolment_label = data.get("label")
 
 
 def _temporal_from_json(raw: str) -> TemporalState:
@@ -143,14 +170,16 @@ class SqliteEventStore(InMemoryEventStore):
         """Loads persisted sessions back into memory at start-up."""
         with self._db_lock:
             rows = self._db.execute(
-                "SELECT session_id, payload, temporal, next_seq FROM sessions",
+                "SELECT session_id, payload, temporal, next_seq, enrolment "
+                "FROM sessions",
             ).fetchall()
-            for session_id, payload, temporal, next_seq in rows:
+            for session_id, payload, temporal, next_seq, enrolment in rows:
                 record = SessionRecord(
                     session=Session.model_validate_json(payload),
                     temporal=_temporal_from_json(temporal),
                     next_seq=int(next_seq),
                 )
+                _enrolment_from_json(record, enrolment)
                 record.packets = [
                     Packet.model_validate_json(p) for (p,) in self._db.execute(
                         "SELECT payload FROM packets WHERE session_id=? ORDER BY seq",
@@ -191,14 +220,16 @@ class SqliteEventStore(InMemoryEventStore):
         with self._db_lock:
             self._db.execute(
                 "INSERT INTO sessions "
-                "(session_id, started_at, payload, temporal, next_seq) "
-                "VALUES (?,?,?,?,?) "
+                "(session_id, started_at, payload, temporal, next_seq, enrolment) "
+                "VALUES (?,?,?,?,?,?) "
                 "ON CONFLICT(session_id) DO UPDATE SET "
                 "started_at=excluded.started_at, payload=excluded.payload, "
-                "temporal=excluded.temporal, next_seq=excluded.next_seq",
+                "temporal=excluded.temporal, next_seq=excluded.next_seq, "
+                "enrolment=excluded.enrolment",
                 (record.session.session_id, record.session.started_at or "",
                  record.session.model_dump_json(),
-                 _temporal_to_json(record.temporal), record.next_seq))
+                 _temporal_to_json(record.temporal), record.next_seq,
+                 _enrolment_to_json(record)))
             self._db.commit()
 
     def append_packet(self, session_id: str, packet: Packet) -> bool:

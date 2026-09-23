@@ -7,6 +7,9 @@ which is the event history for a session.
 
 from __future__ import annotations
 
+import base64
+import binascii
+
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import (
@@ -19,8 +22,10 @@ from app.api.deps import (
 )
 from app.core.security import AuditEvent, audit
 from app.core.config import API_PREFIX
-from app.core.errors import packet_not_found
+from app.core.errors import packet_not_found, validation_error
 from app.schemas.models import (
+    EnrolmentRequest,
+    EnrolmentResponse,
     Alert,
     CreateSessionRequest,
     CreateSessionResponse,
@@ -107,6 +112,62 @@ async def set_context(
 ) -> Session:
     require_owned(state, session_id, principal)
     return sessions.set_context(session_id, context)
+
+
+@router.post(
+    "/sessions/{session_id}/enrolment",
+    response_model=EnrolmentResponse,
+    summary="Enrol a reference voice for speaker comparison",
+)
+async def enrol_speaker(
+    session_id: str,
+    request: EnrolmentRequest,
+    sessions: SessionsDep,
+    state: StateDep,
+    principal: AuthDep,
+) -> EnrolmentResponse:
+    """Enrols a voice so later windows can be compared against it.
+
+    The audio is embedded and discarded; only the embedding is stored. Without
+    an enrolment the speaker channel reports `NO_REFERENCE`, which is not a
+    mismatch and must never be presented as one (docs/BLOCKERS.md O3).
+    """
+    require_owned(state, session_id, principal)
+    try:
+        pcm = base64.b64decode(request.audio_b64, validate=True)
+    except (ValueError, binascii.Error):
+        raise validation_error("audio_b64 is not valid base64") from None
+    if len(pcm) > state.settings.max_audio_frame_bytes * 8:
+        raise validation_error("enrolment audio is too large")
+
+    accepted, reason = sessions.enrol_speaker(session_id, pcm, request.label)
+    record = sessions.require_record(session_id)
+    return EnrolmentResponse(
+        session_id=session_id,
+        enrolled=accepted,
+        reason=reason,
+        enrolled_at=record.enrolled_at,
+        label=record.enrolment_label,
+    )
+
+
+@router.delete(
+    "/sessions/{session_id}/enrolment",
+    response_model=EnrolmentResponse,
+    summary="Remove the enrolled reference voice",
+)
+async def clear_enrolment(
+    session_id: str,
+    sessions: SessionsDep,
+    state: StateDep,
+    principal: AuthDep,
+) -> EnrolmentResponse:
+    require_owned(state, session_id, principal)
+    sessions.clear_enrolment(session_id)
+    return EnrolmentResponse(
+        session_id=session_id, enrolled=False,
+        reason="enrolment removed", enrolled_at=None, label=None,
+    )
 
 
 @router.get(

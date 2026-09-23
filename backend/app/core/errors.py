@@ -67,6 +67,11 @@ def packet_not_found(packet_id: str) -> ViveError:
     return ViveError(ErrorCode.PACKET_NOT_FOUND, f"No packet with id {packet_id}.")
 
 
+def validation_error(message: str) -> ViveError:
+    """Rejects a malformed payload with a structured 400 rather than a 500."""
+    return ViveError(ErrorCode.VALIDATION_ERROR, message)
+
+
 def session_already_ended(session_id: str) -> ViveError:
     return ViveError(
         ErrorCode.SESSION_ALREADY_ENDED,

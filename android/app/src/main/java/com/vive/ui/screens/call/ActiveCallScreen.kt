@@ -157,6 +157,31 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
         )
+        // Speaker enrolment. Without a reference voice the speaker channel
+        // reports NO_REFERENCE on every packet - correct, but inert. Enrolling
+        // is what makes that comparison possible at all (docs/BLOCKERS.md O3).
+        val enrolment by viewModel.enrolment.collectAsStateWithLifecycle()
+        enrolment?.let { status ->
+            Text(
+                text = status,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+            )
+        }
+        if (!capturing) {
+            SecondaryButton(
+                text = "Enrol reference voice (4s)",
+                onClick = {
+                    if (granted) {
+                        viewModel.enrolSpeaker(context)
+                    } else {
+                        requestPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+            )
+        }
         if (capturing) {
             SecondaryButton(
                 text = "Stop microphone",

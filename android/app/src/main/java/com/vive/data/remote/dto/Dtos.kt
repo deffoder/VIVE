@@ -16,6 +16,21 @@ import kotlinx.serialization.Serializable
  */
 
 @Serializable
+data class EnrolmentRequestDto(
+    @SerialName("audio_b64") val audioB64: String,
+    val label: String? = null,
+)
+
+@Serializable
+data class EnrolmentResponseDto(
+    @SerialName("session_id") val sessionId: String,
+    val enrolled: Boolean,
+    val reason: String,
+    @SerialName("enrolled_at") val enrolledAt: String? = null,
+    val label: String? = null,
+)
+
+@Serializable
 data class CreateSessionRequestDto(
     @SerialName("source_type") val sourceType: String = "VOIP",
     val language: String = "auto",

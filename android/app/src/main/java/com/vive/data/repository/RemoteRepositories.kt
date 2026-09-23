@@ -19,6 +19,7 @@ import com.vive.data.remote.ViveEvent
 import com.vive.data.remote.ViveService
 import com.vive.data.remote.apiCall
 import com.vive.data.remote.dto.CreateSessionRequestDto
+import com.vive.data.remote.dto.EnrolmentRequestDto
 import com.vive.data.remote.dto.toDomain
 import kotlinx.coroutines.flow.Flow
 
@@ -85,6 +86,30 @@ class RemoteSessionRepository(
      */
     suspend fun sendAudio(sessionId: String, pcm: ByteArray) =
         stream.sendAudio(sessionId, pcm)
+
+    /**
+     * Enrols a reference voice from captured PCM.
+     *
+     * The audio is sent once and the backend stores only the embedding it
+     * produces. Nothing keeps the recording - here or there.
+     */
+    suspend fun enrolSpeaker(
+        sessionId: String,
+        pcm: ByteArray,
+        label: String? = null,
+    ): ViveResult<String> = apiCall {
+        service.enrolSpeaker(
+            sessionId,
+            EnrolmentRequestDto(
+                audioB64 = android.util.Base64.encodeToString(
+                    pcm, android.util.Base64.NO_WRAP),
+                label = label,
+            ),
+        )
+    }.map { if (it.enrolled) "enrolled" else it.reason }
+
+    suspend fun clearEnrolment(sessionId: String): ViveResult<String> =
+        apiCall { service.clearEnrolment(sessionId) }.map { it.reason }
 
     suspend fun closeStream(sessionId: String) = stream.close(sessionId)
 }

@@ -3,6 +3,8 @@ package com.vive.ui.screens
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vive.audio.AudioAuthorization
+import com.vive.audio.AudioFormat
 import com.vive.audio.CaptureController
 import com.vive.audio.CaptureState
 import com.vive.audio.MicrophoneAudioSource
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Shared state holders.
@@ -239,6 +242,66 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
         }
     }
 
+    private val _enrolment = MutableStateFlow<String?>(null)
+    /** Last enrolment outcome, for the UI. Null means nothing attempted yet. */
+    val enrolment: StateFlow<String?> = _enrolment.asStateFlow()
+
+    /**
+     * Records a reference voice and enrols it.
+     *
+     * Captures [ENROLMENT_SECONDS] of audio through the same microphone source
+     * the live path uses, sends it once, and keeps nothing locally. The
+     * backend stores the embedding and discards the audio, so neither side
+     * retains a recording of the speaker's voice.
+     *
+     * Until a voice is enrolled the speaker channel reports NO_REFERENCE on
+     * every packet, which is not a mismatch and is not a failure - it is the
+     * honest state of a comparison with nothing to compare against
+     * (docs/BLOCKERS.md O3).
+     */
+    fun enrolSpeaker(context: Context, label: String? = null) {
+        if (_enrolment.value == ENROLLING) return
+        _enrolment.value = ENROLLING
+        viewModelScope.launch {
+            val source = MicrophoneAudioSource(context.applicationContext)
+            if (source.authorization() !is AudioAuthorization.Granted) {
+                _enrolment.value = "Microphone permission is required to enrol."
+                return@launch
+            }
+            val collected = java.io.ByteArrayOutputStream()
+            val target = AudioFormat.bytesFor(ENROLMENT_SECONDS)
+            val outcome = withTimeoutOrNull(ENROLMENT_TIMEOUT_MS) {
+                source.start { chunk ->
+                    collected.write(chunk)
+                    if (collected.size() >= target) source.stop()
+                }
+            }
+            if (outcome == null) source.stop()
+
+            val pcm = collected.toByteArray()
+            if (pcm.size < target) {
+                _enrolment.value =
+                    "Not enough audio captured. Speak for a few seconds and retry."
+                return@launch
+            }
+            _enrolment.value = when (val result =
+                ServiceLocator.enrolSpeaker(sessionId, pcm, label)) {
+                is ViveResult.Success -> result.data
+                is ViveResult.Failure -> result.error.message
+            }
+            refresh()
+        }
+    }
+
+    fun clearEnrolment() {
+        viewModelScope.launch {
+            _enrolment.value = when (val result = ServiceLocator.clearEnrolment(sessionId)) {
+                is ViveResult.Success -> result.data
+                is ViveResult.Failure -> result.error.message
+            }
+        }
+    }
+
     /** Stops the microphone without ending the backend session. */
     fun stopCapture() {
         capture?.stop()
@@ -288,6 +351,11 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
 
     private companion object {
         const val TAG = "SessionDetailViewModel"
+        const val ENROLLING = "Recording reference voice..."
+
+        /** The backend refuses anything shorter than 3 s, so capture 4 s. */
+        const val ENROLMENT_SECONDS = 4.0
+        const val ENROLMENT_TIMEOUT_MS = 15_000L
     }
 
     fun refresh() = viewModelScope.launch {

@@ -232,6 +232,37 @@ class MockSpeakerAdapter(_MockInfo):
     def available(self) -> bool:
         return True
 
+    MIN_ENROLMENT_SECONDS = 3.0
+
+    def enrol(self, pcm: bytes) -> list[float] | None:
+        """Scripted enrolment: a deterministic vector, never a real voiceprint.
+
+        Returns None for audio shorter than the real adapter would accept, so
+        the mock exercises the same rejection path a demo would hit.
+        """
+        if len(pcm or b"") < int(self.MIN_ENROLMENT_SECONDS * 16_000) * 2:
+            return None
+        seed = _stable_unit(str(len(pcm)))
+        return [round(seed + i * 0.001, 6) for i in range(8)]
+
+    def compare(self, window: AudioWindow,
+                reference_embedding: list[float] | None) -> SpeakerResult:
+        if not reference_embedding:
+            return SpeakerResult(
+                status=AnalyzerStatus.NO_REFERENCE,
+                model_version=self.version,
+                mode=self.mode,
+                similarity=None,
+            )
+        similarity = round(0.35 + 0.4 * _stable_unit(str(window.seq)), 4)
+        return SpeakerResult(
+            status=AnalyzerStatus.AVAILABLE,
+            model_version=self.version,
+            mode=self.mode,
+            similarity=similarity,
+            inference_ms=6,
+        )
+
     def analyze(self, window: AudioWindow, reference: bytes | None) -> SpeakerResult:
         if not reference:
             return SpeakerResult(

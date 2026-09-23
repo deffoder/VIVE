@@ -2,6 +2,8 @@ package com.vive.data.remote
 
 import com.vive.data.remote.dto.AlertDto
 import com.vive.data.remote.dto.CreateSessionRequestDto
+import com.vive.data.remote.dto.EnrolmentRequestDto
+import com.vive.data.remote.dto.EnrolmentResponseDto
 import com.vive.data.remote.dto.CreateSessionResponseDto
 import com.vive.data.remote.dto.ModelInfoDto
 import com.vive.data.remote.dto.PacketDto
@@ -42,6 +44,18 @@ interface ViveService {
 
     @POST("api/v1/sessions/{id}/end")
     suspend fun endSession(@Path("id") sessionId: String): Response<SessionDto>
+
+    /** Enrols a reference voice. The backend keeps the embedding, not the audio. */
+    @POST("api/v1/sessions/{id}/enrolment")
+    suspend fun enrolSpeaker(
+        @Path("id") sessionId: String,
+        @Body body: EnrolmentRequestDto,
+    ): Response<EnrolmentResponseDto>
+
+    @DELETE("api/v1/sessions/{id}/enrolment")
+    suspend fun clearEnrolment(
+        @Path("id") sessionId: String,
+    ): Response<EnrolmentResponseDto>
 
     @GET("api/v1/sessions/{id}/packets")
     suspend fun listPackets(

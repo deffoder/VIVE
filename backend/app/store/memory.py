@@ -31,7 +31,23 @@ class SessionRecord:
     temporal: TemporalState = field(default_factory=TemporalState)
     next_seq: int = 1
     reference_audio: bytes | None = None
-    """Speaker enrolment reference. Always None until O3 is resolved."""
+    """Legacy raw-audio reference. Superseded by `reference_embedding`.
+
+    Kept only so the older `analyze(window, reference)` adapter path still
+    compiles; nothing sets it. Storing a recording of someone's voice to use
+    as a reference keeps a copy of their voice for no purpose the embedding
+    does not already serve (docs/SECURITY_SPEC.md 4).
+    """
+
+    reference_embedding: list[float] | None = None
+    """Enrolled speaker voiceprint, as an embedding rather than audio.
+
+    None means nobody is enrolled, which yields `NO_REFERENCE` - never a
+    mismatch (docs/BLOCKERS.md O3).
+    """
+
+    enrolled_at: str | None = None
+    enrolment_label: str | None = None
 
 
 class EventStore(Protocol):

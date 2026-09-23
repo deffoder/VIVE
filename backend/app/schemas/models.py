@@ -339,6 +339,28 @@ class Alert(BaseModel):
     acknowledged: bool = False
 
 
+class EnrolmentRequest(BaseModel):
+    """Reference audio for speaker enrolment.
+
+    16 kHz mono pcm_s16le, base64-encoded. At least 3 seconds: Phase 9
+    measured that a 2 s window moves the operating point sharply, so a short
+    reference would anchor every later comparison badly (BLOCKERS O3).
+    """
+
+    model_config = _Strict
+    audio_b64: str = Field(max_length=16_000_000)
+    label: str | None = Field(default=None, max_length=64)
+
+
+class EnrolmentResponse(BaseModel):
+    model_config = _Strict
+    session_id: str
+    enrolled: bool
+    reason: str
+    enrolled_at: str | None = None
+    label: str | None = None
+
+
 # ------------------------------------------------------------------- policy
 
 

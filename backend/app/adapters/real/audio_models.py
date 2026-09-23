@@ -377,11 +377,83 @@ class EcapaSpeakerAdapter(_RealAudioAdapter):
         self._load_ms = int((time.perf_counter() - began) * 1000)
         return self._status
 
+    MIN_ENROLMENT_SECONDS = 3.0
+    """Shortest audio accepted for enrolment.
+
+    Phase 9 measured that a 2 s window moves the operating point sharply - the
+    genuine-pair median similarity falls 0.813 -> 0.555 and the EER threshold
+    0.554 -> 0.292 (docs/BLOCKERS.md O3). A reference built from a window that
+    short would be a poor anchor for every later comparison, so enrolment asks
+    for more audio than analysis does.
+    """
+
     def _embed(self, samples):
         import torch
         with torch.no_grad():
             return self._model.encode_batch(
                 torch.from_numpy(samples).unsqueeze(0)).squeeze()
+
+    def enrol(self, pcm: bytes) -> list[float] | None:
+        """Turns enrolment audio into a reference embedding.
+
+        Returns the 192-dim embedding, or None when the audio is too short to
+        anchor anything. The caller stores the EMBEDDING and discards the
+        audio: a voiceprint is sensitive, and keeping the recording as well
+        would be keeping a copy of someone's voice for no additional purpose
+        (docs/SECURITY_SPEC.md 4).
+        """
+        if self._status is not AnalyzerStatus.AVAILABLE:
+            return None
+        samples = _pcm_to_float(pcm or b"")
+        if samples.size < int(self.MIN_ENROLMENT_SECONDS * SAMPLE_RATE):
+            return None
+        try:
+            return [float(v) for v in self._embed(samples).flatten()]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("enrolment failed: %s", type(exc).__name__)
+            return None
+
+    def compare(self, window: AudioWindow,
+                reference_embedding: list[float] | None) -> SpeakerResult:
+        """Compares a window against a stored reference embedding.
+
+        Preferred over passing raw reference audio on every packet: that
+        re-embedded the same recording once per second and required the audio
+        itself to be retained. With an embedding the reference costs one
+        forward pass at enrolment and 192 floats thereafter.
+        """
+        if self._status is not AnalyzerStatus.AVAILABLE:
+            return SpeakerResult(status=self._status, model_version=self.version,
+                                 mode=self.mode, similarity=None)
+        if not reference_embedding:
+            # No enrolment is NOT a mismatch and must never read as one.
+            return SpeakerResult(status=AnalyzerStatus.NO_REFERENCE,
+                                 model_version=self.version, mode=self.mode,
+                                 similarity=None)
+        began = time.perf_counter()
+        try:
+            import numpy as np
+            import torch
+
+            samples = _pcm_to_float(window.pcm or b"")
+            if samples.size < SILERO_FRAME:
+                return SpeakerResult(status=AnalyzerStatus.INSUFFICIENT_AUDIO,
+                                     model_version=self.version,
+                                     mode=self.mode, similarity=None)
+            embedding = self._embed(samples).flatten()
+            reference = torch.from_numpy(
+                np.asarray(reference_embedding, dtype="float32"))
+            similarity = round(float(torch.nn.functional.cosine_similarity(
+                embedding, reference, dim=0)), 4)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("speaker comparison failed: %s", type(exc).__name__)
+            return SpeakerResult(status=AnalyzerStatus.INFERENCE_ERROR,
+                                 model_version=self.version, mode=self.mode,
+                                 similarity=None)
+        return SpeakerResult(
+            status=AnalyzerStatus.AVAILABLE, model_version=self.version,
+            mode=self.mode, similarity=similarity,
+            inference_ms=int((time.perf_counter() - began) * 1000))
 
     def analyze(self, window: AudioWindow,
                 reference: bytes | None = None) -> SpeakerResult:

@@ -134,8 +134,43 @@ diverge from the design references.
 - **Scope:** LibriSpeech is clean English audiobook read speech - the easy
   case. Not comparable to published VoxCeleb ECAPA numbers, and VoxCeleb
   itself is still unavailable (O5).
-- **Required external action:** decision on enrolment source, with its consent
-  and retention obligations (`SECURITY_SPEC.md` §4).
+- **Enrolment implemented (2026-09-23).** The mechanism now exists, which it
+  did not before: the channel reported `NO_REFERENCE` on every packet of every
+  session because there was no way to create a reference at all.
+  - `POST /api/v1/sessions/{id}/enrolment` takes base64 PCM, embeds it and
+    keeps **only the embedding**. `DELETE` removes it. The audio is discarded
+    on both sides - a voiceprint is sensitive, and retaining the recording as
+    well would keep a copy of someone's voice for no purpose the embedding
+    does not already serve (`SECURITY_SPEC.md` §4). A test asserts a marker
+    placed in the enrolment audio never appears in the database file.
+  - Audio shorter than **3 seconds is refused** rather than enrolled badly.
+    Phase 9 measured that a 2 s window moves the genuine-pair median from
+    0.813 to 0.555, so a short reference would anchor every later comparison
+    poorly.
+  - Comparison uses the stored embedding instead of re-embedding reference
+    audio once per packet: one forward pass at enrolment, 192 floats
+    thereafter.
+  - Android records 4 s through the same microphone source the live path uses
+    and uploads it once.
+- **Measured on real speakers** (LibriSpeech `speaker_id` as ground truth,
+  enrolled from one clip and compared against others):
+
+  | Comparison | Cosine similarity |
+  |---|---:|
+  | same speaker, full utterance | **0.8451** |
+  | same speaker, VIVE's 2 s window | 0.7240 |
+  | different speaker (id 1320) | 0.0846 |
+  | different speaker (id 5639) | -0.0276 |
+
+- **What is still open, and it is the original question.** The *mechanism*
+  exists; the *product decision* does not. Who enrols, when, with what consent
+  and for how long the voiceprint is retained are unanswered, and no threshold
+  has been adopted - Phase 9 showed a fixed 0.5 would falsely reject 29.33% of
+  genuine 2 s windows, so the number has to come from a measurement against
+  the deployment's own audio.
+- **Required external action:** decision on enrolment source and retention,
+  with its consent obligations (`SECURITY_SPEC.md` §4), and a threshold set
+  from measured data rather than chosen by eye.
 
 ### O4 — Backend persistence engine · `RESOLVED`
 
