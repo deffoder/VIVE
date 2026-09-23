@@ -1,0 +1,220 @@
+{
+  "experiment_id": "10F_tamil_gate_hazard",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T11:12:38+00:00",
+  "question": "The Tamil gate is correct and enforced. What does it prevent? Specifically: can the encoder represent Tamil at all, and what do the fine-tuned heads predict when Tamil reaches them anyway?",
+  "hypothesis": "The tokenizer will cover Tamil comparably to Hindi, because the pretraining set included it - so the gate is a data limitation, not an architectural one. The heads will NOT fail safe: a classifier that has never seen a script has no mechanism for recognising it as unfamiliar, so predictions on Tamil should look arbitrary rather than conservative.",
+  "method": "Run real FLEURS transcriptions through the tokenizer and then through both heads with the language gate bypassed. Hindi and English run identically as supported-language controls, so the Tamil figure is read as a difference.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "0740c140a4cec65cc7fb805eae918ada254f5b05",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.14.0+cpu",
+      "onnxruntime": "1.30.0",
+      "transformers": "5.17.0",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "not installed",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": null,
+    "torch_cuda_available": false,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "google/fleurs ta_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 250,
+      "language": "ta",
+      "modality": "transcription text only"
+    },
+    {
+      "name": "google/fleurs hi_in",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 250,
+      "language": "hi",
+      "modality": "transcription text only"
+    },
+    {
+      "name": "google/fleurs en_us",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 250,
+      "language": "en",
+      "modality": "transcription text only"
+    }
+  ],
+  "models": [
+    {
+      "name": "intent-classifier",
+      "revision": "intent-classifier-distilbert-v1",
+      "license": "in-repo (fine-tuned from distilbert-base-multilingual-cased, Apache-2.0)"
+    },
+    {
+      "name": "behavior-classifier",
+      "revision": "behavior-classifier-distilbert-v1",
+      "license": "in-repo (fine-tuned from distilbert-base-multilingual-cased, Apache-2.0)"
+    }
+  ],
+  "results": {
+    "gate_still_enforced": {
+      "intent_status_for_ta": "UNSUPPORTED_LANGUAGE",
+      "behaviour_status_for_ta": "UNSUPPORTED_LANGUAGE",
+      "intent_status_for_hi": "AVAILABLE",
+      "gate_declines_tamil": true
+    },
+    "tokenizer_coverage": {
+      "ta": {
+        "sentences": 250,
+        "tokens": 14722,
+        "unknown_token_rate": 0.0,
+        "tokens_per_character": 0.3962
+      },
+      "hi": {
+        "sentences": 250,
+        "tokens": 12526,
+        "unknown_token_rate": 0.00064,
+        "tokens_per_character": 0.3958
+      },
+      "en": {
+        "sentences": 250,
+        "tokens": 7151,
+        "unknown_token_rate": 0.00084,
+        "tokens_per_character": 0.2233
+      }
+    },
+    "heads_with_gate_bypassed": {
+      "ta": {
+        "supported_language": false,
+        "sentences": 250,
+        "intent_distribution": {
+          "NORMAL_CONVERSATION": 191,
+          "UNKNOWN": 59
+        },
+        "false_alarm_rate": 0.0,
+        "confident_false_alarm_rate": 0.0,
+        "median_confidence": 0.9512,
+        "median_normalised_entropy": 0.0923,
+        "median_false_alarm_confidence": null,
+        "behaviour_distribution": {
+          "NORMAL": 231,
+          "REWARD_PROMISE": 14,
+          "FEAR": 5,
+          "AUTHORITY_IMPERSONATION": 2,
+          "URGENCY": 1
+        },
+        "non_normal_behaviour_rate": 0.076,
+        "examples": []
+      },
+      "hi": {
+        "supported_language": true,
+        "sentences": 250,
+        "intent_distribution": {
+          "NORMAL_CONVERSATION": 198,
+          "UNKNOWN": 52
+        },
+        "false_alarm_rate": 0.0,
+        "confident_false_alarm_rate": 0.0,
+        "median_confidence": 0.9833,
+        "median_normalised_entropy": 0.0369,
+        "median_false_alarm_confidence": null,
+        "behaviour_distribution": {
+          "NORMAL": 196,
+          "FEAR": 27,
+          "AUTHORITY_IMPERSONATION": 21,
+          "URGENCY": 19,
+          "REWARD_PROMISE": 15,
+          "PRESSURE": 2
+        },
+        "non_normal_behaviour_rate": 0.216,
+        "examples": []
+      },
+      "en": {
+        "supported_language": true,
+        "sentences": 250,
+        "intent_distribution": {
+          "UNKNOWN": 132,
+          "NORMAL_CONVERSATION": 117,
+          "THREAT_OR_INTIMIDATION": 1
+        },
+        "false_alarm_rate": 0.004,
+        "confident_false_alarm_rate": 0.0,
+        "median_confidence": 0.9103,
+        "median_normalised_entropy": 0.1305,
+        "median_false_alarm_confidence": 0.6348,
+        "behaviour_distribution": {
+          "NORMAL": 228,
+          "FEAR": 10,
+          "AUTHORITY_IMPERSONATION": 8,
+          "URGENCY": 4,
+          "REWARD_PROMISE": 4,
+          "PRESSURE": 2
+        },
+        "non_normal_behaviour_rate": 0.088,
+        "examples": [
+          {
+            "text": "entertainment news website tmz understands the photographer stopped his vehicle on the oth",
+            "intent": "THREAT_OR_INTIMIDATION",
+            "confidence": 0.6348,
+            "behaviours": [
+              "AUTHORITY_IMPERSONATION",
+              "FEAR"
+            ]
+          }
+        ]
+      }
+    },
+    "comparison": {
+      "tamil_false_alarm_rate": 0.0,
+      "hindi_false_alarm_rate": 0.0,
+      "english_false_alarm_rate": 0.004,
+      "tamil_confident_false_alarm_rate": 0.0,
+      "tamil_unknown_token_rate": 0.0,
+      "hindi_unknown_token_rate": 0.00064,
+      "encoder_represents_tamil": true,
+      "heads_fail_safe_on_tamil": true,
+      "median_entropy": {
+        "ta": 0.0923,
+        "hi": 0.0369,
+        "en": 0.1305
+      },
+      "tamil_output_resembles_supported_language": true
+    }
+  },
+  "interpretation": "The tokenizer covers Tamil at an unknown-token rate of 0.0 against 0.00064 for Hindi, so the encoder can represent the script: the gate follows from the training corpus, not from the architecture. On the operational question, the hypothesis is REFUTED. Benign Tamil produced a non-normal intent on 0.0 of sentences against 0.0 for Hindi, so the heads do not misfire on Tamil news - they behave as they do on a language they support (English 0.004). The output distribution on Tamil closely resembles Hindi's (normalised entropy 0.0923 against 0.0369), which is consistent with the multilingual encoder carrying some of the decision across scripts - but consistent is not evidence, and cross-lingual transfer cannot be confirmed without labelled Tamil data.",
+  "limitations": [
+    "Only the NEGATIVE class is measured. There is no labelled Tamil scam text (O11), so this shows what the heads do on benign Tamil and says nothing about whether they would catch a Tamil scam. No Tamil accuracy figure exists and none may be inferred from this.",
+    "FLEURS is read news, not conversational speech, in all three languages. The absolute false-alarm rates therefore describe news text; the comparison between languages is the meaningful part, because the domain shift is identical across them.",
+    "Treating every FLEURS sentence as NORMAL_CONVERSATION is an assumption about the corpus, not a human annotation. A news sentence quoting a threat would be counted as a false alarm when the head was arguably right. This inflates all three rates equally and so does not bias the comparison.",
+    "Tokenizer coverage measures whether a script survives the shared vocabulary. It does not measure whether the fine-tuned head learned anything transferable, which would need labelled Tamil data to establish.",
+    "The gate was bypassed by passing language=None, which is a test-only path. The production call sites always pass a language, and Phase 10 pinned that with tests at three layers."
+  ],
+  "conclusion": "The gate cannot be justified by a measured false-alarm rate, because on benign text there is not one. That is a weaker justification than expected and it is the one the evidence supports. The gate still stands, on the ground it always rested on: no labelled Tamil scam text exists (O11), so the POSITIVE class is unmeasured and unmeasurable here. A head that never raises an alarm on benign Tamil tells you nothing about whether it would raise one on a Tamil scam, and shipping a detector whose detection rate is unknown is not made acceptable by a clean false-alarm rate. What has changed is the argument: the gate is a refusal to report an unvalidated capability, not a guard against an observed hazard, and it must be described that way rather than dramatised. Since the encoder already represents Tamil, the required external action is unchanged and remains commissioning labelled Tamil text (DATA_SPEC 8.3) - a test split first, because without one no Tamil claim can be checked even if training data arrived tomorrow.",
+  "configuration": {
+    "sentences_per_language": 250,
+    "gate_bypass": "analyze(text, language=None)",
+    "supported_languages": [
+      "en",
+      "hi",
+      "hi-en"
+    ],
+    "benign_intent": "NORMAL_CONVERSATION",
+    "benign_behaviour": "NORMAL"
+  },
+  "runtime_sec": 740.0
+}

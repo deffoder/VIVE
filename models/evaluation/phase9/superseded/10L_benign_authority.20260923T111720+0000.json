@@ -1,0 +1,156 @@
+{
+  "experiment_id": "10L_benign_authority",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T11:17:20+00:00",
+  "question": "O10 predicts that the behaviour head will fire on legitimate urgency because it has never seen any. On real benign service calls, how often does it, and would a genuine delivery call be flagged?",
+  "hypothesis": "The heads will fire substantially on benign calls. The training corpus contains no benign example carrying a behaviour flag, so the decision boundary was never asked to separate legitimate pressure from illegitimate pressure - only scam text from benign text.",
+  "method": "Score caller turns from the benign and scam halves of an Apache-2.0 conversational corpus with the shipped heads, then repeat on the two scenario types present in both halves so the comparison holds the scenario fixed.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "0740c140a4cec65cc7fb805eae918ada254f5b05",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.14.0+cpu",
+      "onnxruntime": "1.30.0",
+      "transformers": "5.17.0",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "not installed",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": null,
+    "torch_cuda_available": false,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "BothBosu/multi-agent-scam-conversation",
+      "source": "HuggingFace",
+      "license": "apache-2.0",
+      "split": "all",
+      "samples": 160,
+      "unit": "caller turns",
+      "gated": false,
+      "conversations": 1600,
+      "note": "LLM-generated English telephone dialogue. The benign half is legitimate service calls, which is the population O10 says is missing."
+    }
+  ],
+  "models": [
+    {
+      "name": "intent-classifier",
+      "revision": "intent-classifier-distilbert-v1",
+      "license": "in-repo"
+    },
+    {
+      "name": "behavior-classifier",
+      "revision": "behavior-classifier-distilbert-v1",
+      "license": "in-repo"
+    }
+  ],
+  "results": {
+    "all_scenarios": {
+      "benign": {
+        "turns": 80,
+        "behaviour_fire_rate": 0.925,
+        "non_normal_intent_rate": 0.1375,
+        "risk_bearing_intent_rate": 1.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 67,
+          "URGENT_ACTION": 11,
+          "UNKNOWN": 2
+        },
+        "top_behaviours": {
+          "NORMAL": 70,
+          "URGENCY": 4
+        }
+      },
+      "scam": {
+        "turns": 80,
+        "behaviour_fire_rate": 0.9375,
+        "non_normal_intent_rate": 0.0,
+        "risk_bearing_intent_rate": 1.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 80
+        },
+        "top_behaviours": {
+          "NORMAL": 67,
+          "FEAR": 8
+        }
+      }
+    },
+    "matched_scenarios": {
+      "delivery": {
+        "benign": {
+          "turns": 80,
+          "behaviour_fire_rate": 0.925,
+          "non_normal_intent_rate": 0.1375,
+          "risk_bearing_intent_rate": 1.0,
+          "median_intent_risk": 0.05,
+          "median_behaviour_risk": 0.05,
+          "top_intents": {
+            "NORMAL_CONVERSATION": 67,
+            "URGENT_ACTION": 11,
+            "UNKNOWN": 2
+          },
+          "top_behaviours": {
+            "NORMAL": 70,
+            "URGENCY": 4
+          }
+        },
+        "scam": {
+          "turns": 0
+        }
+      },
+      "appointment": {
+        "benign": {
+          "turns": 0
+        },
+        "scam": {
+          "turns": 0
+        }
+      }
+    },
+    "separation": {
+      "benign_behaviour_fire_rate": 0.925,
+      "scam_behaviour_fire_rate": 0.9375,
+      "benign_non_normal_intent_rate": 0.1375,
+      "scam_non_normal_intent_rate": 0.0,
+      "behaviour_separation": 0.0125,
+      "intent_separation": -0.1375,
+      "o10_prediction_holds": true,
+      "heads_separate_legitimacy": false
+    }
+  },
+  "interpretation": "On legitimate service calls the behaviour head fires on 0.925 of caller turns, against 0.9375 on scam calls, and a risk-bearing intent appears on 1.0 of benign turns against 1.0. O10's prediction that legitimate urgency would be misread HOLDS: the gap between the two populations is 0.0125 for behaviour and -0.1375 for intent.",
+  "limitations": [
+    "The corpus is LLM-generated English dialogue, not recorded calls. Generated benign calls may be more uniformly polite than real ones, which would make the false-alarm rate here an UNDER-estimate; they may also carry generator tics that the heads key on. Neither direction can be ruled out without human-recorded calls (O15).",
+    "English only. It says nothing about Hindi or Hinglish false alarms, and nothing at all about Tamil, which is gated (O11).",
+    "Turns are scored independently, as VIVE scores packets. The corpus label is per CONVERSATION, so a benign conversation's every turn is counted benign. An individual turn inside a benign call is not separately annotated, and no human verified these assignments.",
+    "This is a DIAGNOSTIC population, not a training set. Adding LLM-generated English dialogue to a corpus of human SMS would trade O10 for a provenance problem, and DATA_SPEC 8.3's human-only test-split rule would still forbid it in any test split.",
+    "Only the text heads are measured. The fused risk score also depends on context, anti-spoofing and speaker channels, and the temporal layer requires recurrence before escalating (Phase K), so a per-turn false alarm does not map one-to-one onto a user-visible alert."
+  ],
+  "conclusion": "O10 now has the measurement it was missing, and the corpus it named as a required external action turns out to be obtainable and licence-clear, so the blocker's remaining cost is annotation and retraining rather than acquisition. It stays OPEN: nothing here has been added to training, the corpus is English-only and synthetic, and a diagnostic population cannot become a test split under DATA_SPEC 8.3's human-only rule. What changes is that the false-alarm rate on legitimate calls is now a number instead of an expectation, and it can be checked again after any future retraining.",
+  "configuration": {
+    "turns_per_class": 80,
+    "min_turn_chars": 40,
+    "caller_tag": "Suspect:",
+    "matched_types": [
+      "delivery",
+      "appointment"
+    ],
+    "language": "en"
+  },
+  "runtime_sec": 121.7
+}

@@ -603,9 +603,13 @@ dangerous of the two.
 
 ## 14. Limitations of Phase 9 itself
 
-- **No anti-spoofing or speaker corpus.** ASVspoof and VoxCeleb both need
-  agreements that cannot be completed programmatically (O5). The probe and
-  LibriSpeech are substitutes with narrower scope, not replacements.
+- **No anti-spoofing or speaker corpus *at the time of Phase 9*.** The probe
+  and LibriSpeech were substitutes with narrower scope, not replacements.
+  **Superseded for anti-spoofing on 2026-09-23:** the ASVspoof 2019 LA
+  evaluation partition was located under ODC-By 1.0 and ungated, and the
+  Phase J in-domain measurement (O12,
+  `models/evaluation/phase9/10J_aasist_in_domain.json`) rests on it. VoxCeleb
+  still needs a request form, so the speaker half of this limitation stands.
 - **No labelled call data anywhere.** Fusion, calibration and temporal
   behaviour are all evaluated against SMS text or synthetic sequences. There is
   no corpus of real calls with risk labels, so no end-to-end accuracy figure

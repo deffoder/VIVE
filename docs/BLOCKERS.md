@@ -200,7 +200,19 @@ diverge from the design references.
   different engine, and the `EventStore` interface still makes that a
   constructor change.
 
-### O5 — Audio corpora for anti-spoofing and speaker evaluation not acquired · `OPEN`
+### O5 — Audio corpora for anti-spoofing and speaker evaluation not acquired · `PARTIALLY RESOLVED`
+
+> **Anti-spoofing half RESOLVED 2026-09-23 (Phase J).** The stated cause was
+> wrong. ASVspoof 2019 LA was never unobtainable - only unfound. The
+> **evaluation partition** is redistributed on HuggingFace as
+> `SpeechAntiSpoofingBenchmarks/ASVspoof2019_LA` under **ODC-By 1.0**,
+> ungated, with the full licence text in the repository as `LICENSE.txt`,
+> which was read before download. ODC-By is the licence the original
+> Edinburgh DataShare release carries. No registration or agreement was
+> involved. The lesson is recorded rather than quietly deleted: "requires a
+> registration that cannot be completed programmatically" was an assumption
+> about the canonical distribution channel, and it was never re-tested against
+> mirrors. **The speaker half (VoxCeleb) remains OPEN.**
 
 > Restated 2026-09-21. The original wording — *no candidate dataset has a
 > verified license* — is no longer true and would misrepresent the state of the
@@ -237,10 +249,14 @@ diverge from the design references.
     so it needs the account holder to accept terms and **was not downloaded**.
   - The `generator_disjoint` and `speaker_disjoint` evaluation splits stay
     blocked.
-- **Required external action:** complete the ASVspoof and VoxCeleb access
-  requests, or accept that anti-spoofing and speaker performance are
-  unquantified against their proper benchmarks and say so wherever they are
-  presented.
+- **Anti-spoofing corpus acquired (2026-09-23, Phase J).** 300 bonafide and
+  300 spoof clips from the LA **evaluation** partition, streamed from the
+  ODC-By redistribution above. Results in O12. The corpus is not committed:
+  it is cached under `models/artifacts/` , which is git-ignored.
+- **Required external action:** complete the VoxCeleb access request, or
+  accept that speaker performance is unquantified against its proper
+  benchmark and say so wherever it is presented. Anti-spoofing no longer
+  needs an external action.
 
 ### O6 — Fusion weights unvalidated · `OPEN`
 
@@ -394,6 +410,11 @@ diverge from the design references.
 
 ### O12 — AASIST shows no measured discrimination · `OPEN`
 
+> **Diagnosed 2026-09-23 (Phase J).** The integration is proven correct
+> against ASVspoof 2019 LA eval and the cause is isolated as transfer failure.
+> See the Phase J block below; the required action changed from "investigate"
+> to "replace the model or drop the channel".
+>
 > **Escalated 2026-09-22 (Phase 9).** The original wording — *unreliable out of
 > domain* — understated it. A 120-clip two-class measurement now shows the
 > checkpoint separating synthetic from genuine speech **at chance**. The
@@ -499,11 +520,64 @@ diverge from the design references.
   measurement showing that inference carries no usable signal on this kind of
   audio. **No synthetic-voice detection capability may be claimed, and the
   anti-spoof score must not be presented to a user as evidence.**
-- **Required external action:** acquire a real anti-spoofing corpus (O5) and
-  measure EER in-domain and out-of-domain. Then one of: calibrate, replace the
-  model, or drop the channel. Dropping it would also resolve most of O13,
-  since it is ~45% of the packet budget. That decision is Phase 10 and needs
-  the corpus first.
+- **ANSWERED 2026-09-23 (Phase J, `models/evaluation/phase9/10J_aasist_in_domain.json`).**
+  The corpus arrived (O5) and it settles what the probe could not. A
+  chance-level result off-domain is equally consistent with a broken
+  integration and with a model that does not transfer, and those call for
+  opposite responses. Running VIVE's own code path over the ASVspoof 2019 LA
+  **evaluation** partition - the set AASIST reports 0.83% EER on -
+  distinguishes them.
+
+  | Measurement | Result |
+  |---|---:|
+  | VIVE readout, reference recipe, 600 clips | **EER 0.0133**, ROC AUC 0.9993 |
+  | AASIST published, full partition | 0.0083 |
+  | Official readout (`-logits[1]`) | 0.0133 |
+  | Logit margin (`logits[0] - logits[1]`) | 0.0133 |
+  | Inverted readout (direction control) | 0.9867 |
+  | **The live adapter**, 2 s windows at 1 s stride | **EER 0.0000**, AUC 1.0 |
+
+  Three independent readouts agree to four decimal places, and the inverted
+  control lands at exactly 1 minus the result, which confirms by construction
+  that index 0 is the spoof class rather than by reading upstream source. The
+  shipped adapter - rolling buffer, overlap arithmetic, no-padding policy and
+  all - separates the classes perfectly on the clips it scores.
+
+  **The integration is correct. Every part of it.**
+- **Gain was the one remaining integration hypothesis, and it is excluded.**
+  AASIST consumes a raw waveform and normalises nothing, and ASVspoof sits
+  around RMS 0.13 against the probe's 0.05. Rescaling the in-domain clips to
+  the probe's level left EER at 0.0133 - unchanged. Rescaling the probe up to
+  the in-domain level left it at 0.6667 - still chance. Level is not the
+  variable.
+- **Window length is not the variable either.** Phase 9 swept window length
+  on the probe and found nothing at any length, which could not distinguish
+  "short windows carry no anti-spoofing evidence" from "this probe carries
+  none". In-domain the sweep has an answer: EER 0.2375 at 1.0 s, **0.0653 at
+  VIVE's own 2.0 s**, 0.0174 at 3.0 s, 0.0000 at 4.0 s. Two-second windows
+  carry ample evidence when the audio is in-domain.
+- **So the cause is isolated: AASIST does not transfer off its training
+  domain.** Nothing in VIVE can repair that, because nothing in VIVE is
+  broken. The chance-level probe result and the 0.9998-on-human-speech device
+  observation are the same phenomenon, and they are a property of the model.
+- **One consequence of the no-padding policy, measured here.** 90.7% of spoof
+  and 92.0% of bonafide LA eval clips are shorter than 4.0375 s and therefore
+  never produce a score at all. That is the correct behaviour - a score
+  decided by invented filler is worse than no score - but it means the
+  channel is silent on most short utterances, and the packet-level
+  `INSUFFICIENT_AUDIO` rate in a live call is not incidental.
+- **Required external action: none remains for diagnosis.** This is now a
+  product decision between two honest options, and calibration is not among
+  them because there is no in-domain signal to calibrate:
+  1. **Replace the model** with one selected for cross-domain robustness, and
+     evaluate it on handset-captured audio before shipping it.
+  2. **Drop the channel.** It is ~45% of the packet budget (O13) and carries
+     no measured signal on VIVE's audio, so removing it improves latency and
+     removes a misleading indicator at once.
+
+  Until one is chosen the channel stays as it is: running, reported as
+  inconclusive, bounded by `SYNTHETIC_ONLY_CEILING`, and **never presented to
+  a user as synthetic-voice evidence**.
 
 ### O11 — No Tamil text for intent or behaviour · `OPEN`
 
@@ -551,6 +625,34 @@ diverge from the design references.
 - **Current status is unchanged by that fix.** Tamil intent and behaviour
   remain **unsupported**; what changed is that the unsupported state is now
   reported correctly everywhere instead of only for one spelling of Tamil.
+- **Measured 2026-09-23 (Phase F, `models/evaluation/phase9/10F_tamil_gate_hazard.json`).**
+  The gate was justified on provenance and never tested. Two questions were
+  separable and both are now answered, using 250 real FLEURS transcriptions
+  per language (CC-BY-4.0) with Hindi and English as supported-language
+  controls.
+
+  **Can the encoder represent Tamil?** Yes. The shared vocabulary produced
+  **0.00000** unknown tokens on Tamil against 0.00064 on Hindi, at 0.3962
+  tokens per character against Hindi's 0.3958. The gate is a consequence of
+  the fine-tuning corpus, not of the architecture - which means labelled data
+  would fix it and a different model would not be needed.
+
+  **What do the heads do if Tamil reaches them?** With the gate bypassed
+  (`language=None`), benign Tamil produced a non-normal intent on **0.0000**
+  of sentences, against 0.0000 for Hindi and 0.0040 for English. None at
+  confidence 0.70 or above.
+
+  **The hypothesis was that the heads would misfire on Tamil. It is
+  REFUTED.** They fail safe on benign Tamil, indistinguishably from a
+  language they support.
+- **What that does and does not change.** It does not open the gate. Only the
+  NEGATIVE class is measurable without labelled Tamil scam text, and a head
+  that never raises an alarm on benign Tamil says nothing whatever about
+  whether it would raise one on a Tamil scam. Shipping a detector whose
+  detection rate is unknown is not made acceptable by a clean false-alarm
+  rate. What changes is the **argument**: the gate is a refusal to report an
+  unvalidated capability, not a guard against an observed hazard, and it must
+  be described that way rather than dramatised.
 - **Required external action:** commission human-authored Tamil scam text
   against the VIVE taxonomy. `DATA_SPEC.md` §8.3 sets out the plan, including
   the ~300 human records per label needed to make a single label reportable,
@@ -595,10 +697,47 @@ diverge from the design references.
   partly reflects the easier scam/not-scam boundary and **must not be
   presented as intent-discrimination accuracy**. Fusion weights remain
   provisional (O6).
-- **Required external action:** add benign records that carry
-  social-engineering behaviours, so behaviour and scam can vary independently.
-  `DATA_SPEC.md` §8.2 identifies a verified Apache-2.0 conversational corpus
-  for this. Re-calibrate fusion afterwards.
+- **Measured 2026-09-23 (Phase L, `models/evaluation/phase9/10L_benign_authority.json`).**
+  The corpus `DATA_SPEC.md` §8.2 named and deferred -
+  `BothBosu/multi-agent-scam-conversation`, Apache-2.0, ungated - was mapped
+  and used. Its benign half is 800 **legitimate** service calls: a delivery
+  firm confirming an address, a clinic confirming an appointment, an insurer
+  following up a claim. That is exactly the population O10 says the behaviour
+  head has never seen.
+
+  Scored at SENTENCE level, because VIVE classifies 2-second packets and the
+  median caller turn here is 71 words - longer than the heads' 96-token
+  limit, so turn-level scoring would measure only each turn's opening.
+
+  | Population | Behaviour alarm | Non-normal intent |
+  |---|---:|---:|
+  | Benign service calls (n=500) | **0.0040** | **0.0340** |
+  | Scam calls (n=500) | 0.0980 | 0.0060 |
+
+  **The hypothesis - that the behaviour head would fire heavily on legitimate
+  urgency - is REFUTED.** It fires on 0.4% of benign sentences and separates
+  the two populations by roughly 24x. The behaviour head carries real signal
+  and does not treat legitimate pressure as fraud.
+- **The intent head is a different matter, and it is worse than O10 predicted.**
+  It produced a non-normal intent on **3.40% of legitimate** sentences and
+  **0.60% of scam** sentences - roughly six times more often on the benign
+  population than on the fraudulent one. Nearly all of the benign firings are
+  the `delivery` scenario (12.8%). Over this population the head does not
+  merely fail to discriminate; it points the wrong way, and fusion weights it
+  more heavily than behaviour (`INTENT_RISK` reaches 0.94 against
+  `BEHAVIOR_RISK`'s 0.85). Recorded separately as **O18**, because it is a
+  transfer failure rather than a collinearity problem.
+- **Scope.** The corpus is LLM-generated English dialogue, and its scam and
+  benign halves use disjoint scenario types, so the two populations differ in
+  subject as well as in legitimacy and the separation figure is an upper
+  bound. The benign false-alarm rate does not depend on that confound.
+- **Required external action, now narrower.** The corpus is obtainable and
+  licence-clear, so acquisition is no longer the cost - annotation against
+  the VIVE taxonomy and retraining are. It stays OPEN because nothing here
+  was added to training: adding LLM-generated English dialogue to a corpus of
+  human SMS would trade O10 for a provenance problem, and `DATA_SPEC.md` §8.3
+  human-only test-split rule would forbid it in any test split regardless.
+  Re-calibrate fusion afterwards.
 
 ### O14 — Intermittent risk never escalates · `RESOLVED`
 
@@ -660,6 +799,52 @@ diverge from the design references.
   do not exist (O15).
 - **Required external action:** labelled call sequences, then re-tune the
   smoothing against a measured operating point.
+
+### O18 — The intent head does not transfer from SMS to speech · `OPEN`
+
+- **Blocker:** the intent classifier, which risk fusion weights more heavily
+  than any other text signal, fires more often on legitimate telephone calls
+  than on fraudulent ones.
+- **Measured (2026-09-23, Phase L, `models/evaluation/phase9/10L_benign_authority.json`).**
+  500 legitimate and 500 scam caller sentences from an Apache-2.0
+  conversational corpus, scored at sentence level by the shipped adapter with
+  `language="en"` - the gate satisfied, not bypassed:
+
+  | Population | Non-normal intent |
+  |---|---:|
+  | Legitimate service calls | **0.0340** |
+  | Scam calls | **0.0060** |
+
+  The direction is inverted: the head is about six times more likely to
+  report a risk-bearing intent on a genuine delivery or appointment call than
+  on a scam. 12.8% of the `delivery` scenario fires, which is the single
+  largest contributor.
+- **Cause:** the head was fine-tuned on the scamshield SMS corpus. SMS scam
+  text is short, imperative and keyword-dense ("Send OTP now"); conversational
+  scam speech is long, polite and indirect, and spreads the ask across several
+  turns. A legitimate delivery call, meanwhile, contains exactly the surface
+  forms SMS scams use - confirm your address, verify your identity, a
+  reference number - with none of the intent. This is the same shape of
+  failure as O12: a model that works on its training domain and inverts off
+  it.
+- **Why this is not O10.** O10 is about the training LABELS being collinear
+  with `is_scam`. This is about the trained MODEL not transferring to a
+  different register of the same language. A corpus with perfectly
+  independent labels would still produce this if it were still SMS.
+- **Not yet acted on in fusion, deliberately.** Down-weighting the intent
+  channel on one LLM-generated English corpus would be fitting to that
+  corpus, and the same reasoning that refused to re-weight anti-spoofing from
+  a single-family probe applies here. The measurement is recorded; the
+  re-weighting needs the corpus in O15.
+- **Interim consequence, which does apply now.** No intent-detection accuracy
+  may be claimed for conversational speech, and the Phase 7 intent macro-F1
+  of 0.9219 is an SMS figure that must never be presented as a call-analysis
+  figure. `PHASE7_REPORT.md` and any UI or deck quoting it must say which
+  register it was measured on.
+- **Required external action:** obtain or commission labelled conversational
+  scam speech in the VIVE taxonomy - the same requirement as O15 - and either
+  fine-tune on it or replace the head. Until then the intent channel is
+  unvalidated for the product's actual input.
 
 ### O15 — No labelled call data, so no end-to-end accuracy exists · `OPEN`
 

@@ -166,7 +166,7 @@ call-channel figure, and no Tamil equivalent was obtained.
 
 | Dataset | Status | Reason |
 |---|---|---|
-| ASVspoof | **NOT ACQUIRED** | Requires registration/agreement that cannot be completed programmatically. AASIST ships a usable pretrained checkpoint, so anti-spoofing works without it — but **no independent EER can be reported**. |
+| ASVspoof | **ACQUIRED 2026-09-23** | LA **evaluation** partition via `SpeechAntiSpoofingBenchmarks/ASVspoof2019_LA`, ODC-By 1.0, ungated, `LICENSE.txt` read before download. The earlier note that this required an uncompletable registration was an assumption about the canonical channel and was wrong. Used for the Phase J in-domain measurement (O12); not committed, cached under git-ignored `models/artifacts/`. |
 | VoxCeleb | **NOT ACQUIRED** | Requires a request form. ECAPA-TDNN ships pretrained weights, so speaker embedding works without it. |
 | Common Voice 17 | **AVAILABLE, not yet used** | Ungated, but no declared license in repository metadata — marked **UNVERIFIED** until the terms are read. Not used for training. |
 | IndicSynth, Vaani, ScamShield (original) | **UNVERIFIED** | Not located as openly-licensed downloadable corpora under those names. The HuggingFace `scamshield-dataset` above is a different, MIT-licensed resource. |
@@ -440,7 +440,7 @@ Rejected, with the reason recorded so the decision is not silently revisited:
 |---|---|---|
 | `facebook/mms-tts-hin`, `-tam` | CC-BY-NC-4.0 | non-commercial; same rule that rejected `facebook/mms-1b-all` in Phase 7 |
 | `ai4bharat/indic-parler-tts` | Apache-2.0 | `gated: auto` - needs account-holder acceptance; **not downloaded** |
-| ASVspoof2019 LA | registration agreement | cannot be completed programmatically (O5) |
+| ASVspoof2019 LA | ODC-By 1.0 | **no longer rejected** - acquired 2026-09-23 from an ungated ODC-By redistribution of the eval partition (O5, O12) |
 | VoxCeleb1 | request form | cannot be completed programmatically (O5) |
 
 Both SpeechT5 checkpoints ship only `pytorch_model.bin`. They were **not**

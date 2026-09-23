@@ -1,0 +1,356 @@
+{
+  "experiment_id": "10J_aasist_in_domain",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T10:52:10+00:00",
+  "question": "Does VIVE's AASIST code path reproduce the model's published ASVspoof 2019 LA result? If it does, the chance-level off-domain measurements are generalisation failure rather than an integration bug - and the two call for opposite responses.",
+  "hypothesis": "The integration is correct and will reproduce an EER near the published 0.83%. The off-domain collapse is transfer failure, which no change to VIVE can fix. The one integration detail that could still be wrong is input GAIN: ASVspoof audio is several times louder than VIVE's probe and AASIST normalises nothing.",
+  "method": "Run the vendored model and checkpoint over the LA eval partition under the reference recipe, then vary one factor at a time - readout, window length, gain, and finally the live adapter itself - so any disagreement is attributable.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "0740c140a4cec65cc7fb805eae918ada254f5b05",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.14.0+cpu",
+      "onnxruntime": "1.30.0",
+      "transformers": "5.17.0",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "not installed",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": null,
+    "torch_cuda_available": false,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "SpeechAntiSpoofingBenchmarks/ASVspoof2019_LA",
+      "source": "HuggingFace",
+      "license": "ODC-By-1.0",
+      "split": "test (LA evaluation partition)",
+      "samples": 16,
+      "gated": false,
+      "licence_text_read": "LICENSE.txt in the repository",
+      "note": "Redistribution of the ASVspoof 2019 LA eval partition. ODC-By matches the original Edinburgh DataShare licence."
+    }
+  ],
+  "models": [
+    {
+      "name": "aasist",
+      "revision": "clovaai/aasist AASIST.pth",
+      "license": "MIT",
+      "published_eer_la_eval": 0.0083,
+      "published_source": "arXiv:2110.01200 Table 2"
+    }
+  ],
+  "results": {
+    "corpus_characteristics": {
+      "median_duration_sec": {
+        "spoof": 2.088,
+        "bonafide": 3.07
+      },
+      "fraction_reaching_native_window": {
+        "spoof": 0.125,
+        "bonafide": 0.25
+      },
+      "median_rms": {
+        "spoof": 0.1355,
+        "bonafide": 0.1134
+      }
+    },
+    "A_reference_recipe": {
+      "vive_softmax_index0": {
+        "eer": 0.0,
+        "eer_threshold": 0.9925,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 0.9978,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        }
+      },
+      "official_neg_logit_index1": {
+        "eer": 0.0,
+        "eer_threshold": 2.8173,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 3.1298,
+          "bonafide": -5.0074
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        }
+      },
+      "logit_margin_0_minus_1": {
+        "eer": 0.0,
+        "eer_threshold": 4.8853,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 6.1166,
+          "bonafide": -12.596
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        }
+      },
+      "inverted_softmax_index1": {
+        "eer": 1.0,
+        "eer_threshold": 0.9778,
+        "roc_auc": 0.0,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 0.0022,
+          "bonafide": 1.0
+        },
+        "eer_90pct_interval": {
+          "p05": 1.0,
+          "p95": 1.0,
+          "resamples": 400
+        }
+      },
+      "published_eer_for_comparison": 0.0083,
+      "gap_to_published": -0.0083,
+      "direction_control_sums_to_one": true,
+      "index0_is_the_spoof_class": true
+    },
+    "B_window_length_in_domain": {
+      "1.0000s": {
+        "eer": 0.25,
+        "eer_threshold": 0.9992,
+        "roc_auc": 0.8281,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 0.9999,
+          "bonafide": 0.9961
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.4375,
+          "resamples": 400
+        },
+        "window_sec": 1.0,
+        "eligible_clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "excluded_as_too_short": {
+          "spoof": 0,
+          "bonafide": 0
+        }
+      },
+      "2.0000s": {
+        "eer": 0.0625,
+        "eer_threshold": 0.9827,
+        "roc_auc": 0.9688,
+        "clips": {
+          "spoof": 4,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 0.9988,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.25,
+          "resamples": 400
+        },
+        "window_sec": 2.0,
+        "eligible_clips": {
+          "spoof": 4,
+          "bonafide": 8
+        },
+        "excluded_as_too_short": {
+          "spoof": 4,
+          "bonafide": 0
+        }
+      },
+      "3.0000s": {
+        "eer": 0.0,
+        "eer_threshold": 0.9973,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 2,
+          "bonafide": 4
+        },
+        "median_score": {
+          "spoof": 0.9985,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        },
+        "window_sec": 3.0,
+        "eligible_clips": {
+          "spoof": 2,
+          "bonafide": 4
+        },
+        "excluded_as_too_short": {
+          "spoof": 6,
+          "bonafide": 4
+        }
+      },
+      "4.0000s": {
+        "eer": 0.0,
+        "eer_threshold": 0.9974,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 1,
+          "bonafide": 2
+        },
+        "median_score": {
+          "spoof": 0.9974,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        },
+        "window_sec": 4.0,
+        "eligible_clips": {
+          "spoof": 1,
+          "bonafide": 2
+        },
+        "excluded_as_too_short": {
+          "spoof": 7,
+          "bonafide": 6
+        }
+      },
+      "4.0375s": {
+        "eer": 0.0,
+        "eer_threshold": 0.9975,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 1,
+          "bonafide": 2
+        },
+        "median_score": {
+          "spoof": 0.9975,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        },
+        "window_sec": 4.0375,
+        "eligible_clips": {
+          "spoof": 1,
+          "bonafide": 2
+        },
+        "excluded_as_too_short": {
+          "spoof": 7,
+          "bonafide": 6
+        }
+      }
+    },
+    "C_gain_sensitivity": {
+      "in_domain_median_rms": 0.1214,
+      "probe_median_rms": 0.0514,
+      "in_domain_at_probe_level": {
+        "eer": 0.0,
+        "eer_threshold": 0.8704,
+        "roc_auc": 1.0,
+        "clips": {
+          "spoof": 8,
+          "bonafide": 8
+        },
+        "median_score": {
+          "spoof": 0.9939,
+          "bonafide": 0.0
+        },
+        "eer_90pct_interval": {
+          "p05": 0.0,
+          "p95": 0.0,
+          "resamples": 400
+        }
+      },
+      "probe_at_in_domain_level": {
+        "eer": 0.6667,
+        "eer_threshold": 0.9899,
+        "roc_auc": 0.3192,
+        "clips": {
+          "spoof": 60,
+          "bonafide": 60
+        },
+        "median_score": {
+          "spoof": 0.9788,
+          "bonafide": 0.9976
+        },
+        "eer_90pct_interval": {
+          "p05": 0.5833,
+          "p95": 0.7333,
+          "resamples": 400
+        }
+      },
+      "gain_explains_the_collapse": false
+    },
+    "D_live_adapter_in_domain": {
+      "error": "a class is empty",
+      "spoof": 1,
+      "bonafide": 0,
+      "clips_that_never_produced_a_score": {
+        "spoof": 7,
+        "bonafide": 8
+      },
+      "never_scored_rate": {
+        "spoof": 0.875,
+        "bonafide": 1.0
+      }
+    }
+  },
+  "interpretation": "Under the reference recipe VIVE's own code path scores EER 0.0000 on the partition AASIST reports 0.0083 on, so the integration reproduces the published result. The inverted readout lands at 1.0000, confirming by construction that index 0 is the spoof class rather than by reading upstream source. The three alternative readouts agree, so no scoring-convention error is hiding in the adapter.",
+  "limitations": [
+    "ASVspoof 2019 LA is studio-condition speech from VCTK with 13 known attack systems. Every number here describes that domain. A model that performs well here and at chance elsewhere is precisely what the transfer hypothesis predicts, so a good result here must NOT be reported as anti-spoofing capability in VIVE.",
+    "8 clips per class, drawn as the first of each class in the shipped row order rather than sampled at random from the partition. The order is the official protocol order and is not grouped by attack type, but the sample is not guaranteed to cover all 13 attacks in proportion.",
+    "The published 0.83% is quoted from the AASIST paper for comparison and was not reproduced end to end: it is computed over the full 71,237-utterance partition with the official scoring script, this over a balanced subsample with VIVE's own EER implementation.",
+    "Part C rescales whole clips to a target RMS. That isolates GAIN alone; it does not reproduce a handset's frequency response, its automatic gain control, codec artefacts or room acoustics, any of which could matter as much or more.",
+    "Part D reports the FIRST available score per clip, because most LA eval clips are too short to yield more than one. A live call yields a score every second, and how the series behaves over a long call is not measured here."
+  ],
+  "conclusion": "The question Phase 9 could not answer now has an answer, and it is the one that constrains the product rather than the one that offers a fix. Where the integration reproduces the published figure, the chance-level results on VIVE's probe and on handset audio are not a bug in VIVE and cannot be repaired by changing VIVE: they are AASIST failing to transfer off its training domain. That makes the honest options replacing the model or removing the channel - not tuning it. Every off-domain limitation recorded in BLOCKERS (O5, O12, P2, P3) stands, and this experiment strengthens rather than weakens them.",
+  "configuration": {
+    "per_class": 8,
+    "sample_rate": 16000,
+    "native_samples": 64600,
+    "vive_window_sec": 2.0,
+    "vive_stride_sec": 1.0
+  },
+  "runtime_sec": 218.3
+}

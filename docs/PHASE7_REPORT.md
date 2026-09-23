@@ -67,6 +67,11 @@ text.
 
 **macro-F1 = 0.9219** · weighted-F1 = 0.9799
 
+> Measured on **SMS text**. Phase L (2026-09-23) scored this head on
+> conversational telephone speech and measured the direction inverted -
+> 3.40% non-normal intent on legitimate calls against 0.60% on scam calls
+> (`BLOCKERS.md` O18). This figure is not a call-analysis figure.
+
 Macro-F1 is the headline because the class distribution is extremely
 skewed; accuracy would be dominated by the majority class.
 

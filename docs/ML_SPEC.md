@@ -684,6 +684,12 @@ multilingual DistilBERT on the scamshield corpus. Both runs completed on
 | `intent-classifier` | **0.9219** over the 7 of 12 intents with data | weighted-F1 0.9799 |
 | `behavior-classifier` | **0.7095** over all 8 behaviours | micro-F1 0.9728; 0.9460 over the 6 with data |
 
+**Both figures are measured on SMS text, and neither transfers to speech.**
+Phase L scored the same intent head on conversational telephone speech and
+found it firing on 3.40% of legitimate calls against 0.60% of scam calls -
+inverted (`BLOCKERS.md` O18). These numbers describe the register they were
+measured on and must never be quoted as call-analysis accuracy.
+
 The two denominators differ because sklearn drops absent classes from a
 single-label macro average but keeps them as zero columns in a multi-label one.
 Both are stated wherever the figures appear; neither covers the labels with no

@@ -1,7 +1,7 @@
 {
   "experiment_id": "10A_mobile_asr_candidates",
   "phase": 9,
-  "run_at_utc": "2026-09-23T07:57:44+00:00",
+  "run_at_utc": "2026-09-23T07:37:48+00:00",
   "question": "Can a phone-sized multilingual ASR cover Hindi, Tamil and English, and how much accuracy does it cost against the 2.4 GB model VIVE ships?",
   "hypothesis": "Whisper tiny and base will transcribe all three languages, so they close the English gap that O16 describes, but will be materially worse than IndicConformer on Hindi and Tamil - the question is how much worse, not whether.",
   "method": "Decode FLEURS with the language supplied, using the same normaliser and metric as every earlier VIVE ASR measurement, so rows are directly comparable.",
@@ -120,25 +120,19 @@
           "wer": 1.2954,
           "cer": 1.1481,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.0404,
-          "sample_hypothesis": "kochi arangu mein aarastir kendra kota jiska matla bhiyaa ki unme thode yab bhina kisi jith kese tutni kiprava tihoti ha"
+          "empty_hypotheses": 0
         },
         "ta": {
           "wer": 1.1718,
           "cer": 0.743,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.9998,
-          "sample_hypothesis": "இது வேதியில் பீயாச் சென்று அலைக்குப் படியில் இருக்கிறார்கள் நீங்கள் சுப்பு முடைக்கும் சாட்டிப் பயன்புட்கிற்கு ஒரு குடியா"
+          "empty_hypotheses": 0
         },
         "en": {
           "wer": 0.1657,
           "cer": 0.076,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.9916,
-          "sample_hypothesis": "however due to the slow communication channels styles in the west could lag behind by 25 to 30 years"
+          "empty_hypotheses": 0
         }
       },
       "whisper-base": {
@@ -148,25 +142,19 @@
           "wer": 1.164,
           "cer": 0.9858,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.0742,
-          "sample_hypothesis": "کچھ عالموں میں آسٹھ کینڈра کوتا ہے جس کا مطلب یہاں کی ان میں تھوڑے یا بھی نہ کسی جھت کے سے ٹھٹھنے کی پرگتی ہوتی ہے"
+          "empty_hypotheses": 0
         },
         "ta": {
           "wer": 0.9084,
           "cer": 0.4337,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.9551,
-          "sample_hypothesis": "இது வேதியில் பிக்கச்சேன் அலைக்கப்படியழு நீன்கள் சூப்பு முட்டைக்கோ சாட்டைப் பயன்பட்டுக்கு ஒரு குரியாட்டியே உருவாக்கலாம்"
+          "empty_hypotheses": 0
         },
         "en": {
           "wer": 0.1209,
           "cer": 0.0542,
           "utterances": 30,
-          "empty_hypotheses": 0,
-          "expected_script_ratio": 0.9919,
-          "sample_hypothesis": "however due to the slow communication channels styles in the west could lag behind by 25 to 30 years"
+          "empty_hypotheses": 0
         }
       }
     }
@@ -177,7 +165,6 @@
     "30 utterances per language. Differences of a few points should not be read as real.",
     "Accuracy and size only. On-device latency is NOT measured: these run as PyTorch here, and an Android deployment would be a quantised ONNX or TFLite export whose speed has to be measured on the phone.",
     "Greedy decoding with the language supplied. Whisper's own language detection is not used, because VIVE has no language-ID model and supplies the language as an input either way.",
-    "A WER above 1.0 is real here, not a harness fault. Whisper renders Hindi audio in Urdu script and sometimes romanises both Hindi and Tamil, so the hypothesis is speech in the wrong alphabet and scores as total substitution. `expected_script_ratio` records how much of each output was in the reference's own script.",
     "Whisper pads every input to 30 s, which Phase 7 measured as 5.5 s per 2 s window for large-v3-turbo. The smaller variants pay the same structural cost at a smaller constant, and that cost is not measured here."
   ],
   "conclusion": "Whether to adopt one is a product decision about which error rate is acceptable in which language, and it cannot be settled from clean-speech WER alone. What this removes is the excuse that no phone-sized option existed.",
@@ -197,5 +184,5 @@
       "ta"
     ]
   },
-  "runtime_sec": 1546.9
+  "runtime_sec": 891.7
 }

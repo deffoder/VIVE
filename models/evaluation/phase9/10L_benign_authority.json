@@ -1,0 +1,308 @@
+{
+  "experiment_id": "10L_benign_authority",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T11:30:16+00:00",
+  "question": "O10 predicts that the behaviour head will fire on legitimate urgency because it has never seen any. On real benign service calls, how often does it, and would a genuine delivery call be flagged?",
+  "hypothesis": "The heads will fire substantially on benign calls. The training corpus contains no benign example carrying a behaviour flag, so the decision boundary was never asked to separate legitimate pressure from illegitimate pressure - only scam text from benign text.",
+  "method": "Score caller turns from the benign and scam halves of an Apache-2.0 conversational corpus with the shipped heads, and break the result down by scenario. A matched contrast was intended and is not possible: the corpus's scenario types are disjoint across the two halves.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "0740c140a4cec65cc7fb805eae918ada254f5b05",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.14.0+cpu",
+      "onnxruntime": "1.30.0",
+      "transformers": "5.17.0",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "not installed",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": null,
+    "torch_cuda_available": false,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "BothBosu/multi-agent-scam-conversation",
+      "source": "HuggingFace",
+      "license": "apache-2.0",
+      "split": "all",
+      "samples": 1000,
+      "unit": "caller sentences (primary) and whole turns",
+      "gated": false,
+      "conversations": 1600,
+      "note": "LLM-generated English telephone dialogue. The benign half is legitimate service calls, which is the population O10 says is missing."
+    }
+  ],
+  "models": [
+    {
+      "name": "intent-classifier",
+      "revision": "intent-classifier-distilbert-v1",
+      "license": "in-repo"
+    },
+    {
+      "name": "behavior-classifier",
+      "revision": "behavior-classifier-distilbert-v1",
+      "license": "in-repo"
+    }
+  ],
+  "results": {
+    "sentences_all_scenarios": {
+      "benign": {
+        "turns": 500,
+        "behaviour_fire_rate": 0.004,
+        "non_normal_intent_rate": 0.034,
+        "no_behaviour_label_at_all_rate": 0.004,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 461,
+          "UNKNOWN": 22,
+          "URGENT_ACTION": 16,
+          "OTP_REQUEST": 1
+        },
+        "top_behaviours": {
+          "NORMAL": 497,
+          "FEAR": 1,
+          "PRESSURE": 1
+        }
+      },
+      "scam": {
+        "turns": 500,
+        "behaviour_fire_rate": 0.098,
+        "non_normal_intent_rate": 0.006,
+        "no_behaviour_label_at_all_rate": 0.022,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 458,
+          "UNKNOWN": 39,
+          "OTP_REQUEST": 3
+        },
+        "top_behaviours": {
+          "NORMAL": 440,
+          "PRESSURE": 20,
+          "REWARD_PROMISE": 13,
+          "FEAR": 12,
+          "URGENCY": 7
+        }
+      }
+    },
+    "whole_turns_for_comparison": {
+      "benign": {
+        "turns": 500,
+        "behaviour_fire_rate": 0.01,
+        "non_normal_intent_rate": 0.028,
+        "no_behaviour_label_at_all_rate": 0.024,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 481,
+          "URGENT_ACTION": 13,
+          "UNKNOWN": 5,
+          "OTP_REQUEST": 1
+        },
+        "top_behaviours": {
+          "NORMAL": 483,
+          "URGENCY": 4,
+          "PRESSURE": 1
+        }
+      },
+      "scam": {
+        "turns": 500,
+        "behaviour_fire_rate": 0.232,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.096,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 497,
+          "UNKNOWN": 3
+        },
+        "top_behaviours": {
+          "NORMAL": 336,
+          "FEAR": 56,
+          "REWARD_PROMISE": 35,
+          "PRESSURE": 20,
+          "URGENCY": 9
+        }
+      }
+    },
+    "per_scenario": {
+      "benign:appointment": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.008,
+        "non_normal_intent_rate": 0.008,
+        "no_behaviour_label_at_all_rate": 0.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 120,
+          "UNKNOWN": 4,
+          "OTP_REQUEST": 1
+        },
+        "top_behaviours": {
+          "NORMAL": 124,
+          "PRESSURE": 1
+        }
+      },
+      "benign:delivery": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.008,
+        "non_normal_intent_rate": 0.128,
+        "no_behaviour_label_at_all_rate": 0.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 104,
+          "URGENT_ACTION": 16,
+          "UNKNOWN": 5
+        },
+        "top_behaviours": {
+          "NORMAL": 125,
+          "FEAR": 1
+        }
+      },
+      "benign:insurance": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.0,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.016,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 112,
+          "UNKNOWN": 13
+        },
+        "top_behaviours": {
+          "NORMAL": 123
+        }
+      },
+      "benign:wrong": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.0,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 125
+        },
+        "top_behaviours": {
+          "NORMAL": 125
+        }
+      },
+      "scam:refund": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.184,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.032,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 116,
+          "UNKNOWN": 9
+        },
+        "top_behaviours": {
+          "NORMAL": 98,
+          "PRESSURE": 20,
+          "URGENCY": 3,
+          "REWARD_PROMISE": 1
+        }
+      },
+      "scam:reward": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.08,
+        "non_normal_intent_rate": 0.024,
+        "no_behaviour_label_at_all_rate": 0.048,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 114,
+          "UNKNOWN": 8,
+          "OTP_REQUEST": 3
+        },
+        "top_behaviours": {
+          "NORMAL": 109,
+          "REWARD_PROMISE": 10
+        }
+      },
+      "scam:ssn": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.08,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.0,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 116,
+          "UNKNOWN": 9
+        },
+        "top_behaviours": {
+          "NORMAL": 115,
+          "FEAR": 7,
+          "URGENCY": 3,
+          "REWARD_PROMISE": 2
+        }
+      },
+      "scam:support": {
+        "turns": 125,
+        "behaviour_fire_rate": 0.048,
+        "non_normal_intent_rate": 0.0,
+        "no_behaviour_label_at_all_rate": 0.008,
+        "median_intent_risk": 0.05,
+        "median_behaviour_risk": 0.05,
+        "top_intents": {
+          "NORMAL_CONVERSATION": 112,
+          "UNKNOWN": 13
+        },
+        "top_behaviours": {
+          "NORMAL": 118,
+          "FEAR": 5,
+          "URGENCY": 1
+        }
+      }
+    },
+    "separation": {
+      "benign_behaviour_fire_rate": 0.004,
+      "scam_behaviour_fire_rate": 0.098,
+      "benign_non_normal_intent_rate": 0.034,
+      "scam_non_normal_intent_rate": 0.006,
+      "behaviour_separation": 0.094,
+      "intent_separation": -0.028,
+      "o10_prediction_holds": false,
+      "intent_head_is_inverted_on_this_population": true,
+      "intent_head_scam_recall_on_speech": 0.006,
+      "heads_separate_legitimacy": false
+    }
+  },
+  "interpretation": "On legitimate service calls the behaviour head fires on 0.004 of caller turns, against 0.098 on scam calls, and a a non-normal intent appears on 0.034 of benign turns against 0.006 of scam turns. O10's prediction that legitimate urgency would be misread does NOT hold at the rate it implies: the gap between the two populations is 0.094 for behaviour and -0.028 for intent - and that gap is an upper bound, because the two halves differ in scenario as well as in legitimacy.",
+  "limitations": [
+    "The corpus is LLM-generated English dialogue, not recorded calls. Generated benign calls may be more uniformly polite than real ones, which would make the false-alarm rate here an UNDER-estimate; they may also carry generator tics that the heads key on. Neither direction can be ruled out without human-recorded calls (O15).",
+    "The scam and benign halves use DISJOINT scenario types (scam: ssn, reward, refund, support; benign: delivery, appointment, insurance, wrong number). The two populations differ in subject as well as in legitimacy, so the separation between them is an upper bound that topic alone could produce. The benign false-alarm rate - the figure O10 needs - does not depend on this.",
+    "English only. It says nothing about Hindi or Hinglish false alarms, and nothing at all about Tamil, which is gated (O11).",
+    "Turns are scored independently, as VIVE scores packets. The corpus label is per CONVERSATION, so a benign conversation's every turn is counted benign. An individual turn inside a benign call is not separately annotated, and no human verified these assignments.",
+    "This is a DIAGNOSTIC population, not a training set. Adding LLM-generated English dialogue to a corpus of human SMS would trade O10 for a provenance problem, and DATA_SPEC 8.3's human-only test-split rule would still forbid it in any test split.",
+    "The heads truncate input at MAX_LENGTH = 96 tokens. The median caller turn in this corpus is 71 words and exceeds that, so the turn-level rows describe the OPENING of each turn rather than the whole of it. The sentence-level rows are unaffected and are the primary measurement, because a sentence is also much closer to the 2-second packet VIVE actually classifies.",
+    "Only the text heads are measured. The fused risk score also depends on context, anti-spoofing and speaker channels, and the temporal layer requires recurrence before escalating (Phase K), so a per-turn false alarm does not map one-to-one onto a user-visible alert."
+  ],
+  "conclusion": "O10 now has the measurement it was missing, and the corpus it named as a required external action turns out to be obtainable and licence-clear, so the blocker's remaining cost is annotation and retraining rather than acquisition. It stays OPEN: nothing here has been added to training, the corpus is English-only and synthetic, and a diagnostic population cannot become a test split under DATA_SPEC 8.3's human-only rule. What changes is that the false-alarm rate on legitimate calls is now a number instead of an expectation, and it can be checked again after any future retraining.",
+  "configuration": {
+    "turns_per_class": 500,
+    "min_turn_chars": 40,
+    "caller_tag": "Suspect:",
+    "language": "en",
+    "scenario_types_overlap": false,
+    "alarm_definition": "a label other than the taxonomy's benign one"
+  },
+  "runtime_sec": 335.1
+}
