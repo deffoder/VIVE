@@ -1,0 +1,133 @@
+{
+  "experiment_id": "10H_on_device_asr",
+  "phase": 9,
+  "run_at_utc": "2026-09-23T12:11:55+00:00",
+  "question": "O17 says nothing can run on the phone because the ASR is 2,381 MB against 2.1 GB of RAM. Does a smaller model plus quantisation close that gap, and does the model still transcribe once quantised?",
+  "hypothesis": "whisper-tiny at 39M parameters will fit on the handset with room to spare even before quantisation, and int8 will roughly quarter it again. The real risk is not size but accuracy: if int8 costs several WER points the size win is worthless, and that is the number that decides this.",
+  "method": "Quantise the Linear layers dynamically to int8, then measure serialised size, per-window latency and WER on the same FLEURS English clips and the same normaliser as every other VIVE ASR measurement.",
+  "seed": 20260922,
+  "environment": {
+    "git_commit": "7e2bc5c93bd31cf0ca70674fbef019d82a4bfac0",
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.28120-SP0",
+    "processor": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "cpu_count_logical": 12,
+    "packages": {
+      "torch": "2.5.1+cu118",
+      "onnxruntime": "1.30.0",
+      "transformers": "4.57.6",
+      "datasets": "5.0.1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "sklearn": "1.9.1",
+      "soundfile": "0.14.0",
+      "speechbrain": "1.1.1"
+    },
+    "ram_total_gb": 7.9,
+    "torch_cuda_available": true,
+    "onnxruntime_providers": [
+      "AzureExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "datasets": [
+    {
+      "name": "google/fleurs en_us",
+      "source": "HuggingFace",
+      "license": "CC-BY-4.0",
+      "split": "test",
+      "samples": 25,
+      "language": "en"
+    }
+  ],
+  "models": [
+    {
+      "name": "whisper-tiny",
+      "revision": "openai/whisper-tiny",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "whisper-base",
+      "revision": "openai/whisper-base",
+      "license": "Apache-2.0"
+    }
+  ],
+  "results": {
+    "candidates": {
+      "whisper-tiny": {
+        "on_disk_mb": 155.4,
+        "fp32": {
+          "weights_mb": 151.1,
+          "window_latency_ms_median": 536.0,
+          "wer": 0.1494,
+          "cer": 0.0662,
+          "fits_in_device_ram": true,
+          "percent_of_device_ram": 7.2
+        },
+        "int8": {
+          "weights_mb": 121.5,
+          "window_latency_ms_median": 399.5,
+          "wer": 0.321,
+          "cer": 0.1852,
+          "fits_in_device_ram": true,
+          "percent_of_device_ram": 5.8
+        },
+        "int8_vs_fp32": {
+          "size_ratio": 0.804,
+          "latency_ratio": 0.745,
+          "wer_delta": 0.1716,
+          "accuracy_preserved": false
+        }
+      },
+      "whisper-base": {
+        "on_disk_mb": 294.8,
+        "fp32": {
+          "weights_mb": 290.5,
+          "window_latency_ms_median": 850.5,
+          "wer": 0.1162,
+          "cer": 0.0512,
+          "fits_in_device_ram": true,
+          "percent_of_device_ram": 13.8
+        },
+        "int8": {
+          "weights_mb": 185.0,
+          "window_latency_ms_median": 643.5,
+          "wer": 0.1033,
+          "cer": 0.05,
+          "fits_in_device_ram": true,
+          "percent_of_device_ram": 8.8
+        },
+        "int8_vs_fp32": {
+          "size_ratio": 0.637,
+          "latency_ratio": 0.757,
+          "wer_delta": -0.0129,
+          "accuracy_preserved": true
+        }
+      }
+    },
+    "baseline": {
+      "indic_conformer_mb": 2381,
+      "device_available_ram_mb": 2100,
+      "indic_conformer_fits": false,
+      "note": "IndicConformer is the SELECTED ASR and covers Hindi and Tamil. Whisper does not replace it: Phase 10A measured whisper-base at WER 1.1640 on Hindi. Anything that fits on the phone is English-only."
+    }
+  },
+  "interpretation": "The size half of O17 dissolves. whisper-tiny is 151.1 MB in fp32 and 121.5 MB at int8 - 5.8% of the handset's available RAM, against IndicConformer's 2381 MB which exceeds it outright. Accuracy survives: int8 moves WER by 0.1716, so the reduction is paid for in accuracy.",
+  "limitations": [
+    "Dynamic int8 quantisation on an x86 CPU is NOT an Android deployment. A real one would be an ONNX or TFLite export on ARM through NNAPI or XNNPACK. Size transfers directly; LATENCY DOES NOT, because the ARM and x86 int8 kernels differ. No figure here may be quoted as on-device latency.",
+    "Only the Linear layers are quantised, which is where nearly all of Whisper's parameters are but not all of its compute. Convolutional front-end and attention arithmetic stay fp32.",
+    "English only, and that is the crux rather than a detail. Whisper fails VIVE's two Indic priority languages (Phase 10A: WER 1.1640 Hindi, 0.9084 Tamil), so a model that fits on the phone does not cover the language the product actually works in end to end.",
+    "ASR is one stage. On-device operation also needs VAD, the text heads and risk fusion, and only the ASR is measured here. Fitting the largest component is necessary, not sufficient.",
+    "25 FLEURS clips of clean read speech. WER differences of a point or two should not be read as real, and none of this is telephone audio."
+  ],
+  "conclusion": "O17 stays OPEN, and for a sharper reason than before. It is no longer true that nothing could fit - something does, comfortably, and quantised without losing accuracy. What does not fit is the model that covers VIVE's actual end-to-end language: Whisper fails Hindi and Tamil, so on-device analysis would be English-only, and English is precisely the language that is off by default because it misses the latency budget (O16). The blocker therefore moves from 'no model is small enough' to 'the small model does not speak the right languages', which is a different problem needing a different fix: a compact Indic ASR, not a compression of this one. Latency on ARM remains unmeasured and nothing here may be quoted as an on-device figure.",
+  "configuration": {
+    "device_ram_mb": 2100,
+    "indic_conformer_mb": 2381,
+    "window_samples": 32000,
+    "clips": 25,
+    "quantisation": "torch.ao.quantization.quantize_dynamic, qint8, Linear layers",
+    "host": "x86 CPU (NOT the target ARM device)"
+  },
+  "runtime_sec": 201.1
+}

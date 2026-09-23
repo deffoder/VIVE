@@ -1030,6 +1030,50 @@ diverge from the design references.
   not a criterion, and nothing in Phases 7-9 required it.
 - **Attempted fixes:** none implemented. Sizes and device capacity were
   measured to establish what is and is not viable, rather than assuming.
+- **Measured 2026-09-23 (Phase H, `models/evaluation/phase9/10H_on_device_asr.json`).**
+  "2,381 MB against 2,100 MB" was stated as arithmetic and left there. It
+  invites three questions that were never asked: is there a smaller model,
+  does quantisation close the gap, and does the model still work once
+  quantised. Dynamic int8 quantisation of the Linear layers, measured against
+  fp32 on the same FLEURS English clips and normaliser as every other VIVE ASR
+  figure:
+
+  | Model | Weights | % of device RAM | 2 s window | en WER |
+  |---|---:|---:|---:|---:|
+  | `indic-conformer-600m` | 2,381 MB | 113% - **does not fit** | 265 ms | no English |
+  | `whisper-tiny` fp32 | 151.1 MB | 7.2% | 550 ms | 0.1494 |
+  | `whisper-tiny` int8 | 121.5 MB | 5.8% | 384 ms | **0.3210** |
+  | `whisper-base` fp32 | 290.5 MB | 13.8% | 862 ms | 0.1162 |
+  | **`whisper-base` int8** | **185.0 MB** | **8.8%** | 671 ms | **0.1033** |
+
+  **The size half of O17 dissolves.** Every candidate fits, the smallest at
+  5.8% of available RAM.
+- **Quantisation is where the expectation broke, and the direction is the
+  surprising one.** It was supposed to be nearly free. On `whisper-base` it
+  is - WER moves by -0.0129, within noise at 25 clips, for a 36% size cut. On
+  `whisper-tiny` it is ruinous: WER more than doubles, 0.1494 to 0.3210.
+
+  The smaller model has less redundancy to absorb int8 rounding, so
+  compressing the *already*-small candidate is what damages it. That is the
+  opposite of the intuition that a smaller model is the safer thing to
+  quantise, and it is why the deployable choice is `whisper-base` at int8
+  (185 MB) rather than `whisper-tiny` at anything. A size figure published
+  without the accuracy beside it would have recommended the wrong model.
+- **The blocker moves rather than closes, and the new form is harder.** What
+  fits does not speak the right language. Whisper fails both Indic priority
+  languages (Phase 10A: Hindi WER 1.1640, Tamil 0.9084), so on-device
+  analysis would be **English-only** - and English is precisely the language
+  that is off by default because it misses the latency budget (O16). O17 is
+  no longer "no model is small enough"; it is "the small model does not speak
+  the right languages", which needs a compact **Indic** ASR rather than a
+  compression of this one.
+- **Not measured, and it matters:** `torch.ao.quantization.quantize_dynamic`
+  on an x86 CPU is not an Android deployment. A real one is an ONNX or TFLite
+  export on ARM through NNAPI or XNNPACK. **Size transfers directly; latency
+  does not**, because the ARM and x86 int8 kernels differ. No latency figure
+  above may be quoted as an on-device number, and ASR is only the largest
+  stage - VAD, the text heads and fusion are unmeasured here, so fitting the
+  ASR is necessary and not sufficient.
 - **What would be involved**, roughly in increasing order of effort: int8
   quantisation of the two text heads (~130 MB each, needs output agreement
   measured against the fp32 reference); ONNX Runtime Mobile integration and
