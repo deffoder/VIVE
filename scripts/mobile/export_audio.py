@@ -156,8 +156,17 @@ def eer(genuine, impostor):
         if best is None or abs(frr - far) < best[0]:
             best = (abs(frr - far), t, frr, far)
     _, t, frr, far = best
+    top_impostor, low_genuine = max(impostor), min(genuine)
+    if low_genuine > top_impostor:
+        # Perfect separation: every score in the gap is an EER point, and the
+        # first one scanned is the lowest genuine score - zero margin on the
+        # genuine side. The middle of the gap is the one choice that favours
+        # neither error on audio this measurement did not see.
+        t = (top_impostor + low_genuine) / 2
     return {"eer": round((frr + far) / 2, 4), "threshold": round(t, 4),
-            "frr_at_threshold": round(frr, 4), "far_at_threshold": round(far, 4)}
+            "frr_at_threshold": round(sum(g < t for g in genuine) / len(genuine), 4),
+            "far_at_threshold": round(sum(i >= t for i in impostor) / len(impostor), 4),
+            "max_impostor": round(top_impostor, 4), "min_genuine": round(low_genuine, 4)}
 
 
 def vad_parity(clips) -> dict:

@@ -36,14 +36,23 @@ def adb(serial: str | None, *args: str, capture: bool = False) -> str:
     return out.stdout
 
 
-def files_named_by(manifest: dict) -> list[tuple[str, int | None]]:
-    """(relative file, expected bytes) for every model a manifest names."""
+def files_named_by(manifest: dict) -> list[tuple[str, int | None, str | None]]:
+    """(relative file, expected bytes, sha256) for every file a manifest names."""
     out = []
+    # Top-level entries with a file (e.g. the text manifest's tokenizer).
+    for value in manifest.values():
+        if isinstance(value, dict) and "file" in value:
+            out.append((value["file"], value.get("bytes"), value.get("sha256")))
     for spec in manifest.get("models", {}).values():
-        out.append((spec["file"], spec.get("bytes")))
-        for extra in spec.get("extra_files", []):
-            out.append((extra["file"], extra.get("bytes")))
+        out.append((spec["file"], spec.get("bytes"), spec.get("sha256")))
     return out
+
+
+def remote_sha256(serial: str | None, path: str) -> str | None:
+    try:
+        return adb(serial, "shell", "sha256sum", path).split()[0]
+    except (subprocess.CalledProcessError, IndexError):
+        return None
 
 
 def remote_size(serial: str | None, path: str) -> int | None:
@@ -53,13 +62,22 @@ def remote_size(serial: str | None, path: str) -> int | None:
         return None
 
 
-def push(serial: str | None, rel: str, expected: int | None) -> None:
+def push(serial: str | None, rel: str, expected: int | None,
+         sha: str | None = None, always: bool = False) -> None:
+    """Pushes unless the device already holds the identical file.
+
+    Identity is the manifest's sha256 when it has one. Size alone is not
+    enough: a re-exported manifest changed a threshold from 0.4121 to 0.4096
+    at the same byte length and the device kept the stale one. Files without
+    a hash (manifests, fixtures) are pushed whenever `always` is set.
+    """
     local = os.path.join(SRC, rel)
     size = os.path.getsize(local)
     if expected is not None and size != expected:
         raise SystemExit(f"{rel}: local file is {size} bytes, manifest says {expected}")
     target = f"{DEST}/{rel}"
-    if remote_size(serial, target) == size:
+    if not always and remote_size(serial, target) == size and (
+            sha is None or remote_sha256(serial, target) == sha):
         print(f"  = {rel} ({size / 1e6:.1f} MB, already present)")
         return
     adb(serial, "shell", "mkdir", "-p", os.path.dirname(target).replace("\\", "/"))
@@ -117,13 +135,14 @@ def main() -> int:
         print(name)
         with open(path, encoding="utf-8") as fh:
             manifest = json.load(fh)
-        for rel, expected in files_named_by(manifest):
-            push(args.serial, rel, expected)
-        push(args.serial, name, None)   # manifest last: it declares the rest present
+        for rel, expected, sha in files_named_by(manifest):
+            push(args.serial, rel, expected, sha)
+        push(args.serial, name, None, always=True)   # last: it declares the rest present
     if args.eval:
         for local in sorted(glob.glob(os.path.join(SRC, "eval", "**", "*"), recursive=True)):
             if os.path.isfile(local):
-                push(args.serial, os.path.relpath(local, SRC).replace("\\", "/"), None)
+                rel = os.path.relpath(local, SRC).replace("\\", "/")
+                push(args.serial, rel, None, always=rel.endswith(".json"))
     print("provisioned")
     return 0
 
