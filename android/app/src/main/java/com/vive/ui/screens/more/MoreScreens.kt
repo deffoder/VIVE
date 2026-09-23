@@ -19,6 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.vive.ui.screens.SessionListViewModel
+import com.vive.data.model.SessionStatus
+import com.vive.core.UiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -147,17 +150,46 @@ private fun ModelInfoCard(model: ModelInfo) {
 
 /** Reports & insights (docs/UI_SPEC.md 4.16). */
 @Composable
-fun ReportsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun ReportsScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SessionListViewModel = viewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     ViveScreenScaffold(title = "Reports", onBack = onBack, modifier = modifier) { padding ->
         ViveScreenBody(padding) {
+            // Counted from the sessions the backend actually holds. This
+            // previously explained that no aggregate was possible "with only
+            // demo sessions available" - which stopped being true once the
+            // app used real repositories, and was an excuse rather than a
+            // measurement either way.
+            val sessions = (state as? UiState.Success)?.data.orEmpty()
+            val analysed = sessions.count { it.status == SessionStatus.ENDED }
+            val elevated = sessions.count {
+                (it.overallRisk?.score ?: 0) >= 35
+            }
             ViveCard {
                 SectionHeader(title = "Aggregate insights")
-                Text(
-                    text = "Trends are computed from completed sessions. With only demo " +
-                        "sessions available, no meaningful aggregate can be reported yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (sessions.isEmpty()) {
+                    Text(
+                        text = "No sessions recorded yet. Aggregates appear " +
+                            "once calls have been analysed.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    InfoRow("Sessions recorded", sessions.size.toString())
+                    InfoRow("Completed", analysed.toString())
+                    InfoRow("Reached MEDIUM or above", elevated.toString())
+                    Text(
+                        text = "Counts only. VIVE has no labelled call data, so " +
+                            "no accuracy, precision or recall can be reported " +
+                            "from these sessions.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+                    )
+                }
             }
         }
     }
@@ -252,8 +284,18 @@ fun ProfileScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         ViveScreenBody(padding) {
             ViveCard {
                 SectionHeader(title = "Account")
-                InfoRow("Name", "Demo user")
+                // There is no account backend, so there is no name to show.
+                // This said "Demo user", which is indistinguishable on screen
+                // from a real signed-in account and is exactly the kind of
+                // invented user-facing data the product must not contain.
                 InfoRow("Signed in", "No")
+                Text(
+                    text = "VIVE has no account service in this build. Sessions " +
+                        "and analysis are stored against this device only.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = ViveThemeTokens.spacing.sm),
+                )
             }
         }
     }
