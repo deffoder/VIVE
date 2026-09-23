@@ -1,0 +1,42 @@
+{
+  "wav2vec2_librispeech": {
+    "model": "facebook/wav2vec2-base-960h",
+    "size_mb": 116.28,
+    "load_ms": 813.4,
+    "latency_2s_median_ms": 235.64,
+    "latency_2s_p95_ms": 253.92,
+    "keyword_detection": {
+      "password": true,
+      "otp": false,
+      "pin": true,
+      "bank": true
+    },
+    "sample_transcript": [
+      "THIS IS YOUR",
+      "THIS IS YOUR BAN COLLIN",
+      "BAND COLLING",
+      "TELL ME YOUR PA",
+      "TELL ME YOUR FASS WERT"
+    ]
+  },
+  "wav2vec2_vakyansh_indian_en": {
+    "model": "Harveenchadha/vakyansh-wav2vec2-indian-english-enm-700",
+    "size_mb": 121.9,
+    "load_ms": 1631.8,
+    "latency_2s_median_ms": 361.88,
+    "latency_2s_p95_ms": 387.07,
+    "keyword_detection": {
+      "password": true,
+      "otp": true,
+      "pin": true,
+      "bank": true
+    },
+    "sample_transcript": [
+      "this is your",
+      "this is your bank calling",
+      "band colling",
+      "tell me your pa",
+      "tell me your password"
+    ]
+  }
+}

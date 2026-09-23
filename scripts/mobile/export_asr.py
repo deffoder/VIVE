@@ -69,8 +69,8 @@ MODELS = {
     "ta": {"dir": "asr-ta-w2v2", "fleurs": "ta_in",
            "source": "Harveenchadha/vakyansh-wav2vec2-tamil-tam-250",
            "license": "MIT"},
-    "en": {"dir": "asr-en-w2v2", "fleurs": "en_us",
-           "source": "facebook/wav2vec2-base-960h", "license": "Apache-2.0"},
+    "en": {"dir": "asr-en-vakyansh", "fleurs": "en_us",
+           "source": "Harveenchadha/vakyansh-wav2vec2-indian-english-enm-700", "license": "MIT"},
 }
 
 

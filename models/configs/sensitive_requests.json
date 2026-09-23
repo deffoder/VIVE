@@ -4,15 +4,15 @@
   "match": "Lower-cased text; Latin terms match on word boundaries, Indic-script terms as substrings.",
   "rules": {
     "OTP_REQUEST": {
-      "secret": ["otp", "one time password", "one-time password", "verification code", "ओटीपी", "ओ टी पी", "ஓடிபி", "ஓ.டி.பி"],
+      "secret": ["otp", "o t p", "o.t.p", "one time password", "one-time password", "verification code", "ओटीपी", "ओ टी पी", "ஓடிபி", "ஓ.டி.பி"],
       "request": ["tell", "share", "give", "send", "read", "say", "provide", "forward", "bata", "batao", "bataiye", "batayiye", "bol", "bolo", "boliye", "de do", "dijiye", "bhej", "बता", "बोल", "दीजिए", "दे दो", "भेज", "शेयर", "சொல்", "அனுப்ப", "கொடு", "பகிர"]
     },
     "PASSWORD_REQUEST": {
-      "secret": ["password", "passcode", "pin", "mpin", "upi pin", "atm pin", "पासवर्ड", "पिन", "கடவுச்சொல்", "பின் நம்பர்"],
+      "secret": ["password", "passcode", "pin", "mpin", "upi pin", "atm pin", "a t m pin", "पासवर्ड", "पिन", "கடவுச்சொல்", "பின் நம்பர்"],
       "request": ["tell", "share", "give", "send", "read", "say", "provide", "enter", "type", "bata", "batao", "bataiye", "bol", "boliye", "dijiye", "बता", "बोल", "दीजिए", "डाल", "शेयर", "சொல்", "அனுப்ப", "கொடு", "பகிர"]
     },
     "CARD_DETAILS_REQUEST": {
-      "secret": ["cvv", "card number", "expiry date", "debit card number", "credit card number", "सीवीवी", "कार्ड नंबर", "कार्ड का नंबर", "கார்டு எண்", "சிவிவி"],
+      "secret": ["cvv", "c v v", "card number", "expiry date", "debit card number", "credit card number", "सीवीवी", "कार्ड नंबर", "कार्ड का नंबर", "கார்டு எண்", "சிவிவி"],
       "request": ["tell", "share", "give", "send", "read", "say", "provide", "bata", "batao", "bataiye", "bol", "boliye", "dijiye", "बता", "बोल", "दीजिए", "शेयर", "சொல்", "அனுப்ப", "கொடு"]
     },
     "REMOTE_ACCESS_REQUEST": {

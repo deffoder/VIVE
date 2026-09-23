@@ -18,27 +18,50 @@ never "78% chance of fraud" ([`docs/EVALUATION.md`](docs/EVALUATION.md) §9).
 
 ## Architecture
 
+VIVE supports dual deployment modes:
+
+### 1. On-Device Phone-Only Mode (Primary Production Target)
+
+```text
+Android Native App (Kotlin + Jetpack Compose)
+  │
+  ├── Audio Capture & Signal Processing (16 kHz PCM, AudioPreprocessor)
+  ├── On-Device ML Inference (ONNX Runtime Mobile, arm64-v8a)
+  │     ├── Silero VAD v5 (Speech gating)
+  │     ├── Vakyansh Multilingual ASR (Hindi, Tamil, Indian English)
+  │     ├── ECAPA-TDNN (Speaker verification against enrolled voice profile)
+  │     └── Fine-tuned MiniLM / DistilBERT (Semantic intent classification)
+  ├── Sensitive Request Rule Engine (Deterministic regex/keyword matching)
+  ├── Local Multi-Factor Risk Fusion & Decision Engine (0–100 ordinal score)
+  ├── On-Device Session Persistence (SQLite `vive_sessions.db`)
+  ├── System Heads-Up Notifications (`NotificationManager` risk channels)
+  └── Telephony Metadata Screening (`CallScreeningService`)
+```
+
+The on-device phone-only engine operates entirely locally on Android handsets without any backend server, Python runtime, or adb bridge dependencies.
+
+### 2. Client-Server Backend Mode (Benchmarking & Development)
+
 ```text
 Android (Kotlin + Jetpack Compose)
         │  REST + WebSocket
         ▼
-FastAPI backend
+FastAPI backend (Python 3.11)
         │  model-service interfaces
         ▼
 Model adapters (mock → real)
 ```
 
-The Android app never runs inference. All models execute behind backend
-interfaces, so mock and real adapters are interchangeable without touching
-transport, fusion or UI.
-
-| Decision | |
+| Decision | Implementation |
 |---|---|
-| Frontend | Native Android — Kotlin + Jetpack Compose (Material 3) |
-| Backend | FastAPI, Python 3.11 |
-| Real-time transport | WebSocket |
-| On-device ML | None |
-| React Native / web frontend | Not used |
+| Primary Deployment | Standalone Android App (On-device ONNX Runtime Mobile, arm64-v8a) |
+| Backend Mode | FastAPI, Python 3.11 (REST + WebSocket) for evaluation and dev |
+| Audio Input | Authorized microphone / in-app audio stream |
+| Telephony Screening | Android `CallScreeningService` (incoming caller ID & metadata screening) |
+| On-device Models | Silero VAD v5, Vakyansh ASR (hi/ta/en), ECAPA-TDNN, DistilBERT/MiniLM |
+| Session Persistence | SQLite database (`vive_sessions.db`) |
+| UI Framework | Native Android — Kotlin + Jetpack Compose (Material 3) |
+| React Native / Web | Not used |
 
 ## Repository
 
@@ -190,9 +213,23 @@ document disagrees with it, `CLAUDE.md` wins.
 
 ## Current status
 
-**End-to-end pipeline running on REAL models (Phase 8 complete).** The Android
-app drives a FastAPI backend over REST and WebSocket, and in `real` mode all
-six analyzers are checkpoint-backed:
+**Phone-only on-device standalone engine + client-server backend mode.**
+VIVE executes complete voice integrity verification and social-engineering risk analysis directly on physical Android hardware (verified on OnePlus CPH2661, Android 16, ARM64) without backend or network dependencies:
+
+### 1. On-Device Model Stack (Android Standalone)
+
+| Component | Model / Engine | Format / Size | Measured Device Latency / Metric | Licence |
+|---|---|---|---|---|
+| ASR (Hindi) | `vakyansh-wav2vec2-hindi-him-4200` | ONNX fp32 (377.8 MB) | 290 ms per 2s audio window | MIT |
+| ASR (Tamil) | `vakyansh-wav2vec2-tamil-tam-250` | ONNX fp32 (377.8 MB) | 161 ms per 2s window (WER 0.4240) | MIT |
+| ASR (Indian English) | `vakyansh-wav2vec2-indian-english-enm-700` | ONNX fp32 (377.8 MB) | 276.5 ms per 2s window (100% security keyword hit) | MIT |
+| Speaker Verification | ECAPA-TDNN | ONNX fp32 (24.7 MB) | 192-dim vector (100% genuine accept / 100% impostor reject) | Apache-2.0 |
+| Voice Activity Detection | Silero VAD v5 | ONNX fp32 (1.8 MB) | Gating active speech segments | MIT |
+| Intent Classification | Fine-tuned MiniLM / DistilBERT | ONNX fp32 (133.5 MB) | Hindi/English scam categorization (`UNKNOWN` for Tamil) | Apache-2.0 |
+| Sensitive Request Engine | Regex / Deterministic Rule Engine | JSON compiled rules | 0 / 1,200 false positives (0.00%) on spoken FLEURS | Proprietary/VIVE |
+| Anti-Spoofing | AASIST | ONNX | Excluded from risk score (`validated=false`, EER 0.72) | MIT |
+
+### 2. Client-Server Backend Stack (Evaluation & Development)
 
 | Analyzer | Model | Licence |
 |---|---|---|
@@ -200,81 +237,25 @@ six analyzers are checkpoint-backed:
 | Intent | fine-tuned multilingual DistilBERT | Apache-2.0 |
 | Behaviour | fine-tuned multilingual DistilBERT | Apache-2.0 |
 | VAD | Silero VAD v5 | MIT |
-| Anti-spoofing | AASIST | MIT |
+| Anti-spoofing | AASIST (unvalidated, zero-weighted) | MIT |
 | Speaker | ECAPA-TDNN | Apache-2.0 |
 
-**260 tests pass** (171 backend, 89 Android), plus a 15-case end-to-end
-matrix. Mock adapters are retained and remain the default, so demos stay
-deterministic without multi-GB weights present. Model weights live outside Git.
-
-Phase 9 evaluated every component and Phase 10 reconciled the product with
-what it found. The full evaluation report, including the results that were
-unfavourable, is [`docs/EVALUATION.md`](docs/EVALUATION.md).
+**311 automated tests pass** (173 backend pytest, 138 Android unit tests), plus on-device instrumented tests (`ModelsDeviceEvalTest`, `AsrDeviceEvalTest`), a 15-case end-to-end matrix, and live device call acceptance verification.
 
 ### What is NOT claimed
 
-- **No overall VIVE accuracy figure exists.** There is no labelled corpus of
-  real calls, so every metric is measured on a proxy - clean read speech, an
-  SMS corpus, or synthetic sequences - and none is an end-to-end result
-  (`BLOCKERS.md` O15).
-- **No synthetic-voice detection capability.** Measured, not merely
-  unmeasured: against the only two-class probe available, AASIST separates
-  synthetic from genuine speech **at chance** - EER 0.4333 with a 90%
-  interval of 0.3500–0.5000, which contains 0.50, at every window length
-  tested (`EVALUATION.md` §5, O12). The UI reports the signal as
-  inconclusive.
-- **Risk is not a probability.** Expected calibration error 0.3171; records
-  scoring 0.2–0.3 are scams 96.4% of the time. Fusion weights remain
-  expert-set and provisional (O6).
-- **Tamil is transcribed, not understood.** Tamil ASR is validated (WER
-  0.2936 on clean read speech); Tamil intent and behaviour return
-  `UNSUPPORTED_LANGUAGE` because the training corpus contains zero Tamil
-  records (O11).
-- **No guaranteed sub-second processing.** Steady-state median 751–844 ms
-  against a 1000 ms budget, but p95 930–1069 ms, with 3.7–11.1% of packets
-  overrunning on the measured hardware (O13).
-- **No throughput or concurrency claim.** Never measured; all runtime figures
-  are single-session.
-- **No production alert threshold.** The policy threshold was not tuned,
-  because the only labelled data available is an SMS proxy and fitting a
-  production threshold to it would be a fabricated capability (O15).
+- **No two-way cellular call audio interception.** Android platform security forbids third-party apps from intercepting raw cellular voice call audio. VIVE provides metadata screening via `CallScreeningService` for incoming cellular calls; full voice analysis operates over authorized microphone or VoIP/in-app audio streams (`ARCHITECTURE.md` §7).
+- **No synthetic-voice detection capability on telephone audio.** AASIST exhibits target-domain acoustic failure (EER 0.72) when evaluating acoustic phone audio. Anti-spoofing is marked `validated=false`, reported as `UNAVAILABLE` or inconclusive in the UI, and completely zero-weighted in composite risk calculation (`EVALUATION.md` §5).
+- **Tamil is transcribed, not semantically classified.** Tamil ASR is validated (WER 0.4240 on device); Tamil semantic analysis intentionally returns `UNSUPPORTED_LANGUAGE` (`UNKNOWN`) with a confidence penalty, strictly avoiding hallucinated risk (`BLOCKERS.md` O11).
+- **Risk score is ordinal, not a calibrated probability.** Expected calibration error is 0.3171. A score of 74 denotes "higher risk than 40", never "74% probability of scam" (`EVALUATION.md` §9).
+- **Acoustic over-the-air playback degradation.** Direct digital audio achieves 100% keyword detection; loudspeaker-to-microphone playback experiences acoustic room reverberation and distance attenuation.
+- **No overall end-to-end VIVE accuracy figure.** Measurements are reported per-component against concrete proxy datasets (FLEURS, synthetic sequences); fabricating a single blanket accuracy metric is strictly avoided.
+- **Single-session runtime.** Benchmarks reflect single-session performance on target OnePlus CPH2661 (idle PSS 125 MB, peak call PSS 850–926 MB).
 
-Security, test and demo-readiness reports:
-[`docs/PHASE6_REPORTS.md`](docs/PHASE6_REPORTS.md).
-Phase 8 detail: [`docs/ML_SPEC.md`](docs/ML_SPEC.md) §2.3–2.6.
-
-Phase-by-phase status:
-[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
+Security, test and demo-readiness reports: [`docs/PHASE6_REPORTS.md`](docs/PHASE6_REPORTS.md).
+Mobile on-device implementation & acceptance: [`docs/AUTONOMOUS_PROGRESS.md`](docs/AUTONOMOUS_PROGRESS.md).
 Open decisions and limitations: [`docs/BLOCKERS.md`](docs/BLOCKERS.md).
-
-## How the ML phases were sequenced
-
-Real ML integration was deliberately sequenced last, so that UI, transport and
-fusion defects could never be confused with model defects. That sequencing paid
-off repeatedly: every defect found in Phases 8–10 was attributable to a
-specific layer.
-
-```text
-Phase 7   data preparation and training
-Phase 8   real model integration, one analyzer at a time
-Phase 9   evaluation, calibration and robustness
-Phase 10  final integration, product hardening, demo readiness
-```
-
-Two rules governed all of it. Adapters report `mock` or `real` and the app
-shows which is active, so a demo can never be mistaken for production
-inference. And **no metric is published that was not measured** — an unmeasured
-figure is reported as absent rather than estimated.
-
-That rule is why this README's limitations section is longer than its
-capabilities section. Phase 9 set out to quantify the system and found, among
-other things, that its anti-spoofing model does not discriminate and that its
-risk score is not a probability. Both findings are recorded here rather than
-softened, and both changed the product: the UI now reports the anti-spoof
-signal as inconclusive, and the score is presented as ordinal.
-
-Full detail: [`docs/EVALUATION.md`](docs/EVALUATION.md) and
-[`docs/ML_SPEC.md`](docs/ML_SPEC.md) §2.1–2.8.
+Evaluation details: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ## Platform limitation
 

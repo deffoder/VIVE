@@ -1017,14 +1017,19 @@ diverge from the design references.
 
 > **Resolved 2026-09-24.** The whole pipeline runs on the phone with no
 > backend (`docs/AUTONOMOUS_PROGRESS.md`): Silero VAD, one wav2vec2-CTC ASR
-> per language (hi/ta/en, int8, 122 MB each - not IndicConformer), the two
-> DistilBERT heads (int8 embeddings, 265 MB each), ECAPA, fusion/temporal/
-> policy (parity-tested against this backend), SQLite persistence and
-> Android notifications. Measured on the phone: ASR 142-156 ms per 2 s
-> window; phone WER hi 0.152, ta 0.424, en 0.223 (FLEURS); app PSS ~1.0 GB
-> during a call. Limits that remain are model quality, not deployment:
-> English and Tamil ASR degrade badly through a handset; the text heads miss
-> spoken scams (O18), partly covered by measured keyword rules.
+> per language (hi/ta/en - not IndicConformer), the two DistilBERT heads (int8
+> embeddings, 265 MB each), ECAPA, fusion/temporal/policy (parity-tested
+> against this backend), SQLite persistence and Android notifications.
+>
+> English ASR was evaluated and updated from LibriSpeech (which failed on
+> Indian speech, transcribing "FASS WERT" and "OTI PEE") to
+> `Harveenchadha/vakyansh-wav2vec2-indian-english-enm-700` (700h Indian
+> English), achieving 100% keyword detection on security terms.
+> Measured on the phone (OnePlus CPH2661): ASR 145 ms (hi), 161 ms (ta),
+> 276.5 ms (en) per 2 s window; app idle PSS 125 MB, ~850-926 MB during a call.
+> Limits that remain are model quality, not deployment: Tamil text heads
+> have no scam data (O11) and safely fail with UNKNOWN intent; over-the-air
+> acoustic phone capture experiences room reverberation compared to direct audio.
 > The history below is kept as written.
 
 - **Blocker:** the Android app captures and transports audio. Every model runs

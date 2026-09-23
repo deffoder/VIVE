@@ -23,6 +23,9 @@ import sys
 import tempfile
 import time
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CALLS = os.path.join(ROOT, "models", "artifacts", "mobile", "calls")
 ENV = dict(os.environ, MSYS_NO_PATHCONV="1")

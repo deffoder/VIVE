@@ -3,14 +3,14 @@
  "text": {
   "texts": 120,
   "load_status": "AVAILABLE",
-  "load_ms": 2240,
+  "load_ms": 2002,
   "intent_top1_agreement_vs_desktop": 1.0,
   "behavior_set_agreement_vs_desktop": 1.0,
   "max_abs_logit_diff": 1e-05,
-  "both_heads_ms_median": 108.0,
-  "both_heads_ms_max": 321,
-  "rss_loaded_mb": 873.2,
-  "rss_increase_mb": 622.4
+  "both_heads_ms_median": 101.0,
+  "both_heads_ms_max": 309,
+  "rss_loaded_mb": 852.8,
+  "rss_increase_mb": 606.7
  },
  "speaker": {
   "embedding_cosine_vs_desktop_min": 1.0,
@@ -29,6 +29,6 @@
   "quality_counts": {
    "GOOD": 60
   },
-  "vad_2s_ms_median": 31.0
+  "vad_2s_ms_median": 29.0
  }
 }

@@ -107,7 +107,10 @@ def ensure_app_dir(serial: str | None) -> None:
     import time
 
     for _ in range(20):
-        owner = adb(serial, "shell", f"stat -c %U {DEST} 2>/dev/null || true").strip()
+        try:
+            owner = adb(serial, "shell", "stat", "-c", "%U", DEST).strip()
+        except subprocess.CalledProcessError:
+            owner = ""
         if owner.startswith("u0_"):
             return
         if owner:

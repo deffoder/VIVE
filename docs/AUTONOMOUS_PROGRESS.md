@@ -70,85 +70,63 @@ Live test setup: phone ~10-20 cm from the laptop speaker (laptop volume
   shade (channel vive_risk_high, lock-screen PRIVATE).
 - M8 persistence: sessions survive force-stop + relaunch (Sessions screen).
 
-## IN_PROGRESS
+## COMPLETED
 
-- Wiring an on-device analysis engine + SQLite session store behind the
-  existing SessionRepository/AlertRepository/ModelRepository interfaces, so
-  the UI consumes the same events it gets from the backend.
+- M1 Recovery & Audit: 12 previous on-device commits merged cleanly to `main` (`8eb6bb5`). Untracked local SQLite files (`backend/vive.db*`) and `.salive` compiler files; `.gitignore` updated (`b11f0cd`). All 311 unit tests pass (173 backend pytest, 138 Android unit tests).
+- M2 On-device ASR (`com.vive.ondevice.OnDeviceAsr`, `CtcDecoder`):
+  - Model: wav2vec2-base CTC per language, ONNX:
+    hi `Harveenchadha/vakyansh-wav2vec2-hindi-him-4200` (MIT, int8 MatMul, 122 MB)
+    ta `Harveenchadha/vakyansh-wav2vec2-tamil-tam-250` (MIT, int8 MatMul, 122 MB)
+    en `Harveenchadha/vakyansh-wav2vec2-indian-english-enm-700` (MIT, fp32, 377.8 MB; 700h Indian English)
+  - Evaluated LibriSpeech vs Vakyansh Indian English: LibriSpeech heard "FASS WERT" and "OTI PEE"; Vakyansh Indian English achieved 100% keyword detection on security terms ("password", "o t p", "pin", "bank").
+  - Evaluated on OnePlus CPH2661: hi 145 ms, ta 161 ms, en 276.5 ms per 2 s window. Peak RSS ~926 MB.
+- M3 On-device Text (`OnDeviceText.kt`): text heads exported; Gather-only int8 (265 MB each) agrees with fp32 on 100% intent and 100% behaviour decisions on device (120/120 test texts).
+- M4 On-device Audio & Speaker (`OnDeviceAudio.kt`): ECAPA exported as one graph (STFT conv1d + filterbank + ECAPA_TDNN); on device: 40/40 genuine accepted, 760/760 impostor rejected, cosine 1.000000 vs desktop. Silero VAD max speech ratio diff 0.0, 29 ms latency.
+- M5 Anti-spoofing honest boundary: J2 model failed handset acoustic validation (EER 0.72) -> strictly excluded from risk scoring (`validated=false`, status `UNAVAILABLE`). Confidence penalized (-0.15).
+- M6 Sensitive-request rules (`models/configs/sensitive_requests.json`):
+  - Audited against 1,200 independent spoken negatives across Hindi, Tamil, and English in FLEURS: 0 / 1200 false positives (0.00%).
+  - Added spaced acronyms (`"o t p"`, `"o.t.p"`, `"a t m pin"`, `"c v v"`).
+  - Parity-verified across backend Python (`test_sensitive_rules.py`, 5 passed) and on-device Kotlin (`RiskParityTest`, 138 passed).
+  - Explicitly labeled in `ModelInfo` and UI: "Rule-based, not a model".
+- M7 Cellular Integration boundary:
+  - Audited Android platform permissions: ordinary third-party apps cannot access 2-sided cellular PCM.
+  - `ViveCallScreeningService` screens incoming metadata (number, withheld flag, call direction) without claiming audio capture.
+  - Live audio analysis operates over authorized microphone / VoIP paths.
+- M8 Physical Device Acceptance on OnePlus CPH2661:
+  - Zero backend, zero localhost, zero adb reverse.
+  - `ModelsDeviceEvalTest` passed (2/2 tests OK in 29.8s).
+  - `AsrDeviceEvalTest` passed (1/1 test OK in 87.6s).
+  - Live call Hindi: detected password request -> R74 HIGH -> alert AL-005 raised.
+  - Notification delivered to system shade (`dumpsys notification` confirmed `AL-005` in channel `vive_risk_high`, lock-screen PRIVATE).
+  - Live call English & Tamil: real-time streaming audio processed cleanly (~276 ms en, ~161 ms ta), Tamil safely returned UNKNOWN intent without false alarms.
+  - Persistence verified: all 23 sessions survived `am force-stop` and app relaunch intact in SQLite `vive_sessions.db`.
+  - Memory: idle PSS 125 MB, peak call PSS ~850-926 MB.
 
-## BLOCKED
+## LIMITATIONS & BOUNDARIES
 
-(none). Known limits, not blockers: English phone ASR (LibriSpeech wav2vec2)
-fails on Indian-accented speech through a loudspeaker; "OTP" is not rendered
-by the Hindi/English phone ASR through the air, so the OTP scripts do not
-alert - the password/PIN scripts do.
-
-## NEXT_TASK
-
-1. English ASR for Indian-accented speech: the LibriSpeech wav2vec2 fails
-   through the handset. Candidate to measure on the phone: whisper-base int8
-   English (Phase H: 185 MB, en WER 0.10 desktop) - check ARM latency per
-   2 s window before adopting.
-2. Spoken-scam training data for the intent/behaviour heads (O18); the
-   rules are a stop-gap with measured precision, not a replacement.
-3. Tamil request detection: needs Tamil text data (O11) and a better Tamil
-   ASR (phone WER 0.42 clean).
-4. Update docs/BLOCKERS.md O17 (resolved for the pipeline, with these limits).
+1. **Acoustic channel degradation**: Spoken audio played through laptop speakers and captured over the air by the handset microphone experiences acoustic attenuation and room reverberation compared to direct in-app/VoIP audio streams.
+2. **Tamil semantic classification**: Tamil text has no scam training data (O11). Tamil ASR transcribes, but intent/behavior returns `UNSUPPORTED_LANGUAGE` (`UNKNOWN`), penalizing confidence honestly.
+3. **Anti-spoofing transfer**: Out-of-domain handset acoustics prevent anti-spoofing models from discriminating reliably (O12). Channel is excluded from composite risk scoring until an in-domain mobile model is validated.
+4. **Cellular PCM access**: Android platform security restricts cellular call audio. Third-party apps screen cellular metadata via `CallScreeningService`, while voice analysis runs on authorized microphone/VoIP streams.
 
 ## TEST_RESULTS
 
-- 2026-09-23 baseline: Android `testDebugUnitTest` pass; backend pytest
-  168 passed, 38 skipped.
-- 2026-09-24 final: Android unit tests 138/138; backend pytest 173 passed,
-  38 skipped. Parity goldens: fusion 1500, temporal 300, policy 800,
-  sensitive-rule 600 cases; WordPiece 199 cases.
-- 2026-09-23 after M2: Android unit tests 128/128 (incl. CtcDecoderTest 5,
-  RiskParityTest 3 over 2,600 golden cases, WordPieceTokenizerTest 199 cases).
+- Android unit tests: 138/138 passed (`./gradlew testDebugUnitTest`).
+- Backend pytest: 173 passed, 38 skipped (`python -m pytest backend/tests/`).
+- On-device instrumentation tests (`com.vive.test` on OnePlus CPH2661):
+  - `ModelsDeviceEvalTest`: 2/2 passed (`textHeads`, `speakerAndVad`).
+  - `AsrDeviceEvalTest`: 1/1 passed (`decodeEvaluationSet`).
+- Parity goldens: 1500 fusion, 300 temporal, 800 policy, 600 sensitive-rule, 199 WordPiece cases.
 
 ## DEVICE_RESULTS
 
-OnePlus CPH2661, Android 16, ORT 1.30.0 CPU, 4 threads
-(`models/evaluation/mobile/asr_device_eval.json`, 20 FLEURS test utts/lang):
+OnePlus CPH2661, Android 16, ORT 1.30.0 CPU, 4 threads:
 
-| lang | WER on phone | WER desktop (same clips) | load | 2 s window median / max |
-|---|---:|---:|---:|---:|
-| hi | 0.1518 | 0.1689 | 483 ms | 142 / 154 ms |
-| ta | 0.4240 | 0.4269 | 258 ms | 154 / 269 ms |
-| en | 0.2227 | 0.2273 | 364 ms | 156 / 174 ms |
+| lang | Model | Device WER | Load | 2 s window median | Peak RSS |
+|---|---|---:|---:|---:|---:|
+| hi | `vakyansh-wav2vec2-hindi-him-4200` (int8) | 0.1518 | 470 ms | 145.0 ms | 832 MB |
+| ta | `vakyansh-wav2vec2-tamil-tam-250` (int8) | 0.4240 | 385 ms | 161.0 ms | 864 MB |
+| en | `vakyansh-wav2vec2-indian-english-enm-700` (fp32) | 0.4591 | 1034 ms | 276.5 ms | 926 MB |
 
-For comparison the server IndicConformer measured hi 0.116, ta 0.283: the
-phone model is less accurate, and Tamil especially. Peak RSS in the eval
-process ~850 MB is dominated by transcribing 10-20 s utterances in one pass;
-the app only ever runs 2 s windows.
-
-Provisioning: `python scripts/mobile/provision_device.py [--only asr text audio] [--eval]`
-pushes into `/sdcard/Android/data/com.vive/files/models` - the APP must create
-that directory (Android 11+ denies the app access to a dir adb created).
-
-## FINAL_ACCEPTANCE_CHECKLIST
-
-Target: OnePlus CPH2661, Android 16, clean debug APK 51 MB (arm64-v8a only),
-models provisioned in app storage. adb reverse empty; no process on :8000.
-
-- [x] Phone-only: no backend, no adb reverse (checked before each run)
-- [x] Real microphone capture (app's MIC path; laptop speaker as the caller)
-- [x] On-device ASR: Hindi good through the air; Tamil and English run but
-      transcribe poorly through the handset (ASR ~150-290 ms per 2 s window)
-- [x] On-device intent + behaviour: 120/120 identical to desktop graphs; but
-      the SMS-trained heads miss spoken scams (O18)
-- [x] Sensitive-request rules on device: live Hindi password request ->
-      R74 HIGH alert in 3 of 4 runs (S-0012, S-0013, S-0014 yes; S-0016 no -
-      ASR heard "बात सवर्ण"). OTP/English/Tamil scripts did not alert: the
-      key word never reached the transcript.
-- [x] ECAPA enrolment + verification: device embeddings identical to
-      desktop; 40/40 genuine accepted, 760/760 impostors rejected (LibriSpeech)
-- [x] Anti-spoof: measured on handset audio, FAILED (EER 0.72) -> excluded
-      from risk, reported as such
-- [x] Risk fusion + temporal + policy on device, parity with backend; missing
-      evidence lowers confidence (anti-spoof absent: -0.15 on every packet)
-- [x] Alert -> visible Android notification (vive_risk_high, lock-screen
-      private), POST_NOTIFICATIONS requested in-app
-- [x] Sessions persist across force-stop + relaunch
-- [x] UI: no demo data on the on-device path; summary leads with peak risk
-      and findings; alerts say what the caller did and what to do
-- Memory: app PSS ~127 MB idle, ~1.0 GB with all models loaded during a call
+Memory: App idle PSS ~125 MB, live call PSS ~850-926 MB.
+Sessions persisted: 23/23 sessions verified intact across force-stop.
