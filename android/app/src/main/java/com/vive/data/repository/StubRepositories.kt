@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.emptyFlow
 
 class StubSessionRepository : SessionRepository {
 
-    override suspend fun createSession(sourceType: SourceType): ViveResult<Session> =
+    override suspend fun createSession(sourceType: SourceType, language: String?): ViveResult<Session> =
         ViveResult.Failure(ViveError.AdapterUnavailable(adapter = "backend"))
 
     override suspend fun getSession(sessionId: String): ViveResult<Session> =

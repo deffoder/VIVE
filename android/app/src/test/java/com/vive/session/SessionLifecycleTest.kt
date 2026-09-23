@@ -43,7 +43,7 @@ class SessionLifecycleTest {
             startedAt = "2026-09-23T00:00:00Z",
         )
 
-        override suspend fun createSession(sourceType: SourceType): ViveResult<Session> {
+        override suspend fun createSession(sourceType: SourceType, language: String?): ViveResult<Session> {
             calls += "create:${sourceType.name}"
             return ViveResult.Success(session("VS-TEST", SessionStatus.STREAMING))
         }

@@ -17,6 +17,14 @@ val apiBaseUrl: String = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }.getProperty("VIVE_API_BASE_URL") ?: "http://10.0.2.2:8000"
 
+/**
+ * Where analysis runs. "on-device" (default): every model runs on the phone
+ * and no network is used. "backend": audio is streamed to VIVE_API_BASE_URL.
+ */
+val analysisMode: String = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}.getProperty("VIVE_ANALYSIS_MODE") ?: "on-device"
+
 android {
     namespace = "com.vive"
     compileSdk = 34
@@ -31,6 +39,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "ANALYSIS_MODE", "\"$analysisMode\"")
     }
 
     buildTypes {

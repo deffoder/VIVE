@@ -279,7 +279,7 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
             // thing: with no open socket the UI read "89 analysis windows
             // sent to the backend" while the backend had received none.
             val delivered = runCatching {
-                ServiceLocator.sendAudio(sessionId, packet.pcm)
+                ServiceLocator.submitWindow(sessionId, packet)
             }.getOrDefault(false)
 
             if (delivered) {

@@ -35,7 +35,9 @@ class ViveApplication : Application() {
         // 11+ a directory adb creates under Android/data is not readable by
         // the app, so provisioning pushes into the one made here.
         OnDeviceRuntime.modelDir(this).mkdirs()
-        resolveAdapterMode()
+        ServiceLocator.initOnDevice(this)
+        // On-device mode has no backend to ask; adapters are real by construction.
+        if (!ServiceLocator.onDevice) resolveAdapterMode()
     }
 
     /**
