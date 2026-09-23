@@ -54,9 +54,25 @@ def adb_path() -> str:
 
 ADB = adb_path()
 
+SERIAL = ""
+"""The device every command targets, set once the device list is read.
+
+Without it, adb refuses every command with "more than one device/emulator" the
+moment an emulator is also running - and this script would report those
+refusals as product failures. It is a PHYSICAL acceptance, so an emulator is
+never an acceptable target even when it is the only thing attached.
+"""
+
 
 def adb(*args: str, timeout: int = 120) -> str:
-    result = subprocess.run([ADB, *args], capture_output=True, text=True,
+    # utf-8 with errors="replace", never the console default. `text=True`
+    # decodes with the locale codec, which on this machine is cp1252, and a
+    # dumpsys that contains any non-Latin-1 byte then raises inside a reader
+    # thread. The step that asked for it reported an EMPTY result rather than
+    # an error, so a decoding fault looked exactly like a missing feature.
+    prefix = ["-s", SERIAL] if SERIAL else []
+    result = subprocess.run([ADB, *prefix, *args], capture_output=True,
+                            encoding="utf-8", errors="replace",
                             timeout=timeout)
     return (result.stdout or "") + (result.stderr or "")
 
@@ -131,10 +147,18 @@ def main() -> int:
     devices = adb("devices")
     online = [line.split()[0] for line in devices.splitlines()[1:]
               if line.strip().endswith("device")]
-    if not report.step("a physical device is attached", bool(online),
-                       devices.strip().replace("\n", " | ")):
+    # An emulator has no microphone worth trusting and no telephony stack, so
+    # it cannot satisfy a PHYSICAL acceptance. Select a real handset or fail.
+    physical = [s for s in online if not s.startswith("emulator-")]
+    note = devices.strip().replace(chr(10), " | ")
+    if len(online) > len(physical):
+        note += "  (emulators ignored)"
+    if not report.step("a physical device is attached", bool(physical), note):
         return 1
-    serial = online[0]
+    serial = physical[0]
+    globals()["SERIAL"] = serial
+    if len(physical) > 1:
+        print(f"  several handsets attached; using {serial}")
 
     model = shell("getprop", "ro.product.model").strip()
     release = shell("getprop", "ro.build.version.release").strip()
@@ -158,6 +182,22 @@ def main() -> int:
     report.step("every adapter reports real mode", all_real and bool(adapters),
                 json.dumps(loaded))
 
+    # Mode and STATUS are different claims, and only the second one says the
+    # product works. A bundle with every model failing to load still reports
+    # mode=real - correctly, because it never falls back to mock - so the
+    # check above passed while nothing could run. An acceptance that green-
+    # lights a backend with six LOAD_ERRORs is worse than no acceptance.
+    # NO_REFERENCE counts as loaded: it is the speaker adapter working
+    # correctly with nothing enrolled yet, not a failure to load. Treating it
+    # as broken would push an operator to "fix" the one adapter behaving as
+    # designed.
+    LOADED = {"AVAILABLE", "NO_REFERENCE"}
+    broken = sorted(k for k, v in loaded.items() if v not in LOADED)
+    report.step("every adapter actually loaded", not broken,
+                json.dumps(loaded) if not broken
+                else f"not loaded: {broken} - check the model paths in "
+                     "backend/.env")
+
     print("\n=== screen ===")
     locked = "mDreamingLockscreen=true" in adb("shell", "dumpsys", "window")
     shell("input", "keyevent", "KEYCODE_WAKEUP")
@@ -178,6 +218,14 @@ def main() -> int:
         report.step("APK exists", False, f"not found: {APK}")
         return 1
     install = adb("install", "-r", APK, timeout=600)
+    if "Success" not in install and "VERIFICATION_FAILURE" in install:
+        # Play Protect scans a freshly built APK on first sight and can refuse
+        # the install while it does. It succeeds on a second attempt moments
+        # later, so one retry separates a transient scan from a real refusal
+        # rather than failing the whole acceptance on a race.
+        print("  install refused by verification; retrying once")
+        time.sleep(5)
+        install = adb("install", "-r", APK, timeout=600)
     report.step("APK installed", "Success" in install, install.strip()[-120:])
     adb("reverse", "tcp:8000", "tcp:8000")
 
@@ -186,10 +234,28 @@ def main() -> int:
     shell("am", "force-stop", PACKAGE)
     shell("am", "start", "-n", ACTIVITY)
     time.sleep(6)
-    focused = shell("dumpsys", "activity", "activities")
-    report.step("app is in the foreground", PACKAGE in focused,
-                f"{PACKAGE} present in resumed activities"
-                if PACKAGE in focused else "app not resumed")
+    # topResumedActivity specifically, not "the package appears somewhere in
+    # dumpsys". The loose test passed while a Google Dialer call was focused
+    # and VIVE was merely present as a stopped activity record - so every
+    # UI step after it was driving a screen that was not on top.
+    activities = shell("dumpsys", "activity", "activities")
+    top = ""
+    for line in activities.splitlines():
+        if "topResumedActivity" in line or "mResumedActivity" in line:
+            top = line.strip()
+            break
+    if not top.strip().endswith("}") and "ActivityRecord" not in top:
+        # Some ROMs wrap the record onto the next line.
+        joined = " ".join(activities.split())
+        marker = joined.find("topResumedActivity")
+        top = joined[marker:marker + 160] if marker >= 0 else top
+    on_top = PACKAGE in top
+    report.step("VIVE is the top resumed activity", on_top,
+                top[:150] if top else "no resumed activity reported")
+    if not on_top and "dialer" in top.lower():
+        print("\n  A phone call is in progress on this device. Refusing to "
+              "take the foreground during a live call; run again afterwards.")
+        return 1
 
     # Alert notification channels. The app declared POST_NOTIFICATIONS from
     # the start and used nothing, so an alert raised while the user was in
