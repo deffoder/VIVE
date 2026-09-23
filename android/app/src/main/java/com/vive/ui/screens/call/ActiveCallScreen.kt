@@ -110,6 +110,7 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
     val captureState by viewModel.captureState.collectAsStateWithLifecycle()
     val windowsSent by viewModel.windowsSent.collectAsStateWithLifecycle()
     val windowsDropped by viewModel.windowsDropped.collectAsStateWithLifecycle()
+    val analysisFailed = viewModel.analysisFailures()
 
     var permissionDenied by remember { mutableStateOf(false) }
     val granted = ContextCompat.checkSelfPermission(
@@ -133,6 +134,9 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
                 is CaptureState.Idle -> "Not capturing."
                 is CaptureState.Starting -> "Starting microphone..."
                 is CaptureState.Capturing -> when {
+                    analysisFailed > 0 ->
+                        "Capturing, but $analysisFailed windows failed analysis on this " +
+                            "phone. Results below are incomplete."
                     // Capture running while nothing is analysed looks exactly
                     // like capture working. Say which it is.
                     windowsDropped >= 3 && ServiceLocator.onDevice ->

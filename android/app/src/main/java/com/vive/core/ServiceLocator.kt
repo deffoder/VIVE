@@ -92,6 +92,9 @@ object ServiceLocator {
 
     fun isEnrolled(sessionId: String): Boolean = engine?.isEnrolled(sessionId) ?: false
 
+    /** Windows the on-device engine failed to analyse in this session. */
+    fun failedWindows(sessionId: String): Int = engine?.failedWindows(sessionId) ?: 0
+
     private val service: ViveService by lazy {
         NetworkModule.service(BuildConfig.API_BASE_URL)
     }

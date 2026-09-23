@@ -58,6 +58,16 @@ class OnDeviceEngine(
 
     private val live = ConcurrentHashMap<String, Live>()
 
+    /**
+     * Windows whose analysis threw, per session. Counted and shown, never
+     * only logged: on the phone a regex the JVM accepted threw on every
+     * speech window, and the screen read "53 windows analysed" while none
+     * had been.
+     */
+    private val failures = ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger>()
+
+    fun failedWindows(sessionId: String): Int = failures[sessionId]?.get() ?: 0
+
     private val _events = MutableSharedFlow<ViveEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<ViveEvent> = _events.asSharedFlow()
 
@@ -82,6 +92,7 @@ class OnDeviceEngine(
         val entry = Live(SessionRuntime(session, language), Channel(QUEUE))
         live[id] = entry
         entry.worker = scope.launch {
+            runCatching { analyzers.warmUp(language) }
             for (window in entry.queue) process(entry, window)
         }
         return session
@@ -91,7 +102,9 @@ class OnDeviceEngine(
         val outcome = try {
             pipeline.process(entry.runtime, CtcDecoder.pcmToFloat(window.pcm), window.startSec, window.endSec)
         } catch (e: Exception) {
-            ViveLog.e(TAG, "window failed: ${e::class.simpleName}")
+            ViveLog.e(TAG, "window failed: ${e::class.simpleName}: ${e.message?.take(80)}")
+            failures.getOrPut(entry.runtime.session.sessionId) { java.util.concurrent.atomic.AtomicInteger() }
+                .incrementAndGet()
             return
         } ?: return   // no speech in this window: nothing to record
         store.appendWindow(outcome.packet, outcome.session, outcome.transcript, outcome.alert)

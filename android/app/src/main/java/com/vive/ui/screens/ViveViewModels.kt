@@ -292,6 +292,12 @@ class SessionDetailViewModel(private val sessionId: String) : ViewModel() {
         }
     }
 
+    /**
+     * Windows the on-device engine failed to analyse. Read on each
+     * recomposition, which every accepted window triggers via [windowsSent].
+     */
+    fun analysisFailures(): Int = ServiceLocator.failedWindows(sessionId)
+
     private val _enrolment = MutableStateFlow<String?>(null)
     /** Last enrolment outcome, for the UI. Null means nothing attempted yet. */
     val enrolment: StateFlow<String?> = _enrolment.asStateFlow()

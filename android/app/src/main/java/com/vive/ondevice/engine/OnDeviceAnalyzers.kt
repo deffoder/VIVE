@@ -90,6 +90,20 @@ class OnDeviceAnalyzers(modelDir: File) : Analyzers {
         OnDeviceText.Status.INFERENCE_ERROR -> AnalyzerStatus.INFERENCE_ERROR
     }
 
+    /**
+     * Loading costs ~3 s on the phone (text heads 2.2 s). Done lazily on the
+     * first window, it stalled the queue and the opening seconds of the call
+     * were dropped - measured on the phone. Warm-up runs when the session is
+     * created instead, before the microphone starts.
+     */
+    override fun warmUp(language: String) {
+        vadModel.load()
+        asrModel.load(language)
+        textModel.load()
+        speakerModel.load()
+        spoofModel.load()
+    }
+
     fun close() {
         asrModel.close()
         textModel.close()

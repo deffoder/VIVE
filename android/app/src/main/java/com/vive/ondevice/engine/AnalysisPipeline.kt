@@ -53,6 +53,8 @@ interface Analyzers {
     fun asr(samples: FloatArray, language: String): AsrOut
     fun intent(text: String?, language: String): IntentOut
     fun behavior(text: String?, language: String): BehaviorOut
+    /** Loads everything a session in [language] will use, before its first window. */
+    fun warmUp(language: String) {}
 }
 
 /** Mutable per-session analysis state. Held only while a session is live. */

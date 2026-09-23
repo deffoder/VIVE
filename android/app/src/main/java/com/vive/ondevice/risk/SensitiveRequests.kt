@@ -52,9 +52,21 @@ class SensitiveRequests(config: String) {
             "REMOTE_ACCESS_REQUEST", "MONEY_TRANSFER_REQUEST",
         )
 
-        /** Python: " ".join(text.lower().split()). */
-        fun normalise(text: String): String =
-            text.lowercase().split(Regex("(?U)\\s+")).filter { it.isNotEmpty() }.joinToString(" ")
+        /**
+         * Python: " ".join(text.lower().split()). Split by hand: Android's ICU
+         * regex rejects the `(?U)` flag the JVM accepts, which made every
+         * speech window throw on the phone while the JVM tests passed.
+         */
+        fun normalise(text: String): String {
+            val sb = StringBuilder(text.length)
+            var pendingSpace = false
+            for (c in text.lowercase()) {
+                if (c.isWhitespace()) { pendingSpace = sb.isNotEmpty(); continue }
+                if (pendingSpace) { sb.append(' '); pendingSpace = false }
+                sb.append(c)
+            }
+            return sb.toString()
+        }
 
         private fun isLatin(term: String) = term.all { it.code < 0x250 }
 
