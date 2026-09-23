@@ -76,6 +76,11 @@ android {
         }
     }
 
+    // The sensitive-request rules are ONE file shared with the backend
+    // (models/configs/sensitive_requests.json), packaged as an asset rather
+    // than copied, so the two engines cannot drift apart.
+    sourceSets["main"].assets.srcDir("../../models/configs")
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true

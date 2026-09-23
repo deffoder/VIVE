@@ -21,6 +21,7 @@ import com.vive.data.remote.dto.TranscriptLineDto
 import com.vive.data.remote.dto.WindowDto
 import com.vive.ondevice.risk.RiskFusion
 import com.vive.ondevice.risk.RiskPolicy
+import com.vive.ondevice.risk.SensitiveRequests
 import com.vive.ondevice.risk.TemporalRisk
 
 /**
@@ -61,6 +62,8 @@ class SessionRuntime(
     var nextSeq: Int = 1,
     val temporal: TemporalRisk = TemporalRisk(),
     var reference: FloatArray? = null,
+    /** Previous window's transcript: context for the sensitive-request rules. */
+    var lastTranscript: String? = null,
 )
 
 /** Everything one window produced, ready to persist and emit. */
@@ -76,32 +79,40 @@ data class WindowOutcome(
  * backend's `SessionManager.process_window`, producing the SAME wire DTOs so
  * every screen renders on-device output exactly as it renders server output.
  *
- * One deliberate difference: a window Silero classifies as NO_SPEECH does not
- * run ASR, the text heads, the speaker model or anti-spoofing. On the phone
- * those cost ~0.5 s of CPU per window, and on audio with no speech their
- * outputs carry nothing - fusion caps such a window at 15 either way. Each
- * skipped analyzer reports INSUFFICIENT_AUDIO, never a value.
+ * One deliberate difference: a window Silero classifies as NO_SPEECH produces
+ * NO packet ([process] returns null). The capture side already drops
+ * windows below an energy gate for the same reason; Silero is the better
+ * judge of the ones that pass it. Measured on the first live phone call,
+ * 55 of 84 windows were room noise, each a score-15 / confidence-0.06
+ * packet that buried the speech in the timeline and pulled the smoothed
+ * call risk towards 15 between every sentence. Not analysing silence is
+ * not evidence of safety, so no score is recorded for it at all.
  */
 class AnalysisPipeline(
     private val analyzers: Analyzers,
     private val clock: () -> String,
     private val nextAlertId: () -> String,
+    private val rules: SensitiveRequests? = null,
 ) {
 
-    fun process(rt: SessionRuntime, samples: FloatArray, startSec: Double, endSec: Double): WindowOutcome {
-        val seq = rt.nextSeq++
+    fun process(rt: SessionRuntime, samples: FloatArray, startSec: Double, endSec: Double): WindowOutcome? {
         val lang = rt.language
         val vad = analyzers.vad(samples)
-        val speech = vad.status == AnalyzerStatus.AVAILABLE && vad.hasSpeech
-        val quality = if (vad.status == AnalyzerStatus.AVAILABLE) vad.quality else AudioQuality.NO_SPEECH
-        val skipped = AnalyzerStatus.INSUFFICIENT_AUDIO
+        // A VAD that failed to load is not silence: analyse rather than drop,
+        // so the failure shows on every packet instead of hiding the call.
+        if (vad.status == AnalyzerStatus.AVAILABLE && !vad.hasSpeech) return null
+        val seq = rt.nextSeq++
+        val quality = if (vad.status == AnalyzerStatus.AVAILABLE) vad.quality else AudioQuality.DEGRADED
 
-        val spoof = if (speech) analyzers.antispoof(samples) else ScoreOut(skipped)
-        val speaker = if (speech) analyzers.speaker(samples, rt.reference) else ScoreOut(skipped)
-        val asr = if (speech) analyzers.asr(samples, lang) else AsrOut(skipped)
+        val spoof = analyzers.antispoof(samples)
+        val speaker = analyzers.speaker(samples, rt.reference)
+        val asr = analyzers.asr(samples, lang)
         val text = asr.text.takeIf { asr.status == AnalyzerStatus.AVAILABLE }
         val intent = if (text != null) analyzers.intent(text, lang) else IntentOut(textStatus(asr.status))
         val behavior = if (text != null) analyzers.behavior(text, lang) else BehaviorOut(textStatus(asr.status))
+
+        val rule = rules?.detectInContext(text, rt.lastTranscript)
+        rt.lastTranscript = text
 
         val ctx = rt.session.context
         val fused = RiskFusion.fuse(
@@ -118,6 +129,7 @@ class AnalysisPipeline(
                 behaviors = behavior.labels,
                 callerVerified = ctx.callerVerified,
                 sessionAuthenticated = ctx.sessionAuthenticated,
+                sensitiveRequest = rule?.let { Intent.valueOf(it.label) },
             ),
         )
 

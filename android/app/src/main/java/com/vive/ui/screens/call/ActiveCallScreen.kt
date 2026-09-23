@@ -1,5 +1,7 @@
 package com.vive.ui.screens.call
 
+import com.vive.core.ServiceLocator
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -130,17 +132,23 @@ private fun LiveCaptureCard(viewModel: SessionDetailViewModel) {
             text = when (val state = captureState) {
                 is CaptureState.Idle -> "Not capturing."
                 is CaptureState.Starting -> "Starting microphone..."
-                is CaptureState.Capturing -> if (windowsDropped >= 3) {
-                    // Capture running while nothing reaches the backend looks
-                    // exactly like capture working. Say which it is.
-                    "Capturing, but $windowsDropped windows could not be sent. " +
-                        "Check the connection to the analysis backend."
-                } else {
-                    "Capturing. $windowsSent analysis windows reached the backend."
+                is CaptureState.Capturing -> when {
+                    // Capture running while nothing is analysed looks exactly
+                    // like capture working. Say which it is.
+                    windowsDropped >= 3 && ServiceLocator.onDevice ->
+                        "Capturing, but analysis is behind real time: $windowsDropped " +
+                            "windows in a row were skipped."
+                    windowsDropped >= 3 ->
+                        "Capturing, but $windowsDropped windows could not be sent. " +
+                            "Check the connection to the analysis backend."
+                    ServiceLocator.onDevice ->
+                        "Capturing. $windowsSent windows analysed on this phone."
+                    else -> "Capturing. $windowsSent analysis windows reached the backend."
                 }
                 is CaptureState.Stopping -> "Stopping..."
                 is CaptureState.Completed ->
-                    "Capture ended. $windowsSent windows were sent."
+                    "Capture ended. $windowsSent windows were " +
+                        (if (ServiceLocator.onDevice) "analysed." else "sent.")
                 is CaptureState.Failed -> state.reason
             },
             style = MaterialTheme.typography.bodyMedium,

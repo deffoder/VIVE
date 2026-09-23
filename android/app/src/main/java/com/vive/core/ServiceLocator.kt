@@ -62,7 +62,12 @@ object ServiceLocator {
         prefs = app.getSharedPreferences("vive", Context.MODE_PRIVATE)
         val store = SessionStore(app)
         val a = OnDeviceAnalyzers(OnDeviceRuntime.modelDir(app))
-        val e = OnDeviceEngine(store, a)
+        val rules = runCatching {
+            com.vive.ondevice.risk.SensitiveRequests(
+                app.assets.open(com.vive.ondevice.risk.SensitiveRequests.ASSET).bufferedReader().readText(),
+            )
+        }.getOrNull()
+        val e = OnDeviceEngine(store, a, rules)
         analyzers = a
         engine = e
         onDeviceSessions = OnDeviceSessionRepository(e, store) { analysisLanguage }

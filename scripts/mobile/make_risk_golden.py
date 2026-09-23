@@ -28,6 +28,7 @@ from app.adapters.interfaces import (AntiSpoofResult, AsrResult,  # noqa: E402
                                      SpeakerResult, VadResult)
 from app.risk import policy  # noqa: E402
 from app.risk.fusion import FusionInput, fuse  # noqa: E402
+from app.risk.sensitive import detect_in_context  # noqa: E402
 from app.risk.temporal import TemporalState  # noqa: E402
 from app.schemas.models import (AdapterMode, AnalyzerStatus,  # noqa: E402
                                 AudioQuality, Behavior, Intent,
@@ -56,6 +57,7 @@ def fusion_case(rng):
     bh_status = pick_status(rng)
     behaviors = rng.sample(list(Behavior), rng.randint(0, 3))
     cv, sa = rng.random() < 0.3, rng.random() < 0.5
+    rule = None if rng.random() < 0.6 else rng.choice(list(Intent))
     out = fuse(FusionInput(
         vad=VadResult(status=AnalyzerStatus.AVAILABLE, model_version=V, mode=M, quality=q),
         antispoof=AntiSpoofResult(status=AnalyzerStatus.AVAILABLE if synthetic is not None
@@ -65,14 +67,15 @@ def fusion_case(rng):
         asr=AsrResult(status=asr_status, model_version=V, mode=M, confidence=asr_conf),
         intent=IntentResult(status=it_status, model_version=V, mode=M, label=intent),
         behavior=BehaviorResult(status=bh_status, model_version=V, mode=M, labels=behaviors),
-        caller_verified=cv, session_authenticated=sa))
+        caller_verified=cv, session_authenticated=sa, sensitive_request=rule))
     return {
         "in": {"quality": q.value, "synthetic": synthetic, "speaker_status": sp_status.value,
                "speaker_similarity": sim, "asr_status": asr_status.value,
                "asr_confidence": asr_conf, "intent_status": it_status.value,
                "intent": intent.value, "behavior_status": bh_status.value,
                "behaviors": [b.value for b in behaviors], "caller_verified": cv,
-               "session_authenticated": sa},
+               "session_authenticated": sa,
+               "sensitive_request": rule.value if rule else None},
         "out": {"score": out.risk.score, "level": out.risk.level.value,
                 "confidence": out.risk.confidence, "contributions": out.risk.contributions,
                 "reasons": out.risk.reasons, "ood": out.ood_state.value,
@@ -123,9 +126,31 @@ def policy_case(rng):
                     "reasons": r.reasons}}
 
 
+SENSITIVE_TEXTS = [
+    "please tell me the OTP right now", "your OTP is 482913. Do not share it",
+    "अभी आपके फोन पर एक ओटीपी आया होगा", "कृप्या वह ओटीपी तुरंत बताइए",
+    "உங்கள் OTP எண்ணை உடனே சொல்லுங்கள்", "install anydesk and give me the code",
+    "stop the car", "send money now", "what is your atm pin tell me",
+    "मुझे अपना पासवर्ड बताइए", "CVV number bata do", "never share your pin",
+    "OTP", "tell", "", "the otp", "hello how are you",
+    "नमस्ते कैसे हैं आप", "transfer karo abhi", "कार्ड नंबर दीजिए",
+]
+
+
+def sensitive_cases(rng):
+    cases = []
+    for _ in range(600):
+        prev = rng.choice(SENSITIVE_TEXTS + [None])
+        cur = rng.choice(SENSITIVE_TEXTS + [None])
+        d = detect_in_context(cur, prev)
+        cases.append({"previous": prev, "current": cur, "label": d.label if d else None})
+    return cases
+
+
 def main() -> int:
     rng = random.Random(20260923)
-    data = {"fusion": [fusion_case(rng) for _ in range(1500)],
+    data = {
+            "sensitive": sensitive_cases(rng),"fusion": [fusion_case(rng) for _ in range(1500)],
             "temporal": [temporal_case(rng) for _ in range(300)],
             "policy": [policy_case(rng) for _ in range(800)]}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

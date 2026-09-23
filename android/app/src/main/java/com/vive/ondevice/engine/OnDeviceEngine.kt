@@ -44,6 +44,7 @@ import java.util.concurrent.Executors
 class OnDeviceEngine(
     private val store: SessionStore,
     private val analyzers: Analyzers,
+    rules: com.vive.ondevice.risk.SensitiveRequests? = null,
 ) {
     private val inference = Executors.newSingleThreadExecutor { r -> Thread(r, "vive-inference") }
         .asCoroutineDispatcher()
@@ -51,7 +52,7 @@ class OnDeviceEngine(
 
     private val pipeline = AnalysisPipeline(analyzers, clock = ::now, nextAlertId = {
         "AL-%03d".format(store.next("alert"))
-    })
+    }, rules)
 
     private class Live(val runtime: SessionRuntime, val queue: Channel<AudioPacket>, var worker: Job? = null)
 
@@ -92,7 +93,7 @@ class OnDeviceEngine(
         } catch (e: Exception) {
             ViveLog.e(TAG, "window failed: ${e::class.simpleName}")
             return
-        }
+        } ?: return   // no speech in this window: nothing to record
         store.appendWindow(outcome.packet, outcome.session, outcome.transcript, outcome.alert)
         val id = outcome.session.sessionId
         _events.emit(ViveEvent.PacketNew(id, outcome.packet.seq ?: 0, outcome.packet.toDomain()))

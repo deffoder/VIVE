@@ -29,6 +29,7 @@ object RiskFusion {
     val INFLUENCE = mapOf(
         "synthetic" to 0.45, "intent" to 0.72, "behavior" to 0.45,
         "context" to 0.22, "speaker_consistency" to 0.30,
+        "sensitive_request" to 0.72,
     )
 
     const val SYNTHETIC_ONLY_CEILING = 64
@@ -62,6 +63,8 @@ object RiskFusion {
         val behaviors: List<Behavior>,
         val callerVerified: Boolean,
         val sessionAuthenticated: Boolean,
+        /** Rule-based detector's finding ([SensitiveRequests]); its own channel. */
+        val sensitiveRequest: Intent? = null,
     )
 
     data class Output(
@@ -109,17 +112,25 @@ object RiskFusion {
             contributions["speaker_consistency"] = round4(d.speakerSimilarity)
         }
 
+        var ruleRisk = 0.0
+        if (d.sensitiveRequest != null) {
+            ruleRisk = INTENT_RISK[d.sensitiveRequest] ?: 0.10
+            contributions["sensitive_request"] = round4(ruleRisk)
+            reasons += "Caller asked for ${humanise(d.sensitiveRequest.name).lowercase()} (keyword rule)"
+        }
+
         val parts = linkedMapOf("context" to context)
         if (d.intentStatus == AnalyzerStatus.AVAILABLE) parts["intent"] = intentRisk
         if (synthetic != null) parts["synthetic"] = synthetic
         if (behaviorRisk != 0.0) parts["behavior"] = behaviorRisk
         if (speakerRisk != 0.0) parts["speaker_consistency"] = speakerRisk
+        if (ruleRisk != 0.0) parts["sensitive_request"] = ruleRisk
 
         var survival = 1.0
         for ((k, v) in parts) survival *= 1.0 - INFLUENCE.getValue(k) * v
         var score = pyRound((1.0 - survival) * 100)
 
-        val semanticPressure = max(parts["intent"] ?: 0.0, behaviorRisk)
+        val semanticPressure = maxOf(parts["intent"] ?: 0.0, behaviorRisk, ruleRisk)
         if (semanticPressure < 0.4 && score > SYNTHETIC_ONLY_CEILING) {
             score = SYNTHETIC_ONLY_CEILING
             reasons += "Synthetic indicators alone are not treated as fraud"

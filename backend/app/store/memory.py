@@ -49,6 +49,10 @@ class SessionRecord:
     enrolled_at: str | None = None
     enrolment_label: str | None = None
 
+    last_transcript: str | None = None
+    """Previous window's transcript, the context app.risk.sensitive reads
+    alongside the current one. In memory only."""
+
 
 class EventStore(Protocol):
     def create(self, record: SessionRecord) -> None: ...

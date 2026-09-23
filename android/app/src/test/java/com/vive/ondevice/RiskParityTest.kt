@@ -58,6 +58,8 @@ class RiskParityTest {
                     behaviors = input["behaviors"]!!.jsonArray.map { Behavior.valueOf(it.str()) },
                     callerVerified = input["caller_verified"]!!.jsonPrimitive.boolean,
                     sessionAuthenticated = input["session_authenticated"]!!.jsonPrimitive.boolean,
+                    sensitiveRequest = input["sensitive_request"]!!.takeIf { it !is JsonNull }
+                        ?.let { Intent.valueOf(it.str()) },
                 ),
             )
             val msg = "fusion case $i"
@@ -95,6 +97,19 @@ class RiskParityTest {
                     listOf(t.timings.firstAnomalySec, t.timings.firstWarningSec, t.timings.firstHighSec, t.timings.firstCriticalSec),
                 )
             }
+        }
+    }
+
+    @Test
+    fun `sensitive-request rules match the backend`() {
+        val config = java.io.File("../../models/configs/sensitive_requests.json").readText()
+        val rules = com.vive.ondevice.risk.SensitiveRequests(config)
+        golden["sensitive"]!!.jsonArray.forEachIndexed { i, c ->
+            val o = c.jsonObject
+            val prev = o["previous"]!!.takeIf { it !is JsonNull }?.str()
+            val cur = o["current"]!!.takeIf { it !is JsonNull }?.str()
+            val want = o["label"]!!.takeIf { it !is JsonNull }?.str()
+            assertEquals("sensitive case $i: '$prev' | '$cur'", want, rules.detectInContext(cur, prev)?.label)
         }
     }
 

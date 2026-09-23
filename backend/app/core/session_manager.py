@@ -18,9 +18,10 @@ from datetime import UTC, datetime
 from app.adapters.interfaces import AdapterBundle, AudioWindow
 from app.core import ids
 from app.core.errors import session_already_ended, session_not_found
-from app.risk import policy
+from app.risk import policy, sensitive
 from app.risk.fusion import FusionInput, fuse
 from app.schemas.models import (
+    Intent,
     AasistEvidence,
     Alert,
     AnalysisWindow,
@@ -269,6 +270,12 @@ class SessionManager:
         intent = a.intent.analyze(asr.transcript, text_language)
         behavior = a.behavior.analyze(asr.transcript, text_language)
 
+        # Rule-based sensitive-request evidence, over this window and the
+        # previous one's transcript (app/risk/sensitive.py).
+        current_text = asr.transcript if asr.status == AnalyzerStatus.AVAILABLE else None
+        rule = sensitive.detect_in_context(current_text, record.last_transcript)
+        record.last_transcript = current_text
+
         ctx = record.session.context
         fused = fuse(
             FusionInput(
@@ -280,6 +287,7 @@ class SessionManager:
                 behavior=behavior,
                 caller_verified=ctx.caller_verified,
                 session_authenticated=ctx.session_authenticated,
+                sensitive_request=Intent(rule.label) if rule else None,
             )
         )
 
